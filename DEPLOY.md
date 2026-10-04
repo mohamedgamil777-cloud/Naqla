@@ -51,7 +51,7 @@ git push -u origin main
 | Name | Value |
 |------|-------|
 | `DATABASE_URL` | نص الاتصال من Supabase (خطوة 1) |
-| `AUTH_SECRET` | `dMa9tcJiSTfVWrNmjLbGg3YoyAkIhEnDCF7wXRUOx4QvK6ZH` |
+| `AUTH_SECRET` | نص عشوائي طويل (٣٢ حرف على الأقل) — متحطّش قيمة حقيقية في الريبو العام |
 | `ADMIN_PASSCODE` | كلمة سر لوحة الإدارة (اختار واحدة قوية وشاركها مع فريقك بس) |
 
 4. دوس **Deploy** واستنى دقيقتين.
