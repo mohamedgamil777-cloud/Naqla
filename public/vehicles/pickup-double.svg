@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" role="img" aria-label="بيك أب دبل كابينة">
+  <rect width="800" height="480" fill="#dceeec"/>
+  <circle cx="640" cy="120" r="70" fill="#eaf5f3"/>
+  <line x1="60" y1="360" x2="740" y2="360" stroke="#b9d8d4" stroke-width="4"/>
+  <!-- cargo bed -->
+  <rect x="150" y="250" width="230" height="90" rx="10" fill="#0c4744"/>
+  <!-- cabin (double) -->
+  <path d="M380 250 L560 250 Q600 250 610 285 L640 335 L380 335 Z" fill="#12615c"/>
+  <path d="M400 258 L470 258 L470 300 L400 300 Z" fill="#bfe0dc"/>
+  <path d="M485 258 L555 258 Q582 258 588 288 L588 300 L485 300 Z" fill="#bfe0dc"/>
+  <rect x="150" y="330" width="490" height="24" rx="8" fill="#0c4744"/>
+  <!-- wheels -->
+  <circle cx="240" cy="360" r="46" fill="#141719"/><circle cx="240" cy="360" r="20" fill="#8a8f94"/>
+  <circle cx="560" cy="360" r="46" fill="#141719"/><circle cx="560" cy="360" r="20" fill="#8a8f94"/>
+  <rect x="150" y="300" width="30" height="40" fill="#e4832e"/>
+</svg>

@@ -1,0 +1,841 @@
+<title>Naqla — Fleet Rental Architecture</title>
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ground:#F7F5F1; --panel:#FFFFFF; --panel-2:#F1EEE8; --ink:#141719; --ink-2:#3E434A;
+  --muted:#6B7178; --line:#E2DED6; --line-2:#D3CEC3;
+  --primary:#12615C; --primary-ink:#0C4744; --primary-soft:#DCEEEC;
+  --accent:#E4832E; --accent-soft:#FBE9D6;
+  --ok:#1F9D57; --ok-soft:#DFF3E7;
+  --booked:#D64545; --booked-soft:#FADEDE;
+  --rented:#E0902B; --rented-soft:#FBEBD3;
+  --reserved:#3B6FB0; --reserved-soft:#DEE9F5;
+  --off:#8A8F94; --off-soft:#EAE9E6;
+  --display:"Archivo",system-ui,sans-serif;
+  --body:"IBM Plex Sans","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --ar:"IBM Plex Sans Arabic","IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --shadow:0 1px 2px rgba(20,23,25,.04),0 4px 16px rgba(20,23,25,.05);
+  --radius:14px;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --ground:#121417; --panel:#1A1D21; --panel-2:#22262B; --ink:#EDEAE3; --ink-2:#C3C7CC;
+    --muted:#9AA0A7; --line:#2C3036; --line-2:#3A3F46;
+    --primary:#4FBDB4; --primary-ink:#8FD8D1; --primary-soft:#123A38;
+    --accent:#F0975098; --accent:#EF9A4E; --accent-soft:#3A2A16;
+    --ok:#4FC07E; --ok-soft:#16311F;
+    --booked:#EA6A6A; --booked-soft:#37191A;
+    --rented:#EBA84E; --rented-soft:#372715;
+    --reserved:#6F9BD6; --reserved-soft:#182636;
+    --off:#8A8F94; --off-soft:#26292E;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#121417; --panel:#1A1D21; --panel-2:#22262B; --ink:#EDEAE3; --ink-2:#C3C7CC;
+  --muted:#9AA0A7; --line:#2C3036; --line-2:#3A3F46;
+  --primary:#4FBDB4; --primary-ink:#8FD8D1; --primary-soft:#123A38;
+  --accent:#EF9A4E; --accent-soft:#3A2A16;
+  --ok:#4FC07E; --ok-soft:#16311F;
+  --booked:#EA6A6A; --booked-soft:#37191A;
+  --rented:#EBA84E; --rented-soft:#372715;
+  --reserved:#6F9BD6; --reserved-soft:#182636;
+  --off:#8A8F94; --off-soft:#26292E;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);line-height:1.6;
+  font-size:16px;-webkit-font-smoothing:antialiased}
+.ar{font-family:var(--ar);direction:rtl;unicode-bidi:isolate}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px}
+a{color:var(--primary);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+/* ---- masthead ---- */
+header.top{border-bottom:1px solid var(--line);background:
+  linear-gradient(180deg,var(--panel),var(--ground));position:relative;overflow:hidden}
+header.top .wrap{padding-block:52px 40px;position:relative;z-index:2}
+.kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);font-weight:600;margin:0 0 18px}
+h1.title{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,60px);line-height:1.02;
+  margin:0;letter-spacing:-.02em;text-wrap:balance;max-width:20ch}
+h1.title span{color:var(--primary)}
+.lede{margin:20px 0 0;max-width:60ch;font-size:18px;color:var(--ink-2)}
+.lede .ar{font-size:19px;font-weight:600;color:var(--ink)}
+.meta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:500;
+  background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 13px;color:var(--ink-2)}
+.pill b{color:var(--ink);font-weight:600}
+.grid-bg{position:absolute;inset:0;z-index:1;opacity:.5;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:34px 34px;mask-image:radial-gradient(circle at 82% 12%,#000,transparent 62%)}
+
+/* ---- layout ---- */
+.shell{display:grid;grid-template-columns:250px minmax(0,1fr);gap:44px;align-items:start;
+  max-width:1180px;margin:0 auto;padding:0 20px}
+nav.toc{position:sticky;top:20px;align-self:start;padding-top:40px}
+nav.toc h4{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 12px;font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:s}
+nav.toc li{counter-increment:s}
+nav.toc a{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:5px 0;color:var(--ink-2);
+  font-size:13.5px;line-height:1.35;border-radius:6px}
+nav.toc a::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);font-size:11px;
+  color:var(--muted);padding-top:2px}
+nav.toc a:hover{color:var(--primary);text-decoration:none}
+main{padding-top:40px;padding-bottom:80px;min-width:0}
+
+/* ---- sections ---- */
+section{scroll-margin-top:20px;padding-block:34px;border-top:1px solid var(--line)}
+section:first-of-type{border-top:0;padding-top:8px}
+.sec-num{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600;letter-spacing:.08em}
+h2{font-family:var(--display);font-weight:700;font-size:clamp(23px,3.4vw,31px);letter-spacing:-.015em;
+  margin:6px 0 4px;line-height:1.1;text-wrap:balance}
+h3{font-family:var(--display);font-weight:600;font-size:19px;margin:30px 0 10px;letter-spacing:-.01em}
+h4{font-size:15px;font-weight:700;margin:20px 0 8px;color:var(--ink)}
+p{margin:12px 0;max-width:70ch}
+.sec-intro{color:var(--ink-2);max-width:70ch}
+ul,ol.body{padding-inline-start:22px;margin:12px 0;max-width:70ch}
+li{margin:6px 0}
+strong{font-weight:600}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel-2);border:1px solid var(--line);
+  padding:1px 6px;border-radius:5px;color:var(--primary-ink)}
+:root[data-theme="dark"] code,:root:not([data-theme="light"]) code{color:var(--primary)}
+
+/* ---- callouts / cards ---- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 22px;box-shadow:var(--shadow)}
+.stack{display:flex;flex-direction:column;gap:14px}
+.cols{display:grid;gap:16px}
+@media(min-width:720px){.cols.two{grid-template-columns:1fr 1fr}.cols.three{grid-template-columns:repeat(3,1fr)}}
+.rec{border-inline-start:3px solid var(--primary);background:var(--primary-soft);
+  border-radius:0 10px 10px 0;padding:12px 16px;margin:14px 0;color:var(--primary-ink);max-width:70ch}
+:root[data-theme="dark"] .rec,:root:not([data-theme="light"]) .rec{color:var(--ink)}
+.rec b{font-weight:700}
+.warn{border-inline-start:3px solid var(--accent);background:var(--accent-soft);
+  border-radius:0 10px 10px 0;padding:12px 16px;margin:14px 0;max-width:70ch}
+.decis{border-inline-start:3px solid var(--booked);background:var(--booked-soft);
+  border-radius:0 10px 10px 0;padding:12px 16px;margin:14px 0;max-width:70ch}
+.tag{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  font-weight:600;padding:3px 8px;border-radius:5px;vertical-align:middle}
+.tag.def{background:var(--ok-soft);color:var(--ok)}
+.tag.pick{background:var(--primary-soft);color:var(--primary-ink)}
+
+/* ---- status chips ---- */
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;
+  padding:3px 10px;border-radius:999px;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.s-ok{background:var(--ok-soft);color:var(--ok)}.s-ok .dot{background:var(--ok)}
+.s-booked{background:var(--booked-soft);color:var(--booked)}.s-booked .dot{background:var(--booked)}
+.s-rented{background:var(--rented-soft);color:var(--rented)}.s-rented .dot{background:var(--rented)}
+.s-reserved{background:var(--reserved-soft);color:var(--reserved)}.s-reserved .dot{background:var(--reserved)}
+.s-off{background:var(--off-soft);color:var(--off)}.s-off .dot{background:var(--off)}
+
+/* ---- tables ---- */
+.scroller{overflow-x:auto;margin:16px 0;border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th,td{text-align:start;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{background:var(--panel-2);font-family:var(--display);font-weight:600;font-size:13px;
+  color:var(--ink);position:sticky;top:0;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+td code{white-space:nowrap}
+.num{font-variant-numeric:tabular-nums;text-align:end}
+
+/* availability board */
+.board{min-width:640px}
+.board td,.board th{text-align:center;padding:7px 8px;border:1px solid var(--line)}
+.board th:first-child,.board td:first-child{text-align:start;font-weight:600;white-space:nowrap;
+  position:sticky;inset-inline-start:0;background:var(--panel);z-index:1}
+.cell{display:block;width:28px;height:22px;border-radius:5px;margin:0 auto}
+.c-ok{background:var(--ok)}.c-booked{background:var(--booked)}.c-rented{background:var(--rented)}
+.c-res{background:var(--reserved)}.c-off{background:var(--off)}
+
+/* code block */
+pre{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 20px;overflow-x:auto;margin:16px 0;box-shadow:var(--shadow);font-size:13px;line-height:1.65}
+pre code{background:none;border:0;padding:0;color:var(--ink);font-size:13px}
+.k{color:var(--accent);font-weight:600}.t{color:var(--primary)}.c{color:var(--muted);font-style:italic}
+:root[data-theme="dark"] .t,:root:not([data-theme="light"]) .t{color:var(--primary-ink)}
+
+/* flow */
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin:16px 0}
+.step{background:var(--panel);border:1px solid var(--line-2);border-radius:11px;padding:11px 14px;
+  min-width:120px;flex:1;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:3px}
+.step .n{font-family:var(--mono);font-size:10.5px;color:var(--accent);font-weight:600}
+.step .ar{font-size:15px;font-weight:600}
+.step small{color:var(--muted);font-size:11.5px}
+.arrow{display:flex;align-items:center;color:var(--line-2);font-size:20px;font-weight:700}
+@media(max-width:600px){.arrow{transform:rotate(90deg)}}
+
+/* screen mock */
+.screens{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-top:16px}
+.screen{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+.screen .bar{background:var(--primary);color:#fff;padding:9px 14px;font-size:12px;font-weight:600;
+  display:flex;justify-content:space-between;font-family:var(--mono);letter-spacing:.03em}
+.screen .body{padding:14px}
+.screen .ar{direction:rtl;text-align:right}
+.screen h5{margin:0 0 4px;font-size:15px;font-weight:700}
+.screen p.sub{margin:0 0 12px;font-size:12.5px;color:var(--muted)}
+.btn{display:block;width:100%;text-align:center;padding:11px;border-radius:11px;font-weight:700;
+  font-size:14px;margin-top:8px;font-family:var(--ar)}
+.btn.pri{background:var(--primary);color:#fff}
+.btn.sec{background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2)}
+.btn.acc{background:var(--accent);color:#231204}
+.pricebox{background:var(--panel-2);border-radius:10px;padding:12px;margin-top:8px;font-size:13px}
+.pricebox .row{display:flex;justify-content:space-between;padding:3px 0;direction:rtl}
+.pricebox .tot{border-top:1px dashed var(--line-2);margin-top:6px;padding-top:8px;font-weight:800;font-size:16px}
+
+/* design tokens swatches */
+.swatches{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.sw{border:1px solid var(--line);border-radius:10px;overflow:hidden;width:104px;background:var(--panel)}
+.sw .chip2{height:46px}
+.sw .lab{padding:6px 8px;font-size:11px}
+.sw .lab b{display:block;font-family:var(--mono);font-size:10px;color:var(--muted);font-weight:500}
+
+/* phase cards */
+.phase{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--panel);box-shadow:var(--shadow)}
+.phase .head{padding:14px 18px;display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid var(--line)}
+.phase .head h3{margin:0;color:#fff}
+.phase.p1 .head{background:var(--primary)}
+.phase.p2 .head{background:var(--reserved)}
+.phase.p3 .head{background:var(--accent)}
+.phase.p3 .head h3{color:#231204}
+.phase.p3 .head .est{color:#231204}
+.phase .est{font-family:var(--mono);font-size:12px;color:#fff;opacity:.9}
+.phase .body{padding:6px 18px 16px}
+.phase ul{margin:10px 0}
+
+footer{border-top:1px solid var(--line);background:var(--panel)}
+footer .wrap{padding-block:30px 44px;color:var(--muted);font-size:13px}
+footer b{color:var(--ink);font-family:var(--display)}
+
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr;gap:0}
+  nav.toc{position:static;padding-top:24px;margin-bottom:0}
+  nav.toc ol{columns:2;column-gap:20px}
+  main{padding-top:20px}
+}
+@media(max-width:480px){nav.toc ol{columns:1}}
+</style>
+
+<header class="top">
+  <div class="grid-bg"></div>
+  <div class="wrap">
+    <p class="kicker">Solution Architecture · Phase 0 · للمراجعة والموافقة</p>
+    <h1 class="title">Naqla — a <span>2-minute</span> pickup &amp; van rental platform for Egypt</h1>
+    <p class="lede">The whole product is built around one sentence:
+      <span class="ar">اختار العربية ← اختار الوقت ← اختار المكان ← شوف السعر ← احجز</span>.
+      This document is the architecture proposal you asked for — stack, schema, booking engine,
+      pricing, screen-by-screen UX, the MVP plan, and the business decisions that need your call.
+      <strong>No code is written yet.</strong></p>
+    <div class="meta-row">
+      <span class="pill"><b>Arabic-first</b> · RTL native</span>
+      <span class="pill"><b>Mobile-first</b> customer app</span>
+      <span class="pill">Server-authoritative <b>pricing &amp; availability</b></span>
+      <span class="pill">DB-level <b>double-booking</b> prevention</span>
+      <span class="pill">EGP · <b>Africa/Cairo</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="toc" aria-label="Contents">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#s1">Product architecture</a></li>
+      <li><a href="#s2">Technology stack</a></li>
+      <li><a href="#s3">Sitemap</a></li>
+      <li><a href="#s4">Customer flow</a></li>
+      <li><a href="#s5">Admin flow</a></li>
+      <li><a href="#s6">Database schema</a></li>
+      <li><a href="#s7">API architecture</a></li>
+      <li><a href="#s8">Availability engine</a></li>
+      <li><a href="#s9">Pricing engine</a></li>
+      <li><a href="#s10">Screen-by-screen UX</a></li>
+      <li><a href="#s11">Design system</a></li>
+      <li><a href="#s12">MVP plan</a></li>
+      <li><a href="#s13">Problems &amp; risks</a></li>
+      <li><a href="#s14">Decisions needed</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 -->
+  <section id="s1">
+    <span class="sec-num">01</span>
+    <h2>Recommended product architecture</h2>
+    <p class="sec-intro">One codebase, one database, three surfaces that share the same server-side truth.
+      The customer never computes a price or an availability — the server does, every time. This is the
+      single most important architectural decision, because it kills the two failure modes that would
+      break the business: <strong>double bookings</strong> and <strong>price tampering</strong>.</p>
+
+    <div class="cols three">
+      <div class="card">
+        <h4>🛻 Customer PWA</h4>
+        <p style="font-size:14px;margin:6px 0">Installable mobile web app. RTL, huge buttons, 8-screen booking wizard, OTP login, my-bookings. Works offline-tolerant, no app-store friction.</p>
+      </div>
+      <div class="card">
+        <h4>🖥️ Admin dashboard</h4>
+        <p style="font-size:14px;margin:6px 0">Responsive (desktop → mobile). Fleet, live availability board, bookings, drivers, pricing, reports, settings. Role-gated.</p>
+      </div>
+      <div class="card">
+        <h4>⚙️ Shared core</h4>
+        <p style="font-size:14px;margin:6px 0">One API + one Postgres. Availability engine, pricing engine, notification &amp; payment abstraction layers. All business rules live here — never in the client.</p>
+      </div>
+    </div>
+
+    <h3>How the pieces talk</h3>
+    <div class="flow">
+      <div class="step"><span class="n">CLIENT</span><b>Customer PWA / Admin</b><small>Next.js React (RSC + client islands)</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="n">SERVER</span><b>Route handlers + Server Actions</b><small>Auth, validation (Zod), rules</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="n">ENGINES</span><b>Availability · Pricing</b><small>Pure, testable, server-only</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="n">DATA</span><b>Postgres + Storage</b><small>Exclusion constraint = source of truth</small></div>
+    </div>
+
+    <div class="cols two" style="margin-top:20px">
+      <div class="card"><h4>Notification abstraction</h4>
+        <p style="font-size:14px;margin:6px 0">A single <code>NotificationProvider</code> interface. MVP uses a no-op/log adapter; SMS, WhatsApp Cloud API, and Web Push are drop-in adapters added later without touching booking code.</p></div>
+      <div class="card"><h4>Payment abstraction</h4>
+        <p style="font-size:14px;margin:6px 0">A single <code>PaymentProvider</code> interface. MVP records cash/manual payments; Paymob / Fawry adapters plug in for Phase 3 with no changes to invoicing.</p></div>
+    </div>
+
+    <div class="rec"><b>Recommendation:</b> a single Next.js app with route groups
+      <code>(customer)</code> and <code>(admin)</code> over one Supabase Postgres. Not microservices —
+      that would be over-engineering for an MVP and would make the availability engine (which must be
+      transactional) harder, not easier.</div>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2">
+    <span class="sec-num">02</span>
+    <h2>Recommended technology stack</h2>
+    <p class="sec-intro">Chosen for: fast Arabic/RTL delivery, a Postgres that can enforce
+      no-overlap at the database level, cheap hosting, and a smooth path from manual-cash MVP to
+      full payments/WhatsApp later.</p>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Layer</th><th>Choice</th><th>Why this, for this project</th></tr></thead>
+        <tbody>
+          <tr><td><b>Framework</b></td><td>Next.js 15 (App Router, TypeScript)</td><td>One app for customer + admin + API. Server Components keep the phone bundle small on Egyptian mobile networks.</td></tr>
+          <tr><td><b>Styling</b></td><td>Tailwind CSS + CSS logical properties</td><td>RTL via <code>dir="rtl"</code> + logical props (<code>margin-inline</code>) — the layout is authored for Arabic, not flipped from English.</td></tr>
+          <tr><td><b>UI primitives</b></td><td>Radix UI (headless) + custom components</td><td>Accessible, unstyled — we build the big-button, low-literacy design system on top. No opinionated theme fighting us.</td></tr>
+          <tr><td><b>Arabic type</b></td><td>IBM Plex Sans Arabic / Cairo</td><td>Designed for Arabic UI at large sizes and high contrast — key for low-vision users.</td></tr>
+          <tr><td><b>Database</b></td><td>PostgreSQL (via Supabase)</td><td><code>btree_gist</code> + <code>EXCLUDE</code> constraint gives race-proof no-double-booking <em>in the database</em>. This is the technical heart of the product.</td></tr>
+          <tr><td><b>ORM / migrations</b></td><td>Drizzle ORM + SQL migrations</td><td>SQL-first; lets us declare exclusion constraints and GiST indexes that Prisma can't express natively.</td></tr>
+          <tr><td><b>Auth</b></td><td>Supabase Auth — phone OTP</td><td>Phone-number + OTP is the whole login story. SMS sender is pluggable (local Egyptian gateway or WhatsApp OTP later).</td></tr>
+          <tr><td><b>File storage</b></td><td>Supabase Storage (private buckets)</td><td>ID / licence / handover photos in private buckets, served via short-lived signed URLs. Camera-capture uploads.</td></tr>
+          <tr><td><b>Realtime</b></td><td>Supabase Realtime</td><td>Admin availability board and dashboard counters update live as bookings land.</td></tr>
+          <tr><td><b>Validation</b></td><td>Zod (shared client + server)</td><td>One schema validates the form and re-validates on the server. Egyptian phone regex lives here.</td></tr>
+          <tr><td><b>i18n</b></td><td>next-intl (ar default, en later)</td><td>Arabic is the base locale, not a translation of English.</td></tr>
+          <tr><td><b>Testing</b></td><td>Vitest · Playwright · pgTAP</td><td>Unit (engines), e2e (booking journey), and SQL tests that literally try to double-book.</td></tr>
+          <tr><td><b>Hosting</b></td><td>Vercel + Supabase</td><td>Zero-ops, generous free/low tiers, Cairo-region latency acceptable. Both scale with the business.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="rec"><b>Recommendation:</b> Next.js + Supabase (Postgres) + Drizzle + Tailwind.
+      A Supabase MCP connector is already available in this workspace, so I can provision the
+      database and run migrations directly once you approve.</div>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3">
+    <span class="sec-num">03</span>
+    <h2>Complete sitemap</h2>
+    <div class="cols two">
+      <div class="card">
+        <h4>Customer PWA <span class="chip s-ok"><span class="dot"></span>public + OTP</span></h4>
+        <pre style="box-shadow:none;margin:8px 0 0"><code>/                     <span class="c">الرئيسية — hero + متاح دلوقتي</span>
+/book                 <span class="c">wizard: نوع → عربية → وقت → مدة</span>
+      ?step=type|vehicle|when|time
+           |duration|place|review
+/vehicle/[id]         <span class="c">تفاصيل العربية</span>
+/confirm/[code]       <span class="c">تم الحجز ✅</span>
+/bookings             <span class="c">حجوزاتي (tabs)</span>
+/bookings/[code]      <span class="c">تفاصيل + مد/تعديل/إلغاء</span>
+/help                 <span class="c">اتصال · واتساب · فرع · FAQ</span>
+/account              <span class="c">حسابي + مستنداتي</span>
+/login                <span class="c">رقم الموبايل + OTP</span></code></pre>
+      </div>
+      <div class="card">
+        <h4>Admin <span class="chip s-reserved"><span class="dot"></span>role-gated</span></h4>
+        <pre style="box-shadow:none;margin:8px 0 0"><code>/admin                <span class="c">dashboard — 10-second fleet view</span>
+/admin/board          <span class="c">availability board (live)</span>
+/admin/bookings       <span class="c">list · create · [id] manage</span>
+/admin/fleet          <span class="c">vehicles · [id] · maintenance</span>
+/admin/categories     <span class="c">vehicle categories</span>
+/admin/drivers        <span class="c">drivers + assignment</span>
+/admin/handover/[id]  <span class="c">تسليم / استلام + damage</span>
+/admin/payments       <span class="c">payments · deposits · invoices</span>
+/admin/pricing        <span class="c">rules · promo codes</span>
+/admin/reports        <span class="c">revenue · utilization</span>
+/admin/branches       <span class="c">locations</span>
+/admin/settings       <span class="c">business rules</span>
+/admin/users          <span class="c">staff + roles</span></code></pre>
+      </div>
+    </div>
+    <p><strong>Customer bottom nav is deliberately 4 items only:</strong>
+      <span class="ar" style="font-weight:600">الرئيسية · حجوزاتي · المساعدة · حسابي</span>.
+      Everything else is reached from within a flow — no menus to get lost in.</p>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4">
+    <span class="sec-num">04</span>
+    <h2>Customer user flow</h2>
+    <p class="sec-intro">The golden path — target under 2 minutes. The customer can browse and see prices
+      before any login; OTP is requested only at the moment of confirming.</p>
+    <div class="flow">
+      <div class="step"><span class="n">01</span><span class="ar">نوع العربية</span><small>Pickup / Van</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="n">02</span><span class="ar">اختار العربية</span><small>available cards + price/hr</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="n">03</span><span class="ar">هتحتاجها إمتى؟</span><small>الآن · اليوم · غداً · يوم</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="n">04</span><span class="ar">اختار الوقت</span><small>green/red slots</small></div>
+    </div>
+    <div class="flow">
+      <div class="step"><span class="n">05</span><span class="ar">كام ساعة؟</span><small>only durations that fit</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="n">06</span><span class="ar">من الفرع / توصيل</span><small>+ driver option</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="n">07</span><span class="ar">مراجعة + السعر</span><small>full breakdown</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="n">08</span><span class="ar">OTP → تأكيد</span><small>booking #, WhatsApp</small></div>
+    </div>
+    <div class="warn"><strong>Branch points handled gracefully:</strong> if a slot is taken between selection and
+      confirm → <span class="ar">العربية دي مش متاحة في الوقت ده</span> + nearest alternatives.
+      If documents are legally required before pickup → collected <em>after</em> booking, never blocking the price view.</div>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5">
+    <span class="sec-num">05</span>
+    <h2>Admin user flow</h2>
+    <div class="cols two">
+      <div class="card">
+        <h4>Daily operating loop</h4>
+        <ol class="body">
+          <li>Open <b>Dashboard</b> → today's bookings, active rentals, revenue in one glance.</li>
+          <li>Open <b>Board</b> → see the whole fleet's hour grid; spot gaps and clashes.</li>
+          <li>Handle incoming bookings → confirm / assign vehicle / assign driver.</li>
+          <li>At pickup → <b>Handover</b>: fuel, mileage, damage photos, customer confirms.</li>
+          <li>At return → record mileage/fuel/new damage → generate final invoice, settle deposit.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h4>Board-driven booking (walk-ins)</h4>
+        <ol class="body">
+          <li>Click an empty slot on the availability board.</li>
+          <li>Choose: <b>Create booking</b> · Block time · Maintenance · View.</li>
+          <li>Enter customer name + phone → duration auto-fills from the slot.</li>
+          <li>Price computed server-side → record cash/deposit → done.</li>
+        </ol>
+        <p style="font-size:13.5px;color:var(--muted);margin-top:10px">The same availability engine serves customer app and admin — one source of truth, no divergence.</p>
+      </div>
+    </div>
+    <h3>Role matrix</h3>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Capability</th><th>Super&nbsp;Admin</th><th>Fleet&nbsp;Mgr</th><th>Booking&nbsp;Agent</th><th>Driver</th><th>Finance</th></tr></thead>
+        <tbody>
+          <tr><td>Vehicles &amp; maintenance</td><td>✅</td><td>✅</td><td>view</td><td>—</td><td>view</td></tr>
+          <tr><td>Bookings (create/edit)</td><td>✅</td><td>✅</td><td>✅</td><td>assigned</td><td>view</td></tr>
+          <tr><td>Availability board</td><td>✅</td><td>✅</td><td>✅</td><td>own</td><td>view</td></tr>
+          <tr><td>Pricing &amp; promo</td><td>✅</td><td>—</td><td>—</td><td>—</td><td>view</td></tr>
+          <tr><td>Payments &amp; invoices</td><td>✅</td><td>—</td><td>record</td><td>—</td><td>✅</td></tr>
+          <tr><td>Reports</td><td>✅</td><td>fleet</td><td>—</td><td>—</td><td>✅</td></tr>
+          <tr><td>Settings &amp; staff</td><td>✅</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section id="s6">
+    <span class="sec-num">06</span>
+    <h2>Database schema</h2>
+    <p class="sec-intro">Relational, normalized, with the no-overlap guarantee enforced by Postgres itself.
+      Every table carries <code>created_at</code> / <code>updated_at</code>; money is stored as integer
+      <strong>piastres</strong> (never floats); all times are <code>timestamptz</code> in Africa/Cairo.</p>
+
+    <h3>Core entities &amp; key relationships</h3>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Table</th><th>Key columns</th><th>Relationships / notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>users</code></td><td>id, phone (unique), name, role, created_at</td><td>One table, <code>role</code> = customer / super_admin / fleet_mgr / agent / driver / finance</td></tr>
+          <tr><td><code>customers</code></td><td>user_id fk, national_id, verified_at</td><td>1-1 profile extension for renters</td></tr>
+          <tr><td><code>branches</code></td><td>id, name, address, geo, working_hours, active</td><td>Multi-branch ready from day 1</td></tr>
+          <tr><td><code>vehicle_categories</code></td><td>id, kind(pickup/van), name, sort</td><td>Admin-editable — <em>not</em> hard-coded</td></tr>
+          <tr><td><code>vehicles</code></td><td>id, category_id, branch_id, name, plate (unique), brand, model, year, color, transmission, fuel, seats, cargo_kg, status, has_driver_option</td><td>fk → category, branch. <code>status</code> = available/reserved/rented/maintenance/inactive</td></tr>
+          <tr><td><code>vehicle_images</code></td><td>id, vehicle_id, url, sort, is_primary</td><td>fk → vehicles</td></tr>
+          <tr><td><code>pricing_rules</code></td><td>id, scope(vehicle/category/global), tier_prices(jsonb), daily, weekend_mult, peak_mult, holiday_dates, min_hours, max_hours, extra_hour, deposit, buffer_min</td><td>Layered: vehicle overrides category overrides global</td></tr>
+          <tr><td><code>bookings</code></td><td>id, code (unique), customer_id, vehicle_id, branch_id, driver_id, <b>period tstzrange</b>, status, with_driver, delivery, price_snapshot(jsonb), created_at</td><td><b>EXCLUDE</b> constraint here — see below</td></tr>
+          <tr><td><code>vehicle_blocks</code></td><td>id, vehicle_id, <b>period tstzrange</b>, reason(maintenance/block)</td><td>Same GiST family — maintenance blocks availability like a booking</td></tr>
+          <tr><td><code>addresses</code></td><td>id, customer_id, area, street, building, floor, apt, landmark, geo</td><td>For delivery bookings</td></tr>
+          <tr><td><code>drivers</code></td><td>id, user_id, national_id, licence_no, licence_expiry, status</td><td>status = available/assigned/on_trip/off</td></tr>
+          <tr><td><code>payments</code></td><td>id, booking_id, method, amount_piastres, kind(rent/deposit), status, provider_ref, idempotency_key(unique)</td><td>Idempotency key blocks duplicate charges</td></tr>
+          <tr><td><code>invoices</code></td><td>id, booking_id, lines(jsonb), total, issued_at</td><td>Final invoice at return</td></tr>
+          <tr><td><code>inspections</code></td><td>id, booking_id, phase(handover/return), fuel, mileage, accessories(jsonb), photos, customer_confirmed_at</td><td>Digital handover/return record</td></tr>
+          <tr><td><code>vehicle_damage</code></td><td>id, vehicle_id, booking_id, location, description, est_cost, customer_charge, photos</td><td>Diagram-marked damage</td></tr>
+          <tr><td><code>promo_codes</code></td><td>id, code, type(pct/fixed), value, scope, min_value, valid_from/to, max_uses, used</td><td>Validated server-side at pricing time</td></tr>
+          <tr><td><code>documents</code></td><td>id, customer_id, type(id/licence), url, expiry, verified</td><td>Private bucket + signed URLs</td></tr>
+          <tr><td><code>notifications</code></td><td>id, user_id, channel, template, payload, status, sent_at</td><td>Written by notification layer; adapters read the queue</td></tr>
+          <tr><td><code>settings</code></td><td>key, value(jsonb)</td><td>All business rules — nothing hard-coded</td></tr>
+          <tr><td><code>audit_logs</code></td><td>id, actor_id, action, entity, before, after, at</td><td>Every admin mutation logged</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The double-booking guarantee (the important part)</h3>
+    <p>Overlap prevention is not application logic that can be raced — it's a database constraint.
+      Two customers clicking "confirm" on the same slot at the same millisecond: only one row commits, the other gets a constraint violation the app translates to <span class="ar">العربية مش متاحة</span>.</p>
+    <pre><code><span class="k">CREATE EXTENSION IF NOT EXISTS</span> btree_gist;
+
+<span class="k">ALTER TABLE</span> bookings <span class="k">ADD CONSTRAINT</span> no_overlap
+  <span class="k">EXCLUDE USING</span> gist (
+     vehicle_id <span class="k">WITH</span> =,
+     period     <span class="k">WITH</span> &amp;&amp;          <span class="c">-- ranges overlap</span>
+  ) <span class="k">WHERE</span> (status <span class="k">IN</span> (<span class="t">'pending'</span>,<span class="t">'confirmed'</span>,<span class="t">'ready'</span>,<span class="t">'active'</span>));
+
+<span class="c">-- vehicle_blocks (maintenance) shares the same idea, so a car in</span>
+<span class="c">-- maintenance is un-bookable for the same structural reason.</span></code></pre>
+    <div class="rec"><b>Why <code>tstzrange</code> + EXCLUDE:</b> it makes the strongest correctness requirement in
+      the whole spec (test cases 52) impossible to violate, even under concurrency, retries, or buggy
+      client code. Buffer time is handled by padding the range on write.</div>
+  </section>
+
+  <!-- 7 -->
+  <section id="s7">
+    <span class="sec-num">07</span>
+    <h2>API architecture</h2>
+    <p class="sec-intro">REST-style route handlers + typed Server Actions. Public read endpoints for
+      browsing/availability; authenticated actions for anything that writes. <strong>Price and availability
+      are always recomputed server-side</strong> — the client's numbers are display-only.</p>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Endpoint</th><th>Method</th><th>Auth</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>/api/categories</code></td><td>GET</td><td>public</td><td>Vehicle types for step 1</td></tr>
+          <tr><td><code>/api/vehicles</code></td><td>GET</td><td>public</td><td>List (filter by kind, branch), paginated</td></tr>
+          <tr><td><code>/api/vehicles/:id</code></td><td>GET</td><td>public</td><td>Detail + images + price tiers</td></tr>
+          <tr><td><code>/api/availability</code></td><td>GET</td><td>public</td><td><code>?vehicle&amp;date</code> → hour slots 🟢🔴⚪</td></tr>
+          <tr><td><code>/api/availability/durations</code></td><td>GET</td><td>public</td><td><code>?vehicle&amp;start</code> → only durations that fit</td></tr>
+          <tr><td><code>/api/quote</code></td><td>POST</td><td>public</td><td>Server-computed price breakdown (never trusted from client)</td></tr>
+          <tr><td><code>/api/auth/otp</code> · <code>/verify</code></td><td>POST</td><td>public</td><td>Send / verify OTP → session</td></tr>
+          <tr><td><code>/api/bookings</code></td><td>POST</td><td>customer</td><td>Create — transactional, re-quotes + re-checks availability, idempotent</td></tr>
+          <tr><td><code>/api/bookings/:code</code></td><td>GET</td><td>owner</td><td>Booking detail</td></tr>
+          <tr><td><code>/api/bookings/:code/extend</code></td><td>POST</td><td>owner</td><td>Check + price extension</td></tr>
+          <tr><td><code>/api/bookings/:code/modify</code></td><td>PATCH</td><td>owner</td><td>Re-check availability before applying</td></tr>
+          <tr><td><code>/api/bookings/:code/cancel</code></td><td>POST</td><td>owner</td><td>Releases the slot automatically</td></tr>
+          <tr><td><code>/api/admin/*</code></td><td>*</td><td>role</td><td>Fleet, board, bookings, drivers, payments, reports, settings</td></tr>
+          <tr><td><code>/api/webhooks/payment</code></td><td>POST</td><td>signed</td><td>Payment provider callback (Phase 3)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="warn"><strong>Every write path is idempotent and re-validated.</strong> <code>POST /bookings</code>
+      carries an idempotency key (double-click safe), re-runs the quote, and relies on the EXCLUDE
+      constraint as the final gate. The client price is only ever compared, never trusted.</div>
+  </section>
+
+  <!-- 8 -->
+  <section id="s8">
+    <span class="sec-num">08</span>
+    <h2>Availability / booking logic</h2>
+    <p class="sec-intro">A pure, testable engine. Given a vehicle and a day, it produces the hour grid;
+      given a start, it produces valid durations; given a request, it either books or explains why not
+      and offers alternatives.</p>
+
+    <h3>Slot generation inputs</h3>
+    <ul>
+      <li>Branch <b>working hours</b> for that weekday (e.g. 08:00–22:00).</li>
+      <li>Existing <b>bookings</b> (active statuses) and <b>vehicle_blocks</b> (maintenance/blocks).</li>
+      <li><b>Buffer time</b> between rentals (padding on each side).</li>
+      <li><b>Min / max rental</b> duration and configured <b>duration options</b>.</li>
+      <li>Vehicle <b>status</b> — inactive/maintenance ⇒ no slots at all.</li>
+      <li><b>Advance-booking window</b> and "الآن" lead-time (can't book 5 minutes ago).</li>
+    </ul>
+
+    <h3>Example — Pickup 01, Sat 20 Sep</h3>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>الوقت</th><th>08–09</th><th>09–10</th><th>10–11</th><th>11–12</th><th>12–13</th><th>13–14</th><th>14–15</th></tr></thead>
+        <tbody><tr>
+          <td>الحالة</td>
+          <td><span class="chip s-ok"><span class="dot"></span>متاح</span></td>
+          <td><span class="chip s-ok"><span class="dot"></span>متاح</span></td>
+          <td><span class="chip s-booked"><span class="dot"></span>محجوز</span></td>
+          <td><span class="chip s-booked"><span class="dot"></span>محجوز</span></td>
+          <td><span class="chip s-ok"><span class="dot"></span>متاح</span></td>
+          <td><span class="chip s-ok"><span class="dot"></span>متاح</span></td>
+          <td><span class="chip s-ok"><span class="dot"></span>متاح</span></td>
+        </tr></tbody>
+      </table>
+    </div>
+    <p>Customer picks <b>10:00</b> → engine offers only <span class="ar" style="font-weight:600">ساعة</span>
+      (10–11 is booked, so 2h/4h/8h are hidden). Picks 12:00 → offers ساعة / ساعتين (up to the next block).</p>
+
+    <h3>Booking transaction (race-proof)</h3>
+    <pre><code><span class="k">BEGIN</span>;
+  <span class="c">-- 1. re-quote server-side from pricing_rules (ignore client price)</span>
+  <span class="c">-- 2. build padded range:  [start - buffer , end + buffer)</span>
+  <span class="k">INSERT INTO</span> bookings (vehicle_id, period, status, price_snapshot, ...)
+  <span class="k">VALUES</span> (:v, tstzrange(:start,:end,<span class="t">'[)'</span>), <span class="t">'pending'</span>, :quote, ...);
+  <span class="c">-- EXCLUDE constraint fires here if anything overlaps → rollback</span>
+<span class="k">COMMIT</span>;</code></pre>
+    <p>On violation the app returns, not an exception, but:
+      <span class="ar" style="font-weight:600">العربية غير متاحة في الوقت ده</span> +
+      <span class="ar" style="font-weight:600">أقرب مواعيد متاحة</span> computed from the same grid.</p>
+
+    <h3>Adjacent bookings &amp; the buffer</h3>
+    <p>Existing 10:00–14:00, new request 14:00–16:00: allowed <em>only if</em> <code>buffer_min = 0</code>.
+      With a 30-min buffer, the earliest adjacent start becomes 14:30. This is a single setting — see decisions.</p>
+  </section>
+
+  <!-- 9 -->
+  <section id="s9">
+    <span class="sec-num">09</span>
+    <h2>Pricing logic</h2>
+    <p class="sec-intro">Layered and fully server-side. The engine takes vehicle + period + options + promo,
+      resolves the applicable rule (vehicle → category → global), and returns an itemized breakdown that
+      the UI simply renders. Nothing is hidden.</p>
+
+    <div class="cols two">
+      <div class="card">
+        <h4>Resolution order</h4>
+        <ol class="body">
+          <li><b>Base rate</b> — pick the best-fit hour tier (1h, 2h, 4h, 8h) or the <b>daily cap</b> for long rentals.</li>
+          <li><b>Multipliers</b> — weekend / peak-hour / holiday, applied to the base.</li>
+          <li><b>Add-ons</b> — driver fee, delivery/pickup fee.</li>
+          <li><b>Discounts</b> — promo code (validated: dates, min value, scope, uses).</li>
+          <li><b>Tax/VAT</b> — if enabled in settings.</li>
+          <li><b>Deposit</b> — shown separately, refundable.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h4>Worked example — <span class="ar">Van + سائق + توصيل</span></h4>
+        <div class="pricebox">
+          <div class="row"><span>سعر العربية (8 ساعات)</span><b>800</b></div>
+          <div class="row"><span>التوصيل</span><b>100</b></div>
+          <div class="row"><span>السائق</span><b>200</b></div>
+          <div class="row"><span>الخصم (كود ترحيب)</span><b style="color:var(--ok)">−50</b></div>
+          <div class="row tot"><span>الإجمالي</span><span>1,050 جنيه</span></div>
+        </div>
+        <p style="font-size:12.5px;color:var(--muted);margin:10px 0 0">Deposit (e.g. 500 جنيه) is displayed under the total, clearly marked refundable.</p>
+      </div>
+    </div>
+    <div class="rec"><b>Anti-tampering:</b> the <code>/quote</code> endpoint is the only source of prices.
+      At booking time the server recomputes and stores an immutable <code>price_snapshot</code> — so later
+      rule changes never alter a confirmed booking, and a hacked client price is simply overwritten.</div>
+  </section>
+
+  <!-- 10 -->
+  <section id="s10">
+    <span class="sec-num">10</span>
+    <h2>Screen-by-screen UX</h2>
+    <p class="sec-intro">Every screen answers three questions: <b>Where am I? · What did I choose? · What do I do now?</b>
+      Big buttons, large photos, minimal typing, one primary action per screen. Below: the 8-screen golden path,
+      rendered as the customer sees it (RTL).</p>
+    <div class="screens">
+      <div class="screen"><div class="bar"><span>1 / 8</span><span>الرئيسية</span></div>
+        <div class="body ar"><h5>محتاج عربية نقل؟</h5><p class="sub">اختار العربية والوقت واحجز بسهولة</p>
+          <div class="btn sec">🛻 بيك أب</div><div class="btn sec">🚐 فان</div></div></div>
+      <div class="screen"><div class="bar"><span>2 / 8</span><span>اختار العربية</span></div>
+        <div class="body ar"><h5>Pickup Double Cab</h5><p class="sub">حمولة حتى 1 طن · <b>250 جنيه / ساعة</b></p>
+          <span class="chip s-ok"><span class="dot"></span>متاحة الآن</span><div class="btn pri">اختار</div></div></div>
+      <div class="screen"><div class="bar"><span>3 / 8</span><span>الوقت</span></div>
+        <div class="body ar"><h5>هتحتاجها إمتى؟</h5>
+          <div class="btn sec">الآن</div><div class="btn sec">اليوم</div><div class="btn sec">غداً</div><div class="btn sec">اختيار يوم</div></div></div>
+      <div class="screen"><div class="bar"><span>4 / 8</span><span>الساعة</span></div>
+        <div class="body ar"><h5>اختار الوقت</h5>
+          <div class="btn sec">10:00 🟢</div><div class="btn sec">11:00 🟢</div>
+          <div class="btn sec" style="opacity:.5">12:00 🔴</div><div class="btn sec">13:00 🟢</div></div></div>
+      <div class="screen"><div class="bar"><span>5 / 8</span><span>المدة</span></div>
+        <div class="body ar"><h5>هتحتاجها كام ساعة؟</h5>
+          <div class="btn sec">ساعة</div><div class="btn sec">ساعتين</div><div class="btn pri">4 ساعات</div><div class="btn sec">8 ساعات</div></div></div>
+      <div class="screen"><div class="bar"><span>6 / 8</span><span>المكان</span></div>
+        <div class="body ar"><h5>هتستلم العربية منين؟</h5>
+          <div class="btn pri">من الفرع</div><div class="btn sec">توصيل لحد عندي</div>
+          <p class="sub" style="margin-top:12px">عايزها بسائق؟</p>
+          <div class="btn sec">العربية فقط</div><div class="btn sec">العربية + سائق</div></div></div>
+      <div class="screen"><div class="bar"><span>7 / 8</span><span>مراجعة</span></div>
+        <div class="body ar"><h5>مراجعة الحجز</h5><p class="sub">Pickup Double Cab · 20 سبتمبر · 10:00 → 14:00 · من الفرع</p>
+          <div class="pricebox"><div class="row tot"><span>الإجمالي</span><span>950 جنيه</span></div></div>
+          <div class="btn acc">تأكيد الحجز</div></div></div>
+      <div class="screen"><div class="bar"><span>8 / 8</span><span>تم ✅</span></div>
+        <div class="body ar"><h5>تم الحجز بنجاح ✅</h5><p class="sub">رقم الحجز <b>#10254</b></p>
+          <div class="btn pri">تفاصيل الحجز</div><div class="btn sec">💬 واتساب</div></div></div>
+    </div>
+    <h3>Supporting states</h3>
+    <div class="cols three">
+      <div class="card"><h4>Empty — حجوزاتي</h4><p style="font-size:13.5px" class="ar">لسه مفيش حجوزات. احجز عربيتك الأولى بسهولة → [ احجز الآن ]</p></div>
+      <div class="card"><h4>Error — conflict</h4><p style="font-size:13.5px" class="ar">العربية دي مش متاحة في الوقت ده. جرب ميعاد تاني → (alternatives)</p></div>
+      <div class="card"><h4>Extend</h4><p style="font-size:13.5px" class="ar">محتاج العربية وقت أطول؟ [ مد الإيجار ] → shows added cost, or suggests alternatives.</p></div>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section id="s11">
+    <span class="sec-num">11</span>
+    <h2>Design system</h2>
+    <p class="sec-intro">Built for low digital literacy: large type, high contrast, colour-coded status,
+      labelled buttons (never icon-only). One component library shared by customer and admin.</p>
+
+    <h4>Palette &amp; status language</h4>
+    <div class="swatches">
+      <div class="sw"><div class="chip2" style="background:#12615C"></div><div class="lab">Primary<b>#12615C</b></div></div>
+      <div class="sw"><div class="chip2" style="background:#E4832E"></div><div class="lab">Accent<b>#E4832E</b></div></div>
+      <div class="sw"><div class="chip2" style="background:#1F9D57"></div><div class="lab">متاح<b>#1F9D57</b></div></div>
+      <div class="sw"><div class="chip2" style="background:#D64545"></div><div class="lab">محجوز<b>#D64545</b></div></div>
+      <div class="sw"><div class="chip2" style="background:#E0902B"></div><div class="lab">مؤجّر<b>#E0902B</b></div></div>
+      <div class="sw"><div class="chip2" style="background:#3B6FB0"></div><div class="lab">محجوزة<b>#3B6FB0</b></div></div>
+      <div class="sw"><div class="chip2" style="background:#8A8F94"></div><div class="lab">غير متاح<b>#8A8F94</b></div></div>
+    </div>
+
+    <div class="cols two">
+      <div class="card"><h4>Type scale</h4>
+        <ul style="font-size:14px">
+          <li><b>Display</b> — Archivo / <span class="ar">Cairo</span>, screen titles 22–28px</li>
+          <li><b>Body</b> — IBM Plex Sans Arabic, min 16px (never below)</li>
+          <li><b>Buttons</b> — 16–18px, weight 700, min height 48px</li>
+          <li>Numbers use tabular figures; Western digits for max readability</li>
+        </ul>
+      </div>
+      <div class="card"><h4>Component inventory</h4>
+        <p style="font-size:14px">Buttons (primary/secondary/accent) · Vehicle card · Booking card · Status badge · Time-slot button · Duration picker · Day picker · Price breakdown · Bottom nav · Modal · Alert · Empty state · Camera-upload · Availability cell.</p>
+      </div>
+    </div>
+    <div class="rec"><b>RTL is authored, not flipped.</b> Layout uses logical properties; icons that imply
+      direction (back arrows, progress) are mirrored; dates and the whole flow read right-to-left by design.</div>
+  </section>
+
+  <!-- 12 -->
+  <section id="s12">
+    <span class="sec-num">12</span>
+    <h2>MVP development plan</h2>
+    <p class="sec-intro">Three phases. Phase 1 is a genuinely usable booking product; 2 and 3 layer on
+      operations and payments. Each phase ends with a test + bug-fix report, per your requirement.</p>
+
+    <div class="stack">
+      <div class="phase p1">
+        <div class="head"><h3>Phase 1 — Core MVP</h3><span class="est">the bookable product</span></div>
+        <div class="body">
+          <ul>
+            <li>DB schema + EXCLUDE constraint + seed data; design system components</li>
+            <li>Customer home · categories · vehicle list &amp; detail</li>
+            <li>Availability engine + hour grid + duration logic</li>
+            <li>8-screen booking wizard · server-side quote · confirmation</li>
+            <li>OTP auth · my-bookings · account</li>
+            <li>Admin: dashboard · fleet mgmt · booking mgmt · availability board</li>
+            <li><b>Exit tests:</b> all §52 conflict cases + price-tamper + double-click</li>
+          </ul>
+        </div>
+      </div>
+      <div class="phase p2">
+        <div class="head"><h3>Phase 2 — Operations</h3><span class="est">run the fleet</span></div>
+        <div class="body">
+          <ul>
+            <li>Drivers + assignment · delivery addresses</li>
+            <li>Digital handover / return · damage diagram · deposits</li>
+            <li>Documents (camera upload, private storage)</li>
+            <li>Notification abstraction + first adapter · modify / extend / cancel flows</li>
+          </ul>
+        </div>
+      </div>
+      <div class="phase p3">
+        <div class="head"><h3>Phase 3 — Growth</h3><span class="est">scale &amp; monetize</span></div>
+        <div class="body">
+          <ul>
+            <li>Online payments (Paymob/Fawry adapter) · WhatsApp Cloud API</li>
+            <li>Promo codes UI · advanced pricing (weekend/peak/holiday)</li>
+            <li>Reports suite · multi-branch UI · customer ratings</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="rec"><b>End-of-phase report</b> (every phase): what was built · what was tested · bugs found ·
+      bugs fixed · remaining issues · next recommended phase — exactly as you specified.</div>
+  </section>
+
+  <!-- 13 -->
+  <section id="s13">
+    <span class="sec-num">13</span>
+    <h2>Problems &amp; risks I identified</h2>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Area</th><th>Issue</th><th>How the architecture handles it</th></tr></thead>
+        <tbody>
+          <tr><td>Concurrency</td><td>Two people book the last slot at once</td><td>DB EXCLUDE constraint — one commits, one gets a friendly retry</td></tr>
+          <tr><td>Price integrity</td><td>Client sends a tampered total</td><td>Server recomputes; stores immutable snapshot</td></tr>
+          <tr><td>Buffer ambiguity</td><td>"Adjacent booking" behaviour undefined in spec</td><td>Single <code>buffer_min</code> setting; padded ranges — see decision #2</td></tr>
+          <tr><td>Daily vs hourly</td><td>When does "8 hours" become "a day"? Overlap in pricing</td><td>Engine picks the cheaper of tier-sum vs daily cap — decision #4</td></tr>
+          <tr><td>"الآن" bookings</td><td>Booking a start time in the past / no prep time</td><td>Configurable lead-time; "الآن" = next valid slot</td></tr>
+          <tr><td>OTP cost/abuse</td><td>SMS spam, OTP costs money</td><td>Rate-limit per phone/IP; WhatsApp OTP as cheaper option later</td></tr>
+          <tr><td>Timezone/DST</td><td>Egypt reintroduced DST — hour math breaks</td><td>All <code>timestamptz</code>; ranges in UTC, displayed Africa/Cairo</td></tr>
+          <tr><td>Low literacy</td><td>Users may not read, may mistype</td><td>Icons+labels, minimal typing, OTP not passwords, confirm screens</td></tr>
+          <tr><td>Cancellations</td><td>Free cancellation abuse / no-shows</td><td>Configurable cancellation policy + optional deposit hold</td></tr>
+          <tr><td>Deposit refunds</td><td>Manual cash deposits are error-prone</td><td>Deposit tracked as its own payment row with status</td></tr>
+          <tr><td>Legal/KYC</td><td>ID/licence rules vary and aren't in scope for me to invent</td><td>Document requirements are configurable settings, not code</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section id="s14">
+    <span class="sec-num">14</span>
+    <h2>Decisions that need your call</h2>
+    <p class="sec-intro">Each has my recommended default so you can approve the whole set with one "yes",
+      or override individually. These are business decisions, not technical ones — but they shape the build.</p>
+
+    <div class="stack">
+      <div class="decis"><b>1 · Login timing.</b> Should customers see prices before logging in?
+        <span class="tag def">Default</span> <b>Yes</b> — browse &amp; see price freely; OTP only at "تأكيد الحجز". Fewer drop-offs.</div>
+      <div class="decis"><b>2 · Buffer between rentals.</b> <span class="tag def">Default</span>
+        <b>30 minutes</b> (cleaning/refuel/return). Adjacent same-minute bookings therefore not allowed. Configurable.</div>
+      <div class="decis"><b>3 · Minimum rental.</b> <span class="tag def">Default</span> <b>2 hours</b>
+        (spec lists 1h durations, but a 1-hour van rental is rarely worth the ops overhead). Easy to set to 1h.</div>
+      <div class="decis"><b>4 · Daily pricing.</b> <span class="tag def">Default</span> engine charges the
+        <b>cheaper of</b> summed hour-tiers vs the daily rate — customer always gets the best price automatically.</div>
+      <div class="decis"><b>5 · Advance booking window.</b> <span class="tag def">Default</span>
+        book up to <b>30 days ahead</b>, and "الآن" means the next slot ≥ <b>1 hour</b> from now.</div>
+      <div class="decis"><b>6 · Cancellation policy.</b> <span class="tag def">Default</span>
+        <b>free until 6 hours before</b> pickup; after that, deposit may be held. Fully configurable text + rule.</div>
+      <div class="decis"><b>7 · Deposit.</b> <span class="tag def">Default</span> <b>enabled, cash on handover</b>,
+        recorded manually in MVP; online hold arrives with payments in Phase 3.</div>
+      <div class="decis"><b>8 · Number display.</b> <span class="tag pick">Recommend</span>
+        <b>Western digits (0–9)</b> for prices/times — measurably more readable for the target users, even in Arabic UI.</div>
+      <div class="decis"><b>9 · OTP channel.</b> <span class="tag def">Default</span> <b>SMS in MVP</b>
+        via a pluggable gateway; add WhatsApp OTP (cheaper) in Phase 3. Which SMS provider do you use today?</div>
+      <div class="decis"><b>10 · Launch branch(es).</b> <span class="tag def">Default</span> build multi-branch,
+        <b>launch with one</b>. I need: branch name, address, working hours.</div>
+      <div class="decis"><b>11 · Seed fleet.</b> To build something real (not mockups), I need your actual
+        vehicles — or I'll seed <b>realistic sample data</b> (2 pickups, 2 vans) you replace later. <span class="tag pick">Recommend the latter to start</span>.</div>
+      <div class="decis"><b>12 · Payments in MVP.</b> <span class="tag def">Default</span> <b>cash / manual only</b>;
+        Paymob or Fawry later. Confirm which gateway you'll want so I shape the adapter.</div>
+    </div>
+
+    <div class="rec" style="margin-top:22px"><b>Next step:</b> reply <b>"approved"</b> to build Phase 1 with
+      these defaults, or tell me which decisions to change. Once approved, I'll provision the Supabase database,
+      apply the schema + EXCLUDE constraint, and start on the customer booking flow — real working code, phase by phase.</div>
+  </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <b>Naqla</b> — Fleet Rental Architecture · Phase 0 proposal · prepared for review.
+    All business rules configurable · money in piastres · times in Africa/Cairo · Arabic-first, RTL-native.
+  </div>
+</footer>

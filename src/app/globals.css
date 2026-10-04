@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+/* ---- Design tokens (architecture §11 design system) ---- */
+@theme {
+  --color-ground: #f7f5f1;
+  --color-panel: #ffffff;
+  --color-panel-2: #f1eee8;
+  --color-ink: #141719;
+  --color-ink-2: #3e434a;
+  --color-muted: #6b7178;
+  --color-line: #e2ded6;
+  --color-line-2: #d3cec3;
+
+  --color-primary: #12615c;
+  --color-primary-ink: #0c4744;
+  --color-primary-soft: #dceeec;
+  --color-accent: #e4832e;
+  --color-accent-ink: #231204;
+  --color-accent-soft: #fbe9d6;
+
+  --color-ok: #1f9d57;
+  --color-ok-soft: #dff3e7;
+  --color-booked: #d64545;
+  --color-booked-soft: #fadede;
+  --color-rented: #e0902b;
+  --color-rented-soft: #fbebd3;
+  --color-reserved: #3b6fb0;
+  --color-reserved-soft: #dee9f5;
+  --color-off: #8a8f94;
+  --color-off-soft: #eae9e6;
+
+  --font-sans: var(--font-cairo), system-ui, "Segoe UI", sans-serif;
+
+  --radius-card: 16px;
+}
+
+html {
+  background: var(--color-ground);
+  color: var(--color-ink);
+}
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* Numbers must be extremely readable (§39). */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Large, obvious focus for accessibility (§39). */
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Buttons never smaller than a comfortable tap target. */
+.tap {
+  min-height: 52px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

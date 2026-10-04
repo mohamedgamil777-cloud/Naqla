@@ -1,0 +1,251 @@
+/** DTOs returned by the data layer — identical shape from either backend. */
+import type { PricingRule } from "@/engines/pricing";
+import type { Quote } from "@/engines/pricing";
+import type { VehicleKind, VehicleStatus, BookingStatus } from "@/lib/constants";
+
+export interface CategoryDTO {
+  id: string;
+  kind: VehicleKind;
+  name: string;
+  sort: number;
+}
+
+export interface VehicleListItem {
+  id: string;
+  name: string;
+  kind: VehicleKind;
+  categoryId: string;
+  categoryName: string;
+  seats: number | null;
+  cargoKg: number | null;
+  status: VehicleStatus;
+  primaryImage: string | null;
+  fromHourlyPiastres: number; // cheapest 1h-equivalent tier for the "من X/ساعة" label
+  branchId: string;
+  branchName: string;
+}
+
+export interface VehicleDetail extends VehicleListItem {
+  brand: string | null;
+  model: string | null;
+  year: number | null;
+  color: string | null;
+  transmission: string | null;
+  fuel: string | null;
+  hasDriverOption: boolean;
+  images: string[];
+  rule: PricingRule;
+}
+
+export interface BranchDTO {
+  id: string;
+  name: string;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  working: { open: number; close: number };
+}
+
+export interface BusyInterval {
+  start: Date;
+  end: Date;
+}
+
+export interface BlockDTO {
+  id: string;
+  vehicleId: string;
+  startsAt: Date;
+  endsAt: Date;
+  reason: "maintenance" | "block";
+  note: string | null;
+}
+
+export interface BlockInput {
+  vehicleId: string;
+  startsAt: Date;
+  endsAt: Date;
+  reason: "maintenance" | "block";
+  note?: string | null;
+}
+
+export interface BookingDTO {
+  code: string;
+  vehicleId: string;
+  vehicleName: string;
+  primaryImage: string | null;
+  branchName: string;
+  startsAt: Date;
+  endsAt: Date;
+  hours: number;
+  status: BookingStatus;
+  withDriver: boolean;
+  delivery: boolean;
+  loaders: number;
+  driverId: string | null;
+  driverName: string | null;
+  source: BookingSource;
+  agentName: string | null;
+  priceSnapshot: Quote;
+  contactName: string | null;
+  contactPhone: string | null;
+}
+
+export interface CreateBookingInput {
+  vehicleId: string;
+  startsAt: Date;
+  endsAt: Date;
+  withDriver: boolean;
+  delivery: boolean;
+  loaders: number;
+  deliveryAddress?: Record<string, unknown> | null;
+  promoCode?: string | null;
+  contactName: string;
+  contactPhone: string; // E.164
+  customerId?: string | null;
+  source?: BookingSource;
+  agentName?: string | null;
+}
+
+export type BookingError = "CONFLICT" | "VEHICLE_BLOCKED" | "VEHICLE_UNAVAILABLE";
+
+export interface BusinessSettings {
+  bufferMinutes: number;
+  minHours: number;
+  maxHours: number;
+  advanceDays: number;
+  nowLeadHours: number;
+  freeCancelHours: number;
+  vatRate: number;
+  currency: string;
+  timezone: string;
+  durationOptions: number[];
+}
+
+/** Prices in this input are PIASTRES (already converted from EGP by the action). */
+export interface VehiclePricingInput {
+  hour1: number;
+  hour2: number;
+  hour4: number;
+  hour8: number;
+  daily: number;
+  extraHour: number;
+  deposit: number;
+  driverFeePerHour: number;
+  loaderFeePerPerson: number;
+  perKmPrice: number;
+  deliveryFee: number;
+}
+
+export type BookingSource = "customer" | "agent";
+
+export interface VehicleInput {
+  name: string;
+  categoryId: string;
+  branchId?: string;
+  plate: string;
+  brand?: string | null;
+  model?: string | null;
+  year?: number | null;
+  color?: string | null;
+  transmission?: string | null;
+  fuel?: string | null;
+  seats?: number | null;
+  cargoKg?: number | null;
+  hasDriverOption: boolean;
+  status: VehicleStatus;
+  imageUrl?: string | null;
+  pricing: VehiclePricingInput;
+}
+
+export interface CategoryInput {
+  kind: VehicleKind;
+  name: string;
+  sort?: number;
+}
+
+export type StaffRole = "super_admin" | "fleet_mgr" | "agent" | "driver" | "finance";
+
+export interface StaffDTO {
+  id: string;
+  name: string;
+  phone: string;
+  role: StaffRole;
+}
+
+export interface StaffInput {
+  name: string;
+  phone: string;
+  role: StaffRole;
+}
+
+export type PaymentMethod = "cash" | "card" | "online";
+export type PaymentKind = "rent" | "deposit";
+export type PaymentStatus = "paid" | "refunded";
+
+export interface PaymentDTO {
+  id: string;
+  bookingCode: string;
+  method: PaymentMethod;
+  kind: PaymentKind;
+  amount: number; // piastres
+  status: PaymentStatus;
+  note: string | null;
+  createdAt: Date;
+}
+
+export interface PaymentInput {
+  bookingCode: string;
+  method: PaymentMethod;
+  kind: PaymentKind;
+  amount: number; // piastres
+  note?: string | null;
+}
+
+export type CouponType = "pct" | "fixed";
+
+export interface CouponDTO {
+  id: string;
+  code: string;
+  type: CouponType;
+  value: number; // pct: 0-100, fixed: piastres
+  minValue: number; // min subtotal (piastres) required
+  validTo: string | null; // ISO date, null = no expiry
+  maxUses: number | null; // null = unlimited
+  used: number;
+  active: boolean;
+}
+
+export interface CouponInput {
+  code: string;
+  type: CouponType;
+  value: number;
+  minValue: number;
+  validTo?: string | null;
+  maxUses?: number | null;
+  active: boolean;
+}
+
+export type DocumentType = "national_id" | "license";
+
+export interface DocumentDTO {
+  id: string;
+  phone: string;
+  type: DocumentType;
+  url: string;
+  expiry: string | null; // ISO date
+  createdAt: Date;
+}
+
+export interface DocumentInput {
+  phone: string;
+  type: DocumentType;
+  url: string;
+  expiry?: string | null;
+}
+
+/** Full editable vehicle (for prefilling the admin edit form). */
+export interface VehicleEditData extends VehicleDetail {
+  plate: string;
+  categoryId: string;
+  pricing: VehiclePricingInput;
+}

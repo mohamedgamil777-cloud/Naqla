@@ -1,0 +1,14 @@
+{
+  "name": "نقلة — تأجير بيك أب وفان",
+  "short_name": "نقلة",
+  "description": "أجّر بيك أب أو فان بسهولة",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f5f1",
+  "theme_color": "#12615c",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
