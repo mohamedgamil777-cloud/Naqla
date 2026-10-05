@@ -5,6 +5,7 @@
  */
 import { repo } from "@/data/repo";
 import { computeDeliveryQuote, type Quote } from "@/engines/pricing";
+import { fireNotify, deliveryCustomerMessage } from "@/services/notify";
 
 export interface DeliveryEstimate {
   quote: Quote;
@@ -95,5 +96,6 @@ export async function createDeliveryOrder(input: {
     cat.name,
     cat.sizeCode
   );
+  fireNotify(input.contactPhone, deliveryCustomerMessage("created", code));
   return { ok: true, code };
 }

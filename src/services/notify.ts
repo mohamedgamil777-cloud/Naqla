@@ -24,6 +24,34 @@ export function getNotifier(): NotificationProvider {
   return logProvider;
 }
 
+/** Fire a notification without ever breaking the calling flow (log adapter in MVP). */
+export function fireNotify(to: string | null | undefined, message: string, channel: NotifyChannel = "whatsapp"): void {
+  if (!to) return;
+  void getNotifier()
+    .notify(channel, to, message)
+    .catch(() => {
+      /* never let notifications break an order */
+    });
+}
+
+/** Customer-facing text for each A→B delivery-order event. */
+export function deliveryCustomerMessage(
+  event: "created" | "confirmed" | "assigned" | "completed",
+  code: string,
+  driverName?: string | null
+): string {
+  switch (event) {
+    case "created":
+      return `استلمنا طلبك ✅\nرقم الطلب: ${code}\nهنتواصل معاك لتأكيد الميعاد والسواق.`;
+    case "confirmed":
+      return `تم تأكيد طلبك ✅\nرقم الطلب: ${code}\nجاري تجهيز سواق ليك.`;
+    case "assigned":
+      return `السواق في الطريق إليك 🚚\nرقم الطلب: ${code}${driverName ? `\nالسواق: ${driverName}` : ""}`;
+    case "completed":
+      return `تم توصيل طلبك 🎉\nرقم الطلب: ${code}\nيا ريت تقيّم الخدمة من التطبيق. شكراً لاستخدامك نقلة!`;
+  }
+}
+
 /** WhatsApp/SMS confirmation text (architecture §21). */
 export function bookingConfirmedMessage(b: BookingDTO): string {
   return [

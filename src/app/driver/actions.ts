@@ -10,6 +10,7 @@
 import { revalidatePath } from "next/cache";
 import { repo } from "@/data/repo";
 import { getSession } from "@/services/session";
+import { fireNotify, deliveryCustomerMessage } from "@/services/notify";
 
 export interface DriverActionState {
   ok: boolean;
@@ -64,6 +65,7 @@ export async function driverCompleteOrder(
   if (order.status !== "assigned") return { ok: false, error: "مش وقت الخطوة دي" };
 
   await repo.updateDeliveryOrderStatus(code, "completed");
+  fireNotify(order.contactPhone, deliveryCustomerMessage("completed", code));
   revalidatePath("/driver");
   return { ok: true };
 }

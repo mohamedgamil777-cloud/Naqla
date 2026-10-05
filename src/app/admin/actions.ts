@@ -6,6 +6,7 @@ import { createBooking, extendBooking } from "@/services/booking-service";
 import { egpToPiastres } from "@/lib/money";
 import { cairoDateTime } from "@/lib/time";
 import { toE164 } from "@/lib/phone";
+import { fireNotify, deliveryCustomerMessage } from "@/services/notify";
 import type { VehicleInput, VehiclePricingInput, StaffRole, PaymentMethod, PaymentKind, CouponInput, CategoryInput, SizeCode, DeliveryOrderStatus } from "@/data/types";
 import type { VehicleKind, VehicleStatus, BookingStatus } from "@/lib/constants";
 
@@ -190,14 +191,30 @@ export async function setDeliveryOrderStatus(fd: FormData): Promise<void> {
   const code = str(fd, "code");
   const status = str(fd, "status") as DeliveryOrderStatus;
   const allowed = ["new", "confirmed", "assigned", "completed", "cancelled"];
-  if (code && allowed.includes(status)) await repo.updateDeliveryOrderStatus(code, status);
+  if (code && allowed.includes(status)) {
+    await repo.updateDeliveryOrderStatus(code, status);
+    if (status === "confirmed" || status === "completed") {
+      const o = await repo.getDeliveryOrder(code);
+      fireNotify(o?.contactPhone, deliveryCustomerMessage(status, code));
+    }
+  }
   revalidatePath("/admin/orders");
 }
 
 export async function assignDeliveryDriver(fd: FormData): Promise<void> {
   const code = str(fd, "code");
   const driverId = str(fd, "driverId") || null;
-  if (code) await repo.assignDeliveryDriver(code, driverId);
+  if (code) {
+    await repo.assignDeliveryDriver(code, driverId);
+    if (driverId) {
+      const o = await repo.getDeliveryOrder(code);
+      fireNotify(o?.contactPhone, deliveryCustomerMessage("assigned", code, o?.driverName));
+      if (o?.driverId) {
+        const driver = (await repo.listDrivers()).find((d) => d.id === o.driverId);
+        fireNotify(driver?.phone, `عندك توصيلة جديدة 🚚\nرقم الطلب: ${code}\nافتح التطبيق لتشوف التفاصيل.`);
+      }
+    }
+  }
   revalidatePath("/admin/orders");
 }
 
