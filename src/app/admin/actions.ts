@@ -201,6 +201,13 @@ export async function setDeliveryOrderStatus(fd: FormData): Promise<void> {
   revalidatePath("/admin/orders");
 }
 
+export async function setDriverFeeAction(fd: FormData): Promise<void> {
+  const code = str(fd, "code");
+  const fee = egp(fd, "fee");
+  if (code) await repo.setDriverFee(code, fee);
+  revalidatePath("/admin/orders");
+}
+
 export async function assignDeliveryDriver(fd: FormData): Promise<void> {
   const code = str(fd, "code");
   const driverId = str(fd, "driverId") || null;

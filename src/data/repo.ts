@@ -110,6 +110,7 @@ function mapDeliveryOrder(r: typeof deliveryOrders.$inferSelect, driverName: str
     status: r.status,
     driverId: r.driverId ?? null,
     driverName,
+    driverFee: r.driverFee ?? 0,
     rating: r.rating ?? null,
     ratingComment: r.ratingComment ?? null,
     priceSnapshot: r.priceSnapshot as Quote,
@@ -539,6 +540,14 @@ const pgRepo = {
     const res = await db!
       .update(deliveryOrders)
       .set(driverId ? { driverId, status: "assigned" } : { driverId: null })
+      .where(eq(deliveryOrders.code, code))
+      .returning({ id: deliveryOrders.id });
+    return res.length > 0;
+  },
+  setDriverFee: async (code: string, fee: number): Promise<boolean> => {
+    const res = await db!
+      .update(deliveryOrders)
+      .set({ driverFee: Math.max(0, Math.round(fee)) })
       .where(eq(deliveryOrders.code, code))
       .returning({ id: deliveryOrders.id });
     return res.length > 0;

@@ -1,7 +1,8 @@
 import { repo } from "@/data/repo";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
-import { setDeliveryOrderStatus, assignDeliveryDriver } from "@/app/admin/actions";
+import { setDeliveryOrderStatus, assignDeliveryDriver, setDriverFeeAction } from "@/app/admin/actions";
+import { piastresToEgp } from "@/lib/money";
 import type { DeliveryOrderStatus, StaffDTO } from "@/data/types";
 
 export const dynamic = "force-dynamic";
@@ -73,6 +74,12 @@ export default async function AdminOrdersPage() {
                     </form>
                   )}
                   {drivers.length === 0 && <span className="text-xs text-muted">مفيش سواقين — ضيفهم من «الموظفين».</span>}
+                  <form action={setDriverFeeAction} className="flex gap-2 items-center">
+                    <input type="hidden" name="code" value={o.code} />
+                    <span className="text-sm font-bold">💵 أجر السائق (جنيه):</span>
+                    <input name="fee" type="number" min="0" step="1" defaultValue={o.driverFee ? piastresToEgp(o.driverFee) : ""} placeholder="حسب المحافظة" className="w-28 rounded-xl border border-line-2 bg-panel px-3 py-1.5" />
+                    <button className="rounded-xl bg-primary-soft text-primary-ink px-3 py-1.5 font-bold tap">حفظ</button>
+                  </form>
                 </div>
 
                 <div className="flex flex-wrap gap-2 items-center pt-1">

@@ -287,6 +287,7 @@ export const deliveryOrders = pgTable(
     status: text("status", { enum: ["new", "confirmed", "assigned", "en_route", "completed", "cancelled"] })
       .notNull()
       .default("new"),
+    driverFee: integer("driver_fee").notNull().default(0),
     rating: integer("rating"),
     ratingComment: text("rating_comment"),
     priceSnapshot: jsonb("price_snapshot").notNull(),
