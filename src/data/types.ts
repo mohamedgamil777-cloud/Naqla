@@ -246,6 +246,37 @@ export interface CouponInput {
   active: boolean;
 }
 
+export type PayoutMethod = "cash" | "bank" | "wallet";
+
+export interface DriverPayoutDTO {
+  id: string;
+  driverId: string;
+  driverName: string | null;
+  amount: number; // piastres paid to the driver
+  method: PayoutMethod;
+  note: string | null;
+  createdAt: Date;
+}
+export interface DriverPayoutInput {
+  driverId: string;
+  amount: number;
+  method: PayoutMethod;
+  note?: string | null;
+}
+
+export interface ExpenseDTO {
+  id: string;
+  amount: number; // piastres
+  category: string;
+  note: string | null;
+  createdAt: Date;
+}
+export interface ExpenseInput {
+  amount: number;
+  category: string;
+  note?: string | null;
+}
+
 export type DeliveryOrderStatus = "new" | "confirmed" | "assigned" | "en_route" | "completed" | "cancelled";
 
 export interface DeliveryOrderDTO {

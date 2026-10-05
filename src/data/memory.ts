@@ -21,6 +21,10 @@ import type {
   DeliveryOrderDTO,
   DeliveryOrderInput,
   DeliveryOrderStatus,
+  DriverPayoutDTO,
+  DriverPayoutInput,
+  ExpenseDTO,
+  ExpenseInput,
   DocumentDTO,
   DocumentInput,
   PaymentDTO,
@@ -97,6 +101,8 @@ interface MemState {
   documents: MemDocument[];
   coupons: MemCoupon[];
   deliveryOrders: DeliveryOrderDTO[];
+  driverPayouts: DriverPayoutDTO[];
+  expenses: ExpenseDTO[];
   otps: OtpRec[];
   users: UserRec[];
 }
@@ -313,6 +319,8 @@ function seedState(): MemState {
         contactName: "سارة محمود", contactPhone: "+201007778899", createdAt: new Date(),
       },
     ],
+    driverPayouts: [],
+    expenses: [],
     otps: [],
     users: [],
   };
@@ -331,6 +339,8 @@ state.coupons ??= [
   { id: "cccc1111-0000-0000-0000-000000000002", code: "خصم10", type: "pct", value: 10, minValue: 0, validTo: null, maxUses: null, used: 0, active: true },
 ];
 state.deliveryOrders ??= [];
+state.driverPayouts ??= [];
+state.expenses ??= [];
 state.staff ??= [
   { id: "aaaa1111-0000-0000-0000-000000000001", name: "أحمد المدير", phone: "+201000000001", role: "super_admin" },
   { id: "aaaa1111-0000-0000-0000-000000000002", name: "منى الحجوزات", phone: "+201000000002", role: "agent" },
@@ -656,6 +666,48 @@ export const memRepo = {
     const o = state.deliveryOrders.find((x) => x.code === code);
     if (!o) return false;
     o.driverFee = Math.max(0, Math.round(fee));
+    return true;
+  },
+
+  // ---------- driver payouts (تسديدات) ----------
+  listDriverPayouts: async (): Promise<DriverPayoutDTO[]> =>
+    state.driverPayouts.slice().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map((p) => ({ ...p })),
+
+  addDriverPayout: async (input: DriverPayoutInput): Promise<{ id: string }> => {
+    const id = crypto.randomUUID();
+    state.driverPayouts.push({
+      id,
+      driverId: input.driverId,
+      driverName: state.staff.find((s) => s.id === input.driverId)?.name ?? null,
+      amount: Math.max(0, Math.round(input.amount)),
+      method: input.method,
+      note: input.note ?? null,
+      createdAt: new Date(),
+    });
+    return { id };
+  },
+  deleteDriverPayout: async (id: string): Promise<boolean> => {
+    state.driverPayouts = state.driverPayouts.filter((p) => p.id !== id);
+    return true;
+  },
+
+  // ---------- expenses (نثريات) ----------
+  listExpenses: async (): Promise<ExpenseDTO[]> =>
+    state.expenses.slice().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map((e) => ({ ...e })),
+
+  addExpense: async (input: ExpenseInput): Promise<{ id: string }> => {
+    const id = crypto.randomUUID();
+    state.expenses.push({
+      id,
+      amount: Math.max(0, Math.round(input.amount)),
+      category: input.category,
+      note: input.note ?? null,
+      createdAt: new Date(),
+    });
+    return { id };
+  },
+  deleteExpense: async (id: string): Promise<boolean> => {
+    state.expenses = state.expenses.filter((e) => e.id !== id);
     return true;
   },
 

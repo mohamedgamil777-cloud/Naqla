@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getDashboard } from "@/services/admin-service";
+import { repo } from "@/data/repo";
+import { getAdminRole } from "@/services/admin-auth";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { BookingStatusBadge } from "@/components/ui";
@@ -8,6 +10,20 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
   const d = await getDashboard();
+  const role = await getAdminRole();
+  const showFinance = role === "super_admin" || role === "finance";
+
+  let fin = { owed: 0, paid: 0, expenses: 0 };
+  if (showFinance) {
+    const [orders, payouts, expenses] = await Promise.all([
+      repo.listDeliveryOrders(),
+      repo.listDriverPayouts(),
+      repo.listExpenses(),
+    ]);
+    const earned = orders.filter((o) => o.status === "completed").reduce((s, o) => s + (o.driverFee || 0), 0);
+    const paid = payouts.reduce((s, p) => s + p.amount, 0);
+    fin = { owed: Math.max(0, earned - paid), paid, expenses: expenses.reduce((s, e) => s + e.amount, 0) };
+  }
 
   const tiles = [
     { label: "متاحة", value: d.counts.available, color: "text-ok", bg: "bg-ok-soft" },
@@ -53,6 +69,29 @@ export default async function AdminDashboard() {
           <div className="text-xs text-muted mt-1">إلغاءات: {d.cancellations}</div>
         </div>
       </div>
+
+      {/* Financials (نثريات + تسديدات) — finance/super-admin only */}
+      {showFinance && (
+        <div>
+          <h2 className="font-extrabold text-lg mb-3">الجزء المالي</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Link href="/admin/settlements" className="rounded-2xl p-5 bg-rented-soft text-rented tap">
+              <div className="text-sm font-bold opacity-90">مستحق للسواقين</div>
+              <div className="text-3xl font-extrabold mt-1">{formatEgp(fin.owed)}</div>
+              <div className="text-xs opacity-80 mt-1">تسديدات مدفوعة: {formatEgp(fin.paid)} ›</div>
+            </Link>
+            <Link href="/admin/expenses" className="rounded-2xl p-5 bg-booked-soft text-booked tap">
+              <div className="text-sm font-bold opacity-90">النثريات</div>
+              <div className="text-3xl font-extrabold mt-1">{formatEgp(fin.expenses)}</div>
+              <div className="text-xs opacity-80 mt-1">إدارة المصاريف ›</div>
+            </Link>
+            <Link href="/admin/finance" className="rounded-2xl p-5 bg-panel border border-line tap">
+              <div className="text-sm text-muted">الحسابات التفصيلية</div>
+              <div className="text-xl font-extrabold mt-2 text-primary">تقارير الدخل ›</div>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Upcoming */}
       <div className="bg-panel border border-line rounded-card p-5">

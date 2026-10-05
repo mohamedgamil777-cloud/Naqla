@@ -21,6 +21,10 @@ import type {
   DeliveryOrderDTO,
   DeliveryOrderInput,
   DeliveryOrderStatus,
+  DriverPayoutDTO,
+  DriverPayoutInput,
+  ExpenseDTO,
+  ExpenseInput,
   DocumentDTO,
   DocumentInput,
   PaymentDTO,
@@ -37,7 +41,7 @@ import type {
 import type { VehicleKind, VehicleStatus } from "@/lib/constants";
 import { BLOCKING_STATUSES, DEFAULTS, newBookingCode } from "@/lib/constants";
 
-const { vehicleCategories, vehicles, vehicleImages, branches, pricingRules, bookings, vehicleBlocks, promoCodes, otpCodes, users, settings, payments, documents, deliveryOrders } =
+const { vehicleCategories, vehicles, vehicleImages, branches, pricingRules, bookings, vehicleBlocks, promoCodes, otpCodes, users, settings, payments, documents, deliveryOrders, driverPayouts, expenses } =
   schema;
 
 function pricingRuleToInput(rule: PricingRule): VehiclePricingInput {
@@ -551,6 +555,52 @@ const pgRepo = {
       .where(eq(deliveryOrders.code, code))
       .returning({ id: deliveryOrders.id });
     return res.length > 0;
+  },
+
+  // ---------- driver payouts (تسديدات) ----------
+  listDriverPayouts: async (): Promise<DriverPayoutDTO[]> => {
+    const rows = await db!
+      .select({ p: driverPayouts, driverName: users.name })
+      .from(driverPayouts)
+      .leftJoin(users, eq(driverPayouts.driverId, users.id))
+      .orderBy(desc(driverPayouts.createdAt));
+    return rows.map((r) => ({
+      id: r.p.id,
+      driverId: r.p.driverId,
+      driverName: r.driverName ?? null,
+      amount: r.p.amount,
+      method: r.p.method,
+      note: r.p.note ?? null,
+      createdAt: r.p.createdAt,
+    }));
+  },
+  addDriverPayout: async (input: DriverPayoutInput): Promise<{ id: string }> => {
+    const [created] = await db!
+      .insert(driverPayouts)
+      .values({ driverId: input.driverId, amount: Math.max(0, Math.round(input.amount)), method: input.method, note: input.note ?? null })
+      .returning({ id: driverPayouts.id });
+    return { id: created.id };
+  },
+  deleteDriverPayout: async (id: string): Promise<boolean> => {
+    await db!.delete(driverPayouts).where(eq(driverPayouts.id, id));
+    return true;
+  },
+
+  // ---------- expenses (نثريات) ----------
+  listExpenses: async (): Promise<ExpenseDTO[]> => {
+    const rows = await db!.select().from(expenses).orderBy(desc(expenses.createdAt));
+    return rows.map((e) => ({ id: e.id, amount: e.amount, category: e.category, note: e.note ?? null, createdAt: e.createdAt }));
+  },
+  addExpense: async (input: ExpenseInput): Promise<{ id: string }> => {
+    const [created] = await db!
+      .insert(expenses)
+      .values({ amount: Math.max(0, Math.round(input.amount)), category: input.category, note: input.note ?? null })
+      .returning({ id: expenses.id });
+    return { id: created.id };
+  },
+  deleteExpense: async (id: string): Promise<boolean> => {
+    await db!.delete(expenses).where(eq(expenses.id, id));
+    return true;
   },
   rateDeliveryOrder: async (code: string, phone: string, rating: number, comment: string | null): Promise<boolean> => {
     const r = Math.max(1, Math.min(5, Math.round(rating)));

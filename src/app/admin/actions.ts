@@ -7,7 +7,7 @@ import { egpToPiastres } from "@/lib/money";
 import { cairoDateTime } from "@/lib/time";
 import { toE164 } from "@/lib/phone";
 import { fireNotify, deliveryCustomerMessage } from "@/services/notify";
-import type { VehicleInput, VehiclePricingInput, StaffRole, PaymentMethod, PaymentKind, CouponInput, CategoryInput, SizeCode, DeliveryOrderStatus } from "@/data/types";
+import type { VehicleInput, VehiclePricingInput, StaffRole, PaymentMethod, PaymentKind, CouponInput, CategoryInput, SizeCode, DeliveryOrderStatus, PayoutMethod } from "@/data/types";
 import type { VehicleKind, VehicleStatus, BookingStatus } from "@/lib/constants";
 
 export interface FormState {
@@ -206,6 +206,44 @@ export async function setDriverFeeAction(fd: FormData): Promise<void> {
   const fee = egp(fd, "fee");
   if (code) await repo.setDriverFee(code, fee);
   revalidatePath("/admin/orders");
+}
+
+export async function addDriverPayoutAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  const driverId = str(fd, "driverId");
+  const amount = egp(fd, "amount");
+  const method = str(fd, "method") as PayoutMethod;
+  if (!driverId) return { ok: false, error: "اختار السائق." };
+  if (amount <= 0) return { ok: false, error: "اكتب المبلغ." };
+  if (!["cash", "bank", "wallet"].includes(method)) return { ok: false, error: "اختار طريقة الدفع." };
+  await repo.addDriverPayout({ driverId, amount, method, note: str(fd, "note") || null });
+  revalidatePath("/admin/settlements");
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+export async function deletePayoutAction(fd: FormData): Promise<void> {
+  const id = str(fd, "id");
+  if (id) await repo.deleteDriverPayout(id);
+  revalidatePath("/admin/settlements");
+  revalidatePath("/admin");
+}
+
+export async function addExpenseAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  const amount = egp(fd, "amount");
+  const category = str(fd, "category");
+  if (amount <= 0) return { ok: false, error: "اكتب المبلغ." };
+  if (!category) return { ok: false, error: "اكتب نوع النثرية." };
+  await repo.addExpense({ amount, category, note: str(fd, "note") || null });
+  revalidatePath("/admin/expenses");
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+export async function deleteExpenseAction(fd: FormData): Promise<void> {
+  const id = str(fd, "id");
+  if (id) await repo.deleteExpense(id);
+  revalidatePath("/admin/expenses");
+  revalidatePath("/admin");
 }
 
 export async function assignDeliveryDriver(fd: FormData): Promise<void> {

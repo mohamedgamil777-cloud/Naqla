@@ -21,6 +21,8 @@ const nav: { href: string; label: string; icon: string; roles: StaffRole[] }[] =
   { href: "/admin/bookings", label: "الحجوزات", icon: "📋", roles: ["super_admin", "fleet_mgr", "agent"] },
   { href: "/admin/calculator", label: "حاسبة السعر", icon: "🧮", roles: ["super_admin", "agent"] },
   { href: "/admin/finance", label: "الحسابات", icon: "💰", roles: ["super_admin", "finance"] },
+  { href: "/admin/settlements", label: "تسديدات السواقين", icon: "💵", roles: ["super_admin", "finance"] },
+  { href: "/admin/expenses", label: "النثريات", icon: "🧾", roles: ["super_admin", "finance"] },
   { href: "/admin/reports", label: "تقارير الشركة", icon: "📈", roles: ["super_admin", "finance"] },
   { href: "/admin/fleet", label: "العربيات", icon: "🚙", roles: ["super_admin", "fleet_mgr"] },
   { href: "/admin/categories", label: "الأنواع", icon: "🏷️", roles: ["super_admin", "fleet_mgr"] },

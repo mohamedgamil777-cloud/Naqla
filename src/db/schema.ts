@@ -298,6 +298,27 @@ export const deliveryOrders = pgTable(
   (t) => [uniqueIndex("delivery_orders_code_uq").on(t.code), index("delivery_orders_phone_idx").on(t.contactPhone)]
 );
 
+export const driverPayouts = pgTable(
+  "driver_payouts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    driverId: uuid("driver_id").notNull(),
+    amount: integer("amount").notNull(),
+    method: text("method", { enum: ["cash", "bank", "wallet"] }).notNull().default("cash"),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("driver_payouts_driver_idx").on(t.driverId)]
+);
+
+export const expenses = pgTable("expenses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  amount: integer("amount").notNull(),
+  category: text("category").notNull(),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull(),
