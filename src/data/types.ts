@@ -265,6 +265,8 @@ export interface DeliveryOrderDTO {
   status: DeliveryOrderStatus;
   driverId: string | null;
   driverName: string | null;
+  rating: number | null; // 1-5, set by customer after completion
+  ratingComment: string | null;
   priceSnapshot: Quote;
   contactName: string | null;
   contactPhone: string | null;

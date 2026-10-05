@@ -53,6 +53,7 @@ export default async function AdminOrdersPage() {
                   {o.loaders > 0 && <Row k="العمالة" v={`${o.loaders} أفراد`} />}
                   <Row k="العميل" v={o.contactName ?? "-"} />
                   <Row k="الموبايل" v={o.contactPhone ?? "-"} ltr />
+                  {o.rating != null && <Row k="تقييم العميل" v={`${"⭐".repeat(o.rating)}${o.ratingComment ? ` — ${o.ratingComment}` : ""}`} />}
                 </div>
 
                 {/* Driver assignment */}

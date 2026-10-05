@@ -283,7 +283,7 @@ function seedState(): MemState {
         pickupAddress: "٦ أكتوبر — الحي الأول", dropoffAddress: "الشيخ زايد — بوابة ٢",
         pickupLat: 29.9716, pickupLng: 30.9426, dropoffLat: 30.03, dropoffLng: 30.976,
         km: 9.5, loaders: 1, scheduledAt: cairoDateTime(today, 11),
-        status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق",
+        status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق", rating: null, ratingComment: null,
         priceSnapshot: {
           hours: 0,
           lines: [
@@ -301,7 +301,7 @@ function seedState(): MemState {
         pickupAddress: "فيصل — محطة المريوطية", dropoffAddress: "الهرم — شارع الطالبية",
         pickupLat: 29.996, pickupLng: 31.153, dropoffLat: 29.987, dropoffLng: 31.17,
         km: 4.2, loaders: 0, scheduledAt: cairoDateTime(tomorrow, 15),
-        status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق",
+        status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق", rating: null, ratingComment: null,
         priceSnapshot: {
           hours: 0,
           lines: [
@@ -608,6 +608,8 @@ export const memRepo = {
       status: "new",
       driverId: null,
       driverName: null,
+      rating: null,
+      ratingComment: null,
       priceSnapshot: quote,
       contactName: input.contactName,
       contactPhone: input.contactPhone,
@@ -648,6 +650,14 @@ export const memRepo = {
       .filter((o) => o.driverId === driverId)
       .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
       .map((o) => ({ ...o })),
+
+  rateDeliveryOrder: async (code: string, phone: string, rating: number, comment: string | null): Promise<boolean> => {
+    const o = state.deliveryOrders.find((x) => x.code === code && x.contactPhone === phone);
+    if (!o || o.status !== "completed") return false;
+    o.rating = Math.max(1, Math.min(5, Math.round(rating)));
+    o.ratingComment = comment ?? null;
+    return true;
+  },
 
   // ---------- OTP ----------
   saveOtp: async (phone: string, codeHash: string, expiresAt: Date) => {

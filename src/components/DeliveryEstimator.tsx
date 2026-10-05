@@ -165,6 +165,10 @@ export function DeliveryEstimator({ sizes, center }: { sizes: SizeOpt[]; center:
 
   async function placeOrder() {
     if (!sizeId) return;
+    if (!pickupAddr.trim() || !dropoffAddr.trim()) {
+      setOrderErr("اكتب عنوان الاستلام والتسليم عشان السواق يعرف المكان بالظبط.");
+      return;
+    }
     setOrdering(true);
     setOrderErr(null);
     try {
@@ -208,7 +212,10 @@ export function DeliveryEstimator({ sizes, center }: { sizes: SizeOpt[]; center:
         <h2 className="text-2xl font-extrabold">تم استلام طلبك!</h2>
         <p className="text-ink-2 font-semibold">رقم الطلب: <span dir="ltr">#{orderCode}</span></p>
         <p className="text-ink-2">هنتواصل معاك على موبايلك لتأكيد الميعاد والسواق.</p>
-        <a href="/" className="mt-2 rounded-2xl bg-primary text-white px-6 py-3 font-bold tap">تمام</a>
+        <div className="flex flex-col gap-2 w-full max-w-xs mt-2">
+          <a href="/bookings" className="rounded-2xl bg-primary text-white px-6 py-3 font-bold tap">📦 تابع طلبك</a>
+          <a href="/" className="rounded-2xl border-2 border-line-2 text-ink px-6 py-3 font-bold tap">تمام</a>
+        </div>
       </div>
     );
   }
@@ -229,8 +236,8 @@ export function DeliveryEstimator({ sizes, center }: { sizes: SizeOpt[]; center:
           <button onClick={() => setActive("b")} className={`rounded-2xl py-2.5 font-bold tap border-2 ${active === "b" ? "border-booked bg-booked-soft text-booked" : "border-line-2 bg-panel"}`}>🏁 مكان التسليم</button>
         </div>
       )}
-      <input className={inputClass} placeholder="عنوان الاستلام (اختياري)" value={pickupAddr} onChange={(e) => setPickupAddr(e.target.value)} />
-      <input className={inputClass} placeholder="عنوان التسليم (اختياري)" value={dropoffAddr} onChange={(e) => setDropoffAddr(e.target.value)} />
+      <input className={inputClass} placeholder="📍 عنوان الاستلام بالتفصيل (مطلوب)" value={pickupAddr} onChange={(e) => setPickupAddr(e.target.value)} />
+      <input className={inputClass} placeholder="🏁 عنوان التسليم بالتفصيل (مطلوب)" value={dropoffAddr} onChange={(e) => setDropoffAddr(e.target.value)} />
 
       {/* Distance */}
       <div className="bg-panel border border-line rounded-card p-4 flex items-center justify-between">

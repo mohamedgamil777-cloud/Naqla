@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 
 const items = [
   { href: "/", label: "الرئيسية", icon: "🏠" },
-  { href: "/bookings", label: "حجوزاتي", icon: "📋" },
+  { href: "/bookings", label: "طلباتي", icon: "📦" },
   { href: "/help", label: "المساعدة", icon: "💬" },
   { href: "/account", label: "حسابي", icon: "👤" },
 ];
