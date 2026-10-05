@@ -284,7 +284,7 @@ export const deliveryOrders = pgTable(
     loaders: integer("loaders").notNull().default(0),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
     driverId: uuid("driver_id"),
-    status: text("status", { enum: ["new", "confirmed", "assigned", "completed", "cancelled"] })
+    status: text("status", { enum: ["new", "confirmed", "assigned", "en_route", "completed", "cancelled"] })
       .notNull()
       .default("new"),
     rating: integer("rating"),

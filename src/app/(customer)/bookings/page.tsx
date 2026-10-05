@@ -9,11 +9,21 @@ import type { BookingDTO, DeliveryOrderDTO, DeliveryOrderStatus } from "@/data/t
 
 export const dynamic = "force-dynamic";
 
-const STEPS: { key: DeliveryOrderStatus; label: string }[] = [
-  { key: "new", label: "استلمنا طلبك" },
-  { key: "confirmed", label: "تم التأكيد" },
-  { key: "assigned", label: "السواق في الطريق" },
-  { key: "completed", label: "تم التوصيل" },
+const STATUS_ORDER: Record<DeliveryOrderStatus, number> = {
+  new: 0,
+  confirmed: 1,
+  assigned: 2,
+  en_route: 3,
+  completed: 4,
+  cancelled: -1,
+};
+const STEPS: { label: string; at: number }[] = [
+  { label: "استلمنا طلبك", at: 0 },
+  { label: "تم تأكيد طلبك", at: 1 },
+  { label: "جاري البحث عن سائق", at: 1 },
+  { label: "تم تعيين سائق", at: 2 },
+  { label: "السائق في الطريق", at: 3 },
+  { label: "تم التوصيل", at: 4 },
 ];
 
 export default async function BookingsPage() {
@@ -88,7 +98,7 @@ function OrderCard({ o, compact }: { o: DeliveryOrderDTO; compact?: boolean }) {
     );
   }
 
-  const stepIndex = STEPS.findIndex((s) => s.key === o.status);
+  const cur = STATUS_ORDER[o.status];
 
   return (
     <div className="bg-panel border border-line rounded-card p-4 shadow-sm flex flex-col gap-3">
@@ -108,11 +118,16 @@ function OrderCard({ o, compact }: { o: DeliveryOrderDTO; compact?: boolean }) {
         <div className="text-sm text-muted mt-1">🗓️ {labelDateArabic(o.scheduledAt)} — {labelTime(o.scheduledAt)}</div>
       </div>
 
-      {!compact && <Tracker stepIndex={stepIndex} />}
+      {!compact && <Tracker cur={cur} />}
 
       {o.status === "assigned" && o.driverName && (
-        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-bold flex items-center justify-between">
-          <span>🧑‍✈️ السواق: {o.driverName} في الطريق</span>
+        <div className="bg-reserved-soft text-reserved rounded-xl px-3 py-2 text-sm font-bold">
+          🧑‍✈️ تم تعيين السواق: {o.driverName} — هيكون في الطريق في الميعاد
+        </div>
+      )}
+      {o.status === "en_route" && o.driverName && (
+        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-bold">
+          🚚 السواق {o.driverName} في الطريق إليك دلوقتي
         </div>
       )}
       {compact && (
@@ -134,17 +149,17 @@ function OrderCard({ o, compact }: { o: DeliveryOrderDTO; compact?: boolean }) {
   );
 }
 
-function Tracker({ stepIndex }: { stepIndex: number }) {
+function Tracker({ cur }: { cur: number }) {
   return (
     <div className="flex items-center gap-1 pt-1">
       {STEPS.map((s, i) => {
-        const done = i <= stepIndex;
+        const done = s.at <= cur;
         return (
-          <div key={s.key} className="flex-1 flex flex-col items-center gap-1">
+          <div key={i} className="flex-1 flex flex-col items-center gap-1">
             <div className="w-full flex items-center">
-              <div className={`h-1.5 flex-1 rounded-full ${i <= stepIndex ? "bg-primary" : "bg-line-2"}`} />
+              <div className={`h-1.5 flex-1 rounded-full ${done ? "bg-primary" : "bg-line-2"}`} />
             </div>
-            <span className={`text-[11px] font-bold text-center leading-tight ${done ? "text-primary" : "text-muted"}`}>
+            <span className={`text-[10px] font-bold text-center leading-tight ${done ? "text-primary" : "text-muted"}`}>
               {s.label}
             </span>
           </div>

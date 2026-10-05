@@ -36,7 +36,7 @@ export function fireNotify(to: string | null | undefined, message: string, chann
 
 /** Customer-facing text for each A→B delivery-order event. */
 export function deliveryCustomerMessage(
-  event: "created" | "confirmed" | "assigned" | "completed",
+  event: "created" | "confirmed" | "assigned" | "en_route" | "completed",
   code: string,
   driverName?: string | null
 ): string {
@@ -44,9 +44,11 @@ export function deliveryCustomerMessage(
     case "created":
       return `استلمنا طلبك ✅\nرقم الطلب: ${code}\nهنتواصل معاك لتأكيد الميعاد والسواق.`;
     case "confirmed":
-      return `تم تأكيد طلبك ✅\nرقم الطلب: ${code}\nجاري تجهيز سواق ليك.`;
+      return `تم تأكيد طلبك ✅\nرقم الطلب: ${code}\nجاري البحث عن سواق ليك.`;
     case "assigned":
-      return `السواق في الطريق إليك 🚚\nرقم الطلب: ${code}${driverName ? `\nالسواق: ${driverName}` : ""}`;
+      return `تم تعيين سواق لطلبك ✅\nرقم الطلب: ${code}${driverName ? `\nالسواق: ${driverName}` : ""}\nهيكون في الطريق في ميعاد التوصيل.`;
+    case "en_route":
+      return `السواق في الطريق إليك دلوقتي 🚚\nرقم الطلب: ${code}${driverName ? `\nالسواق: ${driverName}` : ""}`;
     case "completed":
       return `تم توصيل طلبك 🎉\nرقم الطلب: ${code}\nيا ريت تقيّم الخدمة من التطبيق. شكراً لاستخدامك نقلة!`;
   }

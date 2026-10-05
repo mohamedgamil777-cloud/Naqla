@@ -50,8 +50,8 @@ export async function driverAdvanceTrip(
   return { ok: true };
 }
 
-/** Driver marks their assigned A→B delivery order as done. */
-export async function driverCompleteOrder(
+/** Driver advances their own delivery order: assigned → en_route → completed. */
+export async function driverAdvanceOrder(
   _prev: DriverActionState,
   fd: FormData
 ): Promise<DriverActionState> {
@@ -59,13 +59,23 @@ export async function driverCompleteOrder(
   if (!driver) return { ok: false, error: "مش مسجّل كسائق" };
 
   const code = String(fd.get("code") ?? "");
+  const to = String(fd.get("to") ?? "");
+  if (to !== "en_route" && to !== "completed") return { ok: false, error: "أمر غير معروف" };
+
   const order = await repo.getDeliveryOrder(code);
   if (!order) return { ok: false, error: "الطلب مش موجود" };
   if (order.driverId !== driver.id) return { ok: false, error: "الطلب ده مش ليك" };
-  if (order.status !== "assigned") return { ok: false, error: "مش وقت الخطوة دي" };
 
-  await repo.updateDeliveryOrderStatus(code, "completed");
-  fireNotify(order.contactPhone, deliveryCustomerMessage("completed", code));
+  const allowed =
+    (to === "en_route" && order.status === "assigned") ||
+    (to === "completed" && order.status === "en_route");
+  if (!allowed) return { ok: false, error: "مش وقت الخطوة دي" };
+
+  await repo.updateDeliveryOrderStatus(code, to);
+  fireNotify(
+    order.contactPhone,
+    deliveryCustomerMessage(to === "en_route" ? "en_route" : "completed", code, order.driverName)
+  );
   revalidatePath("/driver");
   return { ok: true };
 }

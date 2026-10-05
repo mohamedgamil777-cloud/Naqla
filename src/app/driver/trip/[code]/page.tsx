@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 const STATUS_LABEL: Record<string, string> = {
   new: "جديد",
   confirmed: "مؤكد",
-  assigned: "عليك دلوقتي",
+  assigned: "متعيّن ليك",
+  en_route: "في الطريق",
   completed: "اتسلّمت",
   cancelled: "ملغية",
 };

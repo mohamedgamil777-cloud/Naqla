@@ -246,7 +246,7 @@ export interface CouponInput {
   active: boolean;
 }
 
-export type DeliveryOrderStatus = "new" | "confirmed" | "assigned" | "completed" | "cancelled";
+export type DeliveryOrderStatus = "new" | "confirmed" | "assigned" | "en_route" | "completed" | "cancelled";
 
 export interface DeliveryOrderDTO {
   code: string;

@@ -8,9 +8,10 @@ export const dynamic = "force-dynamic";
 
 const STATUS: Record<DeliveryOrderStatus, { label: string; cls: string }> = {
   new: { label: "جديد", cls: "bg-rented-soft text-rented" },
-  confirmed: { label: "مؤكد", cls: "bg-reserved-soft text-reserved" },
-  assigned: { label: "متعيّن لسواق", cls: "bg-primary-soft text-primary-ink" },
-  completed: { label: "تم", cls: "bg-ok-soft text-ok" },
+  confirmed: { label: "مؤكد · جاري البحث عن سائق", cls: "bg-reserved-soft text-reserved" },
+  assigned: { label: "تم تعيين سائق", cls: "bg-primary-soft text-primary-ink" },
+  en_route: { label: "السائق في الطريق", cls: "bg-ok-soft text-ok" },
+  completed: { label: "تم التوصيل", cls: "bg-ok-soft text-ok" },
   cancelled: { label: "ملغي", cls: "bg-booked-soft text-booked" },
 };
 
@@ -88,11 +89,10 @@ export default async function AdminOrdersPage() {
                       <button name="status" value="cancelled" className="rounded-xl text-booked border border-booked-soft px-4 py-2 font-bold tap">إلغاء</button>
                     </form>
                   )}
-                  {o.status === "confirmed" && (
+                  {(o.status === "confirmed" || o.status === "assigned" || o.status === "en_route") && (
                     <form action={setDeliveryOrderStatus} className="contents">
                       <input type="hidden" name="code" value={o.code} />
-                      <button name="status" value="completed" className="rounded-xl bg-primary text-white px-4 py-2 font-bold tap">خلّص الطلب</button>
-                      <button name="status" value="cancelled" className="rounded-xl text-booked border border-booked-soft px-4 py-2 font-bold tap">إلغاء</button>
+                      <button name="status" value="cancelled" className="rounded-xl text-booked border border-booked-soft px-4 py-2 font-bold tap">إلغاء الطلب</button>
                     </form>
                   )}
                 </div>

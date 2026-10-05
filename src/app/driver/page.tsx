@@ -42,8 +42,8 @@ export default async function DriverPage() {
 
   const allOrders = await repo.listDeliveryOrdersByDriver(driver.id);
   const todayISO = cairoDateISO(new Date());
-  // Deliveries the driver still has to do.
-  const orders = allOrders.filter((o) => o.status === "assigned");
+  // Deliveries the driver still has to do (assigned or already on the way).
+  const orders = allOrders.filter((o) => o.status === "assigned" || o.status === "en_route");
 
   const notifyTrips: NotifyTrip[] = orders
     .map((o) => ({
@@ -114,9 +114,14 @@ function OrderCard({ o }: { o: DeliveryOrderDTO }) {
           <div className="text-3xl font-extrabold text-primary leading-none">{labelTime(o.scheduledAt)}</div>
           <div className="text-sm text-muted mt-1">توصيلة #{o.code}</div>
         </div>
-        <span className="rounded-full bg-primary-soft text-primary-ink px-3 py-1 text-sm font-bold">
-          {o.sizeName}{o.sizeCode ? ` · ${o.sizeCode}` : ""}
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          <span className="rounded-full bg-primary-soft text-primary-ink px-3 py-1 text-sm font-bold">
+            {o.sizeName}{o.sizeCode ? ` · ${o.sizeCode}` : ""}
+          </span>
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${o.status === "en_route" ? "bg-ok-soft text-ok" : "bg-reserved-soft text-reserved"}`}>
+            {o.status === "en_route" ? "في الطريق" : "متعيّن ليك"}
+          </span>
+        </div>
       </div>
 
       {/* From → To (the trip location) */}
