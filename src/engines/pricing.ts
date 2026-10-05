@@ -91,36 +91,43 @@ export interface DeliveryQuoteInput {
   promo?: PromoInput | null;
 }
 
+/** Distance-based rates for the chosen size class (piastres). */
+export interface DeliveryRates {
+  baseFare: Piastres;
+  perKm: Piastres;
+  loaderFeePerPerson: Piastres;
+}
+
 /**
- * Distance-based A→B delivery estimate (qMove-style). Unlike the time-based
- * rental quote, this is a flat pickup fee + per-km distance + optional loaders,
- * with the same promo/VAT handling. No refundable deposit (nothing is handed to
- * the customer to hold). Pure & testable — the server is authoritative.
+ * Distance-based A→B delivery estimate (qMove-style), priced by the chosen SIZE
+ * class: a flat base fare + per-km distance + optional loaders, with the same
+ * promo/VAT handling. No refundable deposit (nothing handed to the customer to
+ * hold). Pure & testable — the server is authoritative.
  */
 export function computeDeliveryQuote(
   input: DeliveryQuoteInput,
-  rule: PricingRule,
+  rates: DeliveryRates,
   opts: PricingOptions
 ): Quote {
   const lines: QuoteLine[] = [];
 
-  // 1. Flat base pickup/dispatch fee (reuses the rule's delivery fee).
-  const base = rule.deliveryFee;
+  // 1. Flat base fare for the size class.
+  const base = rates.baseFare;
   lines.push({ key: "base", labelAr: "رسوم التوصيل الأساسية", amount: base });
 
   // 2. Distance.
   let addons = 0;
   const km = Math.max(0, input.km ?? 0);
-  if (km > 0 && rule.perKmPrice > 0) {
-    const kmCost = Math.round(km * rule.perKmPrice);
+  if (km > 0 && rates.perKm > 0) {
+    const kmCost = Math.round(km * rates.perKm);
     addons += kmCost;
     lines.push({ key: "km", labelAr: `المسافة (${km} كم)`, amount: kmCost });
   }
 
   // 3. Loaders.
   const loaders = Math.max(0, Math.floor(input.loaders ?? 0));
-  if (loaders > 0 && rule.loaderFeePerPerson > 0) {
-    const loaderCost = loaders * rule.loaderFeePerPerson;
+  if (loaders > 0 && rates.loaderFeePerPerson > 0) {
+    const loaderCost = loaders * rates.loaderFeePerPerson;
     addons += loaderCost;
     lines.push({ key: "loaders", labelAr: `العمالة (${loaders} ${loaders === 1 ? "فرد" : "أفراد"})`, amount: loaderCost });
   }

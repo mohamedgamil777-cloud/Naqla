@@ -6,7 +6,7 @@ import { createBooking, extendBooking } from "@/services/booking-service";
 import { egpToPiastres } from "@/lib/money";
 import { cairoDateTime } from "@/lib/time";
 import { toE164 } from "@/lib/phone";
-import type { VehicleInput, VehiclePricingInput, StaffRole, PaymentMethod, PaymentKind, CouponInput } from "@/data/types";
+import type { VehicleInput, VehiclePricingInput, StaffRole, PaymentMethod, PaymentKind, CouponInput, CategoryInput, SizeCode, DeliveryOrderStatus } from "@/data/types";
 import type { VehicleKind, VehicleStatus, BookingStatus } from "@/lib/constants";
 
 export interface FormState {
@@ -112,9 +112,23 @@ export async function saveCategory(_prev: FormState, fd: FormData): Promise<Form
   const kind = str(fd, "kind") as VehicleKind;
   if (!name) return { ok: false, error: "اكتب اسم النوع." };
   if (kind !== "pickup" && kind !== "van") return { ok: false, error: "اختار الفئة." };
-  if (id) await repo.updateCategory(id, { name, kind });
-  else await repo.createCategory({ name, kind });
+  const sizeRaw = str(fd, "sizeCode");
+  const sizeCode = (["XS", "S", "M", "L"].includes(sizeRaw) ? sizeRaw : null) as SizeCode | null;
+  const input: CategoryInput = {
+    name,
+    kind,
+    sizeCode,
+    capacityKg: numOrNull(fd, "capacityKg"),
+    dims: str(fd, "dims") || null,
+    description: str(fd, "description") || null,
+    image: str(fd, "image") || null,
+    baseFare: egp(fd, "baseFare"),
+    perKm: egp(fd, "perKm"),
+  };
+  if (id) await repo.updateCategory(id, input);
+  else await repo.createCategory(input);
   revalidatePath("/admin/categories");
+  revalidatePath("/estimate");
   return { ok: true };
 }
 
@@ -170,6 +184,21 @@ export async function deleteCoupon(fd: FormData): Promise<void> {
   const id = str(fd, "id");
   if (id) await repo.deleteCoupon(id);
   revalidatePath("/admin/coupons");
+}
+
+export async function setDeliveryOrderStatus(fd: FormData): Promise<void> {
+  const code = str(fd, "code");
+  const status = str(fd, "status") as DeliveryOrderStatus;
+  const allowed = ["new", "confirmed", "assigned", "completed", "cancelled"];
+  if (code && allowed.includes(status)) await repo.updateDeliveryOrderStatus(code, status);
+  revalidatePath("/admin/orders");
+}
+
+export async function assignDeliveryDriver(fd: FormData): Promise<void> {
+  const code = str(fd, "code");
+  const driverId = str(fd, "driverId") || null;
+  if (code) await repo.assignDeliveryDriver(code, driverId);
+  revalidatePath("/admin/orders");
 }
 
 export async function saveBranch(_prev: FormState, fd: FormData): Promise<FormState> {

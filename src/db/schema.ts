@@ -71,6 +71,13 @@ export const vehicleCategories = pgTable("vehicle_categories", {
   kind: text("kind", { enum: VEHICLE_KINDS }).notNull(),
   name: text("name").notNull(),
   sort: integer("sort").notNull().default(0),
+  sizeCode: text("size_code", { enum: ["XS", "S", "M", "L"] }),
+  capacityKg: integer("capacity_kg"),
+  dims: text("dims"),
+  description: text("description"),
+  image: text("image"),
+  baseFare: integer("base_fare").notNull().default(0),
+  perKm: integer("per_km").notNull().default(0),
   ...timestamps,
 });
 
@@ -257,6 +264,35 @@ export const documents = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("documents_phone_idx").on(t.phone)]
+);
+
+export const deliveryOrders = pgTable(
+  "delivery_orders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    code: text("code").notNull(),
+    categoryId: uuid("category_id").references(() => vehicleCategories.id),
+    sizeName: text("size_name").notNull(),
+    sizeCode: text("size_code"),
+    pickupAddress: text("pickup_address"),
+    dropoffAddress: text("dropoff_address"),
+    pickupLat: real("pickup_lat"),
+    pickupLng: real("pickup_lng"),
+    dropoffLat: real("dropoff_lat"),
+    dropoffLng: real("dropoff_lng"),
+    km: real("km").notNull().default(0),
+    loaders: integer("loaders").notNull().default(0),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+    driverId: uuid("driver_id"),
+    status: text("status", { enum: ["new", "confirmed", "assigned", "completed", "cancelled"] })
+      .notNull()
+      .default("new"),
+    priceSnapshot: jsonb("price_snapshot").notNull(),
+    contactName: text("contact_name"),
+    contactPhone: text("contact_phone"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("delivery_orders_code_uq").on(t.code), index("delivery_orders_phone_idx").on(t.contactPhone)]
 );
 
 export const settings = pgTable("settings", {

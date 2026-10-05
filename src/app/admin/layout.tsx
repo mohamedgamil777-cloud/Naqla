@@ -5,6 +5,7 @@ import { adminLogout } from "@/app/admin-login/actions";
 
 const nav = [
   { href: "/admin", label: "لوحة التحكم", icon: "📊" },
+  { href: "/admin/orders", label: "طلبات التوصيل", icon: "📦" },
   { href: "/admin/new-booking", label: "حجز جديد", icon: "➕" },
   { href: "/admin/board", label: "المواعيد", icon: "🗓️" },
   { href: "/admin/bookings", label: "الحجوزات", icon: "📋" },

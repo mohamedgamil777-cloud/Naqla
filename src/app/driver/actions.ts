@@ -48,3 +48,22 @@ export async function driverAdvanceTrip(
   revalidatePath("/driver");
   return { ok: true };
 }
+
+/** Driver marks their assigned A→B delivery order as done. */
+export async function driverCompleteOrder(
+  _prev: DriverActionState,
+  fd: FormData
+): Promise<DriverActionState> {
+  const driver = await currentDriver();
+  if (!driver) return { ok: false, error: "مش مسجّل كسائق" };
+
+  const code = String(fd.get("code") ?? "");
+  const order = await repo.getDeliveryOrder(code);
+  if (!order) return { ok: false, error: "الطلب مش موجود" };
+  if (order.driverId !== driver.id) return { ok: false, error: "الطلب ده مش ليك" };
+  if (order.status !== "assigned") return { ok: false, error: "مش وقت الخطوة دي" };
+
+  await repo.updateDeliveryOrderStatus(code, "completed");
+  revalidatePath("/driver");
+  return { ok: true };
+}

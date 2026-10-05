@@ -3,11 +3,25 @@ import type { PricingRule } from "@/engines/pricing";
 import type { Quote } from "@/engines/pricing";
 import type { VehicleKind, VehicleStatus, BookingStatus } from "@/lib/constants";
 
+export type SizeCode = "XS" | "S" | "M" | "L";
+
 export interface CategoryDTO {
   id: string;
   kind: VehicleKind;
   name: string;
   sort: number;
+  /** Size tier shown to the customer (null = not a bookable size). */
+  sizeCode: SizeCode | null;
+  capacityKg: number | null;
+  /** Free text, e.g. "190×130×50". */
+  dims: string | null;
+  /** Short "good for…" description. */
+  description: string | null;
+  /** Photo/illustration URL (or data URL). */
+  image: string | null;
+  /** A→B delivery pricing for this size (piastres). */
+  baseFare: number;
+  perKm: number;
 }
 
 export interface VehicleListItem {
@@ -161,6 +175,13 @@ export interface CategoryInput {
   kind: VehicleKind;
   name: string;
   sort?: number;
+  sizeCode?: SizeCode | null;
+  capacityKg?: number | null;
+  dims?: string | null;
+  description?: string | null;
+  image?: string | null;
+  baseFare?: number;
+  perKm?: number;
 }
 
 export type StaffRole = "super_admin" | "fleet_mgr" | "agent" | "driver" | "finance";
@@ -223,6 +244,46 @@ export interface CouponInput {
   validTo?: string | null;
   maxUses?: number | null;
   active: boolean;
+}
+
+export type DeliveryOrderStatus = "new" | "confirmed" | "assigned" | "completed" | "cancelled";
+
+export interface DeliveryOrderDTO {
+  code: string;
+  categoryId: string;
+  sizeName: string; // snapshot of the size class name
+  sizeCode: string | null;
+  pickupAddress: string | null;
+  dropoffAddress: string | null;
+  pickupLat: number | null;
+  pickupLng: number | null;
+  dropoffLat: number | null;
+  dropoffLng: number | null;
+  km: number;
+  loaders: number;
+  scheduledAt: Date;
+  status: DeliveryOrderStatus;
+  driverId: string | null;
+  driverName: string | null;
+  priceSnapshot: Quote;
+  contactName: string | null;
+  contactPhone: string | null;
+  createdAt: Date;
+}
+
+export interface DeliveryOrderInput {
+  categoryId: string;
+  pickupAddress?: string | null;
+  dropoffAddress?: string | null;
+  pickupLat?: number | null;
+  pickupLng?: number | null;
+  dropoffLat?: number | null;
+  dropoffLng?: number | null;
+  km: number;
+  loaders: number;
+  scheduledAt: Date;
+  contactName: string;
+  contactPhone: string;
 }
 
 export type DocumentType = "national_id" | "license";

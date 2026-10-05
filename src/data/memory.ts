@@ -18,6 +18,9 @@ import type {
   CouponDTO,
   CouponInput,
   CreateBookingInput,
+  DeliveryOrderDTO,
+  DeliveryOrderInput,
+  DeliveryOrderStatus,
   DocumentDTO,
   DocumentInput,
   PaymentDTO,
@@ -93,6 +96,7 @@ interface MemState {
   payments: MemPayment[];
   documents: MemDocument[];
   coupons: MemCoupon[];
+  deliveryOrders: DeliveryOrderDTO[];
   otps: OtpRec[];
   users: UserRec[];
 }
@@ -160,10 +164,10 @@ function seedState(): MemState {
       working: { open: 8, close: 22 },
     },
     categories: [
-      { id: "22222222-0000-0000-0000-0000000000a1", kind: "van", name: "سوزوكي فان", sort: 1 },
-      { id: "22222222-0000-0000-0000-0000000000a2", kind: "pickup", name: "دبابه", sort: 2 },
-      { id: "22222222-0000-0000-0000-0000000000a3", kind: "pickup", name: "جامبو", sort: 3 },
-      { id: "22222222-0000-0000-0000-0000000000a4", kind: "pickup", name: "تروسكل", sort: 4 },
+      { id: "22222222-0000-0000-0000-0000000000a4", kind: "pickup", name: "تروسكل", sort: 1, sizeCode: "XS", capacityKg: 500, dims: "190×130×50", description: "طرود صغيرة، صناديق بقالة، وثائق", image: "/vehicles/pickup-single.svg", baseFare: 5000, perKm: 500 },
+      { id: "22222222-0000-0000-0000-0000000000a1", kind: "van", name: "سوزوكي فان", sort: 2, sizeCode: "S", capacityKg: 700, dims: "170×160×100", description: "صناديق صغيرة، كراسي، ثلاجات", image: "/vehicles/van-medium.svg", baseFare: 7000, perKm: 600 },
+      { id: "22222222-0000-0000-0000-0000000000a2", kind: "pickup", name: "دبابه", sort: 3, sizeCode: "M", capacityKg: 1300, dims: "300×200×200", description: "أريكة كبيرة، صناديق نقل", image: "/vehicles/pickup-double.svg", baseFare: 10000, perKm: 800 },
+      { id: "22222222-0000-0000-0000-0000000000a3", kind: "pickup", name: "جامبو", sort: 4, sizeCode: "L", capacityKg: 5000, dims: "450×250×220", description: "نقل تقيل، انتقالات كبيرة", image: "/vehicles/van-large.svg", baseFare: 15000, perKm: 1200 },
     ],
     vehicles: [
       {
@@ -271,6 +275,44 @@ function seedState(): MemState {
       { id: "cccc1111-0000-0000-0000-000000000001", code: "ترحيب", type: "fixed", value: 5000, minValue: 20000, validTo: null, maxUses: null, used: 0, active: true },
       { id: "cccc1111-0000-0000-0000-000000000002", code: "خصم10", type: "pct", value: 10, minValue: 0, validTo: null, maxUses: null, used: 0, active: true },
     ],
+    deliveryOrders: [
+      {
+        code: "50001",
+        categoryId: "22222222-0000-0000-0000-0000000000a2",
+        sizeName: "دبابه", sizeCode: "M",
+        pickupAddress: "٦ أكتوبر — الحي الأول", dropoffAddress: "الشيخ زايد — بوابة ٢",
+        pickupLat: 29.9716, pickupLng: 30.9426, dropoffLat: 30.03, dropoffLng: 30.976,
+        km: 9.5, loaders: 1, scheduledAt: cairoDateTime(today, 11),
+        status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق",
+        priceSnapshot: {
+          hours: 0,
+          lines: [
+            { key: "base", labelAr: "رسوم التوصيل الأساسية", amount: 10000 },
+            { key: "km", labelAr: "المسافة (9.5 كم)", amount: 7600 },
+          ],
+          subtotal: 17600, discount: 0, vat: 0, total: 17600, deposit: 0, currency: "EGP",
+        },
+        contactName: "محمد علي", contactPhone: "+201001112233", createdAt: new Date(),
+      },
+      {
+        code: "50002",
+        categoryId: "22222222-0000-0000-0000-0000000000a1",
+        sizeName: "سوزوكي فان", sizeCode: "S",
+        pickupAddress: "فيصل — محطة المريوطية", dropoffAddress: "الهرم — شارع الطالبية",
+        pickupLat: 29.996, pickupLng: 31.153, dropoffLat: 29.987, dropoffLng: 31.17,
+        km: 4.2, loaders: 0, scheduledAt: cairoDateTime(tomorrow, 15),
+        status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق",
+        priceSnapshot: {
+          hours: 0,
+          lines: [
+            { key: "base", labelAr: "رسوم التوصيل الأساسية", amount: 7000 },
+            { key: "km", labelAr: "المسافة (4.2 كم)", amount: 2520 },
+          ],
+          subtotal: 9520, discount: 0, vat: 0, total: 9520, deposit: 0, currency: "EGP",
+        },
+        contactName: "سارة محمود", contactPhone: "+201007778899", createdAt: new Date(),
+      },
+    ],
     otps: [],
     users: [],
   };
@@ -288,6 +330,7 @@ state.coupons ??= [
   { id: "cccc1111-0000-0000-0000-000000000001", code: "ترحيب", type: "fixed", value: 5000, minValue: 20000, validTo: null, maxUses: null, used: 0, active: true },
   { id: "cccc1111-0000-0000-0000-000000000002", code: "خصم10", type: "pct", value: 10, minValue: 0, validTo: null, maxUses: null, used: 0, active: true },
 ];
+state.deliveryOrders ??= [];
 state.staff ??= [
   { id: "aaaa1111-0000-0000-0000-000000000001", name: "أحمد المدير", phone: "+201000000001", role: "super_admin" },
   { id: "aaaa1111-0000-0000-0000-000000000002", name: "منى الحجوزات", phone: "+201000000002", role: "agent" },
@@ -540,6 +583,72 @@ export const memRepo = {
     return true;
   },
 
+  // ---------- delivery orders (A→B) ----------
+  createDeliveryOrder: async (
+    input: DeliveryOrderInput,
+    quote: Quote,
+    sizeName: string,
+    sizeCode: string | null
+  ): Promise<{ code: string }> => {
+    const code = newBookingCode();
+    state.deliveryOrders.push({
+      code,
+      categoryId: input.categoryId,
+      sizeName,
+      sizeCode,
+      pickupAddress: input.pickupAddress ?? null,
+      dropoffAddress: input.dropoffAddress ?? null,
+      pickupLat: input.pickupLat ?? null,
+      pickupLng: input.pickupLng ?? null,
+      dropoffLat: input.dropoffLat ?? null,
+      dropoffLng: input.dropoffLng ?? null,
+      km: input.km,
+      loaders: input.loaders,
+      scheduledAt: input.scheduledAt,
+      status: "new",
+      driverId: null,
+      driverName: null,
+      priceSnapshot: quote,
+      contactName: input.contactName,
+      contactPhone: input.contactPhone,
+      createdAt: new Date(),
+    });
+    return { code };
+  },
+
+  listDeliveryOrders: async (): Promise<DeliveryOrderDTO[]> =>
+    state.deliveryOrders.slice().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map((o) => ({ ...o })),
+
+  listDeliveryOrdersByPhone: async (phone: string): Promise<DeliveryOrderDTO[]> =>
+    state.deliveryOrders.filter((o) => o.contactPhone === phone).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map((o) => ({ ...o })),
+
+  updateDeliveryOrderStatus: async (code: string, status: DeliveryOrderStatus): Promise<boolean> => {
+    const o = state.deliveryOrders.find((x) => x.code === code);
+    if (!o) return false;
+    o.status = status;
+    return true;
+  },
+
+  assignDeliveryDriver: async (code: string, driverId: string | null): Promise<boolean> => {
+    const o = state.deliveryOrders.find((x) => x.code === code);
+    if (!o) return false;
+    o.driverId = driverId;
+    o.driverName = driverId ? state.staff.find((s) => s.id === driverId)?.name ?? null : null;
+    if (driverId) o.status = "assigned";
+    return true;
+  },
+
+  getDeliveryOrder: async (code: string): Promise<DeliveryOrderDTO | null> => {
+    const o = state.deliveryOrders.find((x) => x.code === code);
+    return o ? { ...o } : null;
+  },
+
+  listDeliveryOrdersByDriver: async (driverId: string): Promise<DeliveryOrderDTO[]> =>
+    state.deliveryOrders
+      .filter((o) => o.driverId === driverId)
+      .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
+      .map((o) => ({ ...o })),
+
   // ---------- OTP ----------
   saveOtp: async (phone: string, codeHash: string, expiresAt: Date) => {
     state.otps.push({ phone, codeHash, expiresAt, attempts: 0, consumed: false, createdAt: new Date() });
@@ -631,7 +740,16 @@ export const memRepo = {
   createCategory: async (input: CategoryInput): Promise<{ id: string }> => {
     const id = crypto.randomUUID();
     const sort = input.sort ?? (state.categories.reduce((m, c) => Math.max(m, c.sort), 0) + 1);
-    state.categories.push({ id, kind: input.kind, name: input.name, sort });
+    state.categories.push({
+      id, kind: input.kind, name: input.name, sort,
+      sizeCode: input.sizeCode ?? null,
+      capacityKg: input.capacityKg ?? null,
+      dims: input.dims ?? null,
+      description: input.description ?? null,
+      image: input.image ?? null,
+      baseFare: input.baseFare ?? 0,
+      perKm: input.perKm ?? 0,
+    });
     return { id };
   },
   updateCategory: async (id: string, input: CategoryInput): Promise<boolean> => {
@@ -640,6 +758,13 @@ export const memRepo = {
     c.name = input.name;
     c.kind = input.kind;
     if (input.sort != null) c.sort = input.sort;
+    if (input.sizeCode !== undefined) c.sizeCode = input.sizeCode;
+    if (input.capacityKg !== undefined) c.capacityKg = input.capacityKg;
+    if (input.dims !== undefined) c.dims = input.dims;
+    if (input.description !== undefined) c.description = input.description;
+    if (input.image !== undefined) c.image = input.image;
+    if (input.baseFare !== undefined) c.baseFare = input.baseFare;
+    if (input.perKm !== undefined) c.perKm = input.perKm;
     return true;
   },
   deleteCategory: async (id: string): Promise<{ ok: boolean; reason?: string }> => {

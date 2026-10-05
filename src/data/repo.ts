@@ -18,6 +18,9 @@ import type {
   CouponDTO,
   CouponInput,
   CreateBookingInput,
+  DeliveryOrderDTO,
+  DeliveryOrderInput,
+  DeliveryOrderStatus,
   DocumentDTO,
   DocumentInput,
   PaymentDTO,
@@ -34,7 +37,7 @@ import type {
 import type { VehicleKind, VehicleStatus } from "@/lib/constants";
 import { BLOCKING_STATUSES, DEFAULTS, newBookingCode } from "@/lib/constants";
 
-const { vehicleCategories, vehicles, vehicleImages, branches, pricingRules, bookings, vehicleBlocks, promoCodes, otpCodes, users, settings, payments, documents } =
+const { vehicleCategories, vehicles, vehicleImages, branches, pricingRules, bookings, vehicleBlocks, promoCodes, otpCodes, users, settings, payments, documents, deliveryOrders } =
   schema;
 
 function pricingRuleToInput(rule: PricingRule): VehiclePricingInput {
@@ -89,6 +92,31 @@ function branchWorking(b: typeof branches.$inferSelect): { open: number; close: 
   return { open: wh.open ?? 8, close: wh.close ?? 22 };
 }
 
+function mapDeliveryOrder(r: typeof deliveryOrders.$inferSelect, driverName: string | null = null): DeliveryOrderDTO {
+  return {
+    code: r.code,
+    categoryId: r.categoryId ?? "",
+    sizeName: r.sizeName,
+    sizeCode: r.sizeCode ?? null,
+    pickupAddress: r.pickupAddress ?? null,
+    dropoffAddress: r.dropoffAddress ?? null,
+    pickupLat: r.pickupLat ?? null,
+    pickupLng: r.pickupLng ?? null,
+    dropoffLat: r.dropoffLat ?? null,
+    dropoffLng: r.dropoffLng ?? null,
+    km: r.km,
+    loaders: r.loaders,
+    scheduledAt: r.scheduledAt,
+    status: r.status,
+    driverId: r.driverId ?? null,
+    driverName,
+    priceSnapshot: r.priceSnapshot as Quote,
+    contactName: r.contactName ?? null,
+    contactPhone: r.contactPhone ?? null,
+    createdAt: r.createdAt,
+  };
+}
+
 /** Booking error mapper for Postgres constraint/trigger violations. */
 function mapBookingError(e: unknown): never {
   const msg = (e as { message?: string })?.message ?? "";
@@ -101,7 +129,12 @@ function mapBookingError(e: unknown): never {
 const pgRepo = {
   listCategories: async (): Promise<CategoryDTO[]> => {
     const rows = await db!.select().from(vehicleCategories).orderBy(vehicleCategories.sort);
-    return rows.map((r) => ({ id: r.id, kind: r.kind, name: r.name, sort: r.sort }));
+    return rows.map((r) => ({
+      id: r.id, kind: r.kind, name: r.name, sort: r.sort,
+      sizeCode: r.sizeCode ?? null, capacityKg: r.capacityKg ?? null, dims: r.dims ?? null,
+      description: r.description ?? null, image: r.image ?? null,
+      baseFare: r.baseFare, perKm: r.perKm,
+    }));
   },
 
   defaultBranch: async (): Promise<BranchDTO> => {
@@ -433,6 +466,82 @@ const pgRepo = {
     return true;
   },
 
+  // ---------- delivery orders (A→B) ----------
+  createDeliveryOrder: async (
+    input: DeliveryOrderInput,
+    quote: Quote,
+    sizeName: string,
+    sizeCode: string | null
+  ): Promise<{ code: string }> => {
+    const code = newBookingCode();
+    await db!.insert(deliveryOrders).values({
+      code,
+      categoryId: input.categoryId,
+      sizeName,
+      sizeCode,
+      pickupAddress: input.pickupAddress ?? null,
+      dropoffAddress: input.dropoffAddress ?? null,
+      pickupLat: input.pickupLat ?? null,
+      pickupLng: input.pickupLng ?? null,
+      dropoffLat: input.dropoffLat ?? null,
+      dropoffLng: input.dropoffLng ?? null,
+      km: input.km,
+      loaders: input.loaders,
+      scheduledAt: input.scheduledAt,
+      priceSnapshot: quote,
+      contactName: input.contactName,
+      contactPhone: input.contactPhone,
+    });
+    return { code };
+  },
+  listDeliveryOrders: async (): Promise<DeliveryOrderDTO[]> => {
+    const rows = await db!
+      .select({ o: deliveryOrders, driverName: users.name })
+      .from(deliveryOrders)
+      .leftJoin(users, eq(deliveryOrders.driverId, users.id))
+      .orderBy(desc(deliveryOrders.createdAt));
+    return rows.map((r) => mapDeliveryOrder(r.o, r.driverName ?? null));
+  },
+  listDeliveryOrdersByPhone: async (phone: string): Promise<DeliveryOrderDTO[]> => {
+    const rows = await db!
+      .select({ o: deliveryOrders, driverName: users.name })
+      .from(deliveryOrders)
+      .leftJoin(users, eq(deliveryOrders.driverId, users.id))
+      .where(eq(deliveryOrders.contactPhone, phone))
+      .orderBy(desc(deliveryOrders.createdAt));
+    return rows.map((r) => mapDeliveryOrder(r.o, r.driverName ?? null));
+  },
+  listDeliveryOrdersByDriver: async (driverId: string): Promise<DeliveryOrderDTO[]> => {
+    const rows = await db!
+      .select({ o: deliveryOrders, driverName: users.name })
+      .from(deliveryOrders)
+      .leftJoin(users, eq(deliveryOrders.driverId, users.id))
+      .where(eq(deliveryOrders.driverId, driverId))
+      .orderBy(deliveryOrders.scheduledAt);
+    return rows.map((r) => mapDeliveryOrder(r.o, r.driverName ?? null));
+  },
+  getDeliveryOrder: async (code: string): Promise<DeliveryOrderDTO | null> => {
+    const [r] = await db!
+      .select({ o: deliveryOrders, driverName: users.name })
+      .from(deliveryOrders)
+      .leftJoin(users, eq(deliveryOrders.driverId, users.id))
+      .where(eq(deliveryOrders.code, code))
+      .limit(1);
+    return r ? mapDeliveryOrder(r.o, r.driverName ?? null) : null;
+  },
+  updateDeliveryOrderStatus: async (code: string, status: DeliveryOrderStatus): Promise<boolean> => {
+    const res = await db!.update(deliveryOrders).set({ status }).where(eq(deliveryOrders.code, code)).returning({ id: deliveryOrders.id });
+    return res.length > 0;
+  },
+  assignDeliveryDriver: async (code: string, driverId: string | null): Promise<boolean> => {
+    const res = await db!
+      .update(deliveryOrders)
+      .set(driverId ? { driverId, status: "assigned" } : { driverId: null })
+      .where(eq(deliveryOrders.code, code))
+      .returning({ id: deliveryOrders.id });
+    return res.length > 0;
+  },
+
   saveOtp: async (phone: string, codeHash: string, expiresAt: Date) => {
     await db!.insert(otpCodes).values({ phone, codeHash, expiresAt });
   },
@@ -573,12 +682,27 @@ const pgRepo = {
   createCategory: async (input: CategoryInput): Promise<{ id: string }> => {
     const [created] = await db!
       .insert(vehicleCategories)
-      .values({ kind: input.kind, name: input.name, sort: input.sort ?? 0 })
+      .values({
+        kind: input.kind, name: input.name, sort: input.sort ?? 0,
+        sizeCode: input.sizeCode ?? null, capacityKg: input.capacityKg ?? null, dims: input.dims ?? null,
+        description: input.description ?? null, image: input.image ?? null,
+        baseFare: input.baseFare ?? 0, perKm: input.perKm ?? 0,
+      })
       .returning({ id: vehicleCategories.id });
     return { id: created.id };
   },
   updateCategory: async (id: string, input: CategoryInput): Promise<boolean> => {
-    await db!.update(vehicleCategories).set({ kind: input.kind, name: input.name, ...(input.sort != null ? { sort: input.sort } : {}) }).where(eq(vehicleCategories.id, id));
+    await db!.update(vehicleCategories).set({
+      kind: input.kind, name: input.name,
+      ...(input.sort != null ? { sort: input.sort } : {}),
+      ...(input.sizeCode !== undefined ? { sizeCode: input.sizeCode } : {}),
+      ...(input.capacityKg !== undefined ? { capacityKg: input.capacityKg } : {}),
+      ...(input.dims !== undefined ? { dims: input.dims } : {}),
+      ...(input.description !== undefined ? { description: input.description } : {}),
+      ...(input.image !== undefined ? { image: input.image } : {}),
+      ...(input.baseFare !== undefined ? { baseFare: input.baseFare } : {}),
+      ...(input.perKm !== undefined ? { perKm: input.perKm } : {}),
+    }).where(eq(vehicleCategories.id, id));
     return true;
   },
   deleteCategory: async (id: string): Promise<{ ok: boolean; reason?: string }> => {

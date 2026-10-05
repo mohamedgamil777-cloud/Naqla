@@ -173,9 +173,12 @@ describe("weekend surcharge", () => {
 });
 
 describe("delivery (A→B) estimate", () => {
+  // Rates for a size class: base 100 EGP, 5 EGP/km, loaders 80 EGP/person.
+  const rates = { baseFare: 10000, perKm: 500, loaderFeePerPerson: 8000 };
+
   it("prices base + distance", () => {
-    // base delivery 100 EGP + 30km * 5 EGP = 150 => 250 EGP total.
-    const q = computeDeliveryQuote({ km: 30 }, rule, NO_VAT);
+    // base 100 EGP + 30km * 5 EGP = 150 => 250 EGP total.
+    const q = computeDeliveryQuote({ km: 30 }, rates, NO_VAT);
     expect(q.lines.find((l) => l.key === "base")?.amount).toBe(10000);
     expect(q.lines.find((l) => l.key === "km")?.amount).toBe(15000);
     expect(q.subtotal).toBe(25000);
@@ -185,14 +188,14 @@ describe("delivery (A→B) estimate", () => {
 
   it("adds loaders and applies a percentage coupon", () => {
     // base 100 + 20km*5=100 + 2 loaders*80=160 => subtotal 360 EGP; 10% off = 36 EGP.
-    const q = computeDeliveryQuote({ km: 20, loaders: 2, promo: { code: "خصم10", type: "pct", value: 10 } }, rule, NO_VAT);
+    const q = computeDeliveryQuote({ km: 20, loaders: 2, promo: { code: "خصم10", type: "pct", value: 10 } }, rates, NO_VAT);
     expect(q.subtotal).toBe(36000);
     expect(q.discount).toBe(3600);
     expect(q.total).toBe(32400);
   });
 
   it("applies a fixed coupon and never goes negative", () => {
-    const q = computeDeliveryQuote({ km: 10, promo: { code: "ترحيب", type: "fixed", value: 999999 } }, rule, NO_VAT);
+    const q = computeDeliveryQuote({ km: 10, promo: { code: "ترحيب", type: "fixed", value: 999999 } }, rates, NO_VAT);
     // subtotal = 100 + 50 = 150 EGP = 15000 piastres; discount capped at subtotal.
     expect(q.discount).toBe(15000);
     expect(q.total).toBe(0);
