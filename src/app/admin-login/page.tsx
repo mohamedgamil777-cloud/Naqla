@@ -15,6 +15,9 @@ export default async function AdminLoginPage() {
           <p className="text-muted text-sm mt-1">اكتب كلمة السر عشان تدخل لوحة التحكم.</p>
         </div>
         <AdminLoginForm />
+        <p className="text-center text-sm text-muted">
+          موظف؟ <a href="/login?next=/admin" className="text-primary font-bold">ادخل برقم موبايلك</a>
+        </p>
       </div>
     </div>
   );

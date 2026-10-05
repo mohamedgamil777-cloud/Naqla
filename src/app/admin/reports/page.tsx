@@ -1,8 +1,10 @@
 import { getDatasets } from "@/services/reporting-service";
+import { requireAdminRole } from "@/services/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
+  await requireAdminRole(["super_admin", "finance"]);
   const datasets = await getDatasets();
   const totalRows = datasets.reduce((s, d) => s + d.rows.length, 0);
 

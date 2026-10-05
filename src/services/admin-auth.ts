@@ -6,11 +6,17 @@
  */
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
+import { getSession } from "./session";
+import { repo } from "@/data/repo";
+import type { StaffRole } from "@/data/types";
 
 const COOKIE = "naqla_admin";
 const secret = new TextEncoder().encode(
   process.env.AUTH_SECRET ?? "dev-only-insecure-secret-change-me-please-32b"
 );
+
+/** Staff roles that may enter the admin area at all. */
+export const ADMIN_ROLES: StaffRole[] = ["super_admin", "fleet_mgr", "agent", "finance"];
 
 /** The passcode required to enter the admin panel. */
 export function adminPasscode(): string {
@@ -27,7 +33,7 @@ export function checkPasscode(input: string): boolean {
 }
 
 export async function setAdminSession(): Promise<void> {
-  const token = await new SignJWT({ admin: true })
+  const token = await new SignJWT({ admin: true, role: "super_admin" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
@@ -47,14 +53,37 @@ export async function clearAdminSession(): Promise<void> {
   jar.delete(COOKIE);
 }
 
-export async function isAdminAuthed(): Promise<boolean> {
+/** Resolve the current admin role, or null if not an admin.
+ *  1) the shared passcode cookie → super_admin (the owner).
+ *  2) a staff member logged in via phone OTP whose role is an admin role. */
+export async function getAdminRole(): Promise<StaffRole | null> {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
-  if (!token) return false;
-  try {
-    const { payload } = await jwtVerify(token, secret);
-    return payload.admin === true;
-  } catch {
-    return false;
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.admin === true) return ((payload.role as StaffRole) ?? "super_admin");
+    } catch {
+      /* fall through */
+    }
   }
+  const session = await getSession();
+  if (session) {
+    const staff = await repo.getStaffByPhone(session.phone);
+    if (staff && ADMIN_ROLES.includes(staff.role)) return staff.role;
+  }
+  return null;
+}
+
+export async function isAdminAuthed(): Promise<boolean> {
+  return (await getAdminRole()) !== null;
+}
+
+/** Guard a page to specific admin roles. Redirects away if not allowed. */
+export async function requireAdminRole(allowed: StaffRole[]): Promise<StaffRole> {
+  const { redirect } = await import("next/navigation");
+  const role = await getAdminRole();
+  if (!role) redirect("/admin-login");
+  if (!allowed.includes(role!)) redirect("/admin");
+  return role!;
 }
