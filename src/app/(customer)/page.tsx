@@ -6,34 +6,37 @@ import { Icon, type IconName } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
-const TRUST: { icon: IconName; t: string }[] = [
-  { icon: "tag", t: "سعر واضح من البداية" },
-  { icon: "clock", t: "في دقائق" },
-  { icon: "headset", t: "بدون وجع دماغ" },
-];
-
-const STEPS: { icon: IconName; t: string }[] = [
-  { icon: "mapPin", t: "حدد مكان النقل" },
-  { icon: "truck", t: "اختار حجم العربية" },
-  { icon: "calendar", t: "اختار الميعاد" },
-  { icon: "checkCircle", t: "اطلب واستنى التأكيد" },
-];
+// Icons stay fixed per position; the texts come from admin → محتوى التطبيق.
+const TRUST_ICONS: IconName[] = ["tag", "clock", "headset"];
+const STEP_ICONS: IconName[] = ["mapPin", "truck", "calendar", "checkCircle"];
 
 export default async function HomePage() {
-  const sizes = (await repo.listCategories()).filter((c) => c.sizeCode).sort((a, b) => a.sort - b.sort);
+  const [cats, content] = await Promise.all([repo.listCategories(), repo.getAppContent()]);
+  const sizes = cats.filter((c) => c.sizeCode).sort((a, b) => a.sort - b.sort);
+  const { home } = content;
+  const TRUST = home.trust.map((t, i) => ({ t, icon: TRUST_ICONS[i] }));
+  const STEPS = home.steps.map((t, i) => ({ t, icon: STEP_ICONS[i] }));
+  const subtitle = home.subtitle.split(/\r?\n/);
 
   return (
     <div className="flex flex-col gap-7 pb-4">
       {/* Hero */}
       <section className="px-4 pt-5">
-        <h1 className="text-[1.9rem] font-extrabold leading-tight">محتاج تنقل حاجة؟</h1>
+        <h1 className="text-[1.9rem] font-extrabold leading-tight">{home.title}</h1>
         <p className="mt-2 text-lg text-muted leading-relaxed">
-          أسرع وأسهل طريقة لنقل أغراضك
-          <br />
-          مع سائق معتمد من نقلة
+          {subtitle.map((line, i) => (
+            <span key={i} className="block">
+              {line}
+            </span>
+          ))}
         </p>
         <div className="mt-4 overflow-hidden rounded-card border border-line shadow-[0_8px_24px_rgba(16,32,28,0.08)]">
-          <HeroScene className="block w-full h-auto" />
+          {home.heroImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={home.heroImage} alt="نقلة" className="block w-full aspect-[36/19] object-cover" />
+          ) : (
+            <HeroScene className="block w-full h-auto" />
+          )}
         </div>
         <Link
           href="/estimate"

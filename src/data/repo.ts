@@ -5,6 +5,7 @@
 import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db, hasDb, schema } from "@/db";
 import { memRepo } from "./memory";
+import { withDefaults, type AppContent } from "./content";
 import type { PricingRule, PromoInput, Quote, Tier } from "@/engines/pricing";
 import type {
   BlockDTO,
@@ -856,6 +857,19 @@ const pgRepo = {
   },
   deleteVehicleBlock: async (id: string): Promise<boolean> => {
     await db!.delete(vehicleBlocks).where(eq(vehicleBlocks.id, id));
+    return true;
+  },
+
+  // ---------- admin-editable app content (settings key "app_content") ----------
+  getAppContent: async (): Promise<AppContent> => {
+    const [row] = await db!.select().from(settings).where(eq(settings.key, "app_content")).limit(1);
+    return withDefaults((row?.value as Partial<AppContent> | undefined) ?? null);
+  },
+  saveAppContent: async (content: AppContent): Promise<boolean> => {
+    await db!
+      .insert(settings)
+      .values({ key: "app_content", value: content })
+      .onConflictDoUpdate({ target: settings.key, set: { value: content, updatedAt: new Date() } });
     return true;
   },
 

@@ -5,6 +5,7 @@
  * panel works in dev; changes persist for the life of the server process only.
  * Production uses Postgres (repo.ts) where changes are durable.
  */
+import { withDefaults, type AppContent } from "./content";
 import type { PricingRule, PromoInput, Quote } from "@/engines/pricing";
 import type {
   BlockDTO,
@@ -101,6 +102,7 @@ interface MemState {
   documents: MemDocument[];
   coupons: MemCoupon[];
   deliveryOrders: DeliveryOrderDTO[];
+  appContent?: Partial<AppContent> | null;
   driverPayouts: DriverPayoutDTO[];
   expenses: ExpenseDTO[];
   otps: OtpRec[];
@@ -920,6 +922,13 @@ export const memRepo = {
 
   deleteVehicleBlock: async (id: string): Promise<boolean> => {
     state.blocks = state.blocks.filter((b) => b.id !== id);
+    return true;
+  },
+
+  // ---------- admin-editable app content ----------
+  getAppContent: async (): Promise<AppContent> => withDefaults(state.appContent),
+  saveAppContent: async (content: AppContent): Promise<boolean> => {
+    state.appContent = structuredClone(content);
     return true;
   },
 

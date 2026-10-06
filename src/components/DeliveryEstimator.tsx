@@ -21,13 +21,15 @@ interface LatLng {
   lng: number;
 }
 
-/** Quick "what are you moving?" cards → recommended size. */
-const CARGO_HINTS: { label: string; size: string; icon: IconName }[] = [
-  { label: "ظرف / أوراق", size: "XS", icon: "file" },
-  { label: "صناديق / كراسي", size: "S", icon: "box" },
-  { label: "أثاث / أجهزة", size: "M", icon: "sofa" },
-  { label: "عفش بيت", size: "L", icon: "home" },
-];
+export interface OrderOptions {
+  /** working hours from admin settings (whole hours, close is exclusive) */
+  hours: { open: number; close: number };
+  advanceDays: number;
+  maxLoaders: number;
+  disclaimer: string;
+  /** "what are you moving?" cards → suggested size (admin → محتوى التطبيق) */
+  cargo: { label: string; size: string; icon: IconName }[];
+}
 
 const SIZE_BADGE: Record<string, string> = {
   XS: "bg-accent-soft text-accent-ink",
@@ -43,11 +45,14 @@ const STEPS = [
   { id: "sec-details", label: "التفاصيل" },
 ];
 
-/** 07:00 → 22:00 every 30 min. */
-const TIME_SLOTS = Array.from({ length: 31 }, (_, i) => {
-  const mins = 7 * 60 + i * 30;
-  return `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
-});
+/** Every 30 min inside working hours (last slot is 30 min before closing). */
+function timeSlots(open: number, close: number): string[] {
+  const out: string[] = [];
+  for (let m = open * 60; m < close * 60; m += 30) {
+    out.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
+  }
+  return out;
+}
 
 function timeLabel(t: string) {
   const [h, m] = t.split(":").map(Number);
@@ -121,13 +126,17 @@ export function DeliveryEstimator({
   center,
   initialSizeCode,
   loaderFee,
+  options,
 }: {
   sizes: SizeOpt[];
   center: LatLng;
   initialSizeCode?: string;
   /** per-person loader fee (piastres), shown under the counter */
   loaderFee?: number;
+  options: OrderOptions;
 }) {
+  const CARGO_HINTS = options.cargo;
+  const TIME_SLOTS = timeSlots(options.hours.open, options.hours.close);
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<{ a: any; b: any }>({ a: null, b: null });
@@ -158,7 +167,7 @@ export function DeliveryEstimator({
 
   const today = cairoDateISO(0);
   const [date, setDate] = useState(today);
-  const [time, setTime] = useState("10:00");
+  const [time, setTime] = useState(() => (TIME_SLOTS.includes("10:00") ? "10:00" : TIME_SLOTS[0] ?? "10:00"));
   const [timeTouched, setTimeTouched] = useState(false);
 
   const [loaders, setLoaders] = useState(0);
@@ -312,6 +321,8 @@ export function DeliveryEstimator({
       const j = await r.json();
       if (j.code) setOrderCode(j.code);
       else if (j.error === "PAST") { setOrderErr("اختار ميعاد في المستقبل."); goTo("sec-time"); }
+      else if (j.error === "HOURS") { setOrderErr("الميعاد ده بره مواعيد الشغل، اختار ساعة تانية."); goTo("sec-time"); }
+      else if (j.error === "TOO_FAR") { setOrderErr("الميعاد ده بعيد أوي، اختار يوم أقرب."); goTo("sec-time"); }
       else setOrderErr("حصلت مشكلة، حاول تاني.");
     } catch {
       setOrderErr("حصلت مشكلة، حاول تاني.");
@@ -497,7 +508,7 @@ export function DeliveryEstimator({
           <input
             type="date"
             min={today}
-            max={addDaysISO(today, 30)}
+            max={addDaysISO(today, options.advanceDays)}
             value={date}
             onChange={(e) => { if (e.target.value) { setDate(e.target.value); setTimeTouched(true); } }}
             onClick={(e) => (e.currentTarget as any).showPicker?.()}
@@ -626,7 +637,7 @@ export function DeliveryEstimator({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button type="button" aria-label="زوّد" onClick={() => setLoaders((n) => Math.min(6, n + 1))} className="w-10 h-10 rounded-full bg-panel-2 text-xl font-bold hover:bg-primary-soft">+</button>
+            <button type="button" aria-label="زوّد" onClick={() => setLoaders((n) => Math.min(options.maxLoaders, n + 1))} className="w-10 h-10 rounded-full bg-panel-2 text-xl font-bold hover:bg-primary-soft">+</button>
             <span className="w-6 text-center text-2xl font-extrabold">{loaders}</span>
             <button type="button" aria-label="قلّل" onClick={() => setLoaders((n) => Math.max(0, n - 1))} className="w-10 h-10 rounded-full bg-panel-2 text-xl font-bold hover:bg-primary-soft">−</button>
           </div>
@@ -673,7 +684,7 @@ export function DeliveryEstimator({
             className="rounded-xl bg-panel-2 border border-line px-3 py-2.5 outline-none focus:border-primary resize-none"
           />
         </label>
-        <p className="text-xs text-muted text-center">السعر تقديري حسب المسافة والحجم، والسعر النهائي بيتأكد مع خدمة العملاء.</p>
+        {options.disclaimer && <p className="text-xs text-muted text-center">{options.disclaimer}</p>}
       </section>
 
       {/* spacer so the sticky bar never hides content */}

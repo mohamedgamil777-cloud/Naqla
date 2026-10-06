@@ -19,21 +19,17 @@ export async function estimateDelivery(params: {
   loaders?: number;
   promoCode?: string | null;
 }): Promise<DeliveryEstimate | null> {
-  const [cats, business, globalPricing] = await Promise.all([
-    repo.listCategories(),
-    repo.getBusiness(),
-    repo.defaultPricingInput(),
-  ]);
+  const [cats, business, content] = await Promise.all([repo.listCategories(), repo.getBusiness(), repo.getAppContent()]);
   const cat = cats.find((c) => c.id === params.categoryId);
   if (!cat) return null;
 
   const rates = {
     baseFare: cat.baseFare,
     perKm: cat.perKm,
-    loaderFeePerPerson: globalPricing.loaderFeePerPerson,
+    loaderFeePerPerson: content.order.loaderFee, // admin → محتوى التطبيق
   };
   const km = Math.max(0, params.km);
-  const loaders = Math.max(0, Math.floor(params.loaders ?? 0));
+  const loaders = Math.min(content.order.maxLoaders, Math.max(0, Math.floor(params.loaders ?? 0)));
 
   // First pass (no promo) to learn the subtotal for the coupon's min-value check.
   const preview = computeDeliveryQuote({ km, loaders, promo: null }, rates, { vatRate: business.vatRate });

@@ -1,4 +1,5 @@
 "use client";
+import { ImageField } from "@/components/admin/ImageField";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { saveCategory, deleteCategory, type FormState } from "@/app/admin/actions";
@@ -52,10 +53,9 @@ function Fields({ c }: { c?: CategoryDTO }) {
         <span className={lbl}>سعر الكيلومتر (جنيه)</span>
         <input className={inp} name="perKm" type="number" min="0" step="0.5" defaultValue={c ? piastresToEgp(c.perKm) : ""} placeholder="6" />
       </label>
-      <label className="flex flex-col gap-1">
-        <span className={lbl}>صورة (رابط)</span>
-        <input className={inp} name="image" defaultValue={c?.image ?? ""} placeholder="/vehicles/van-medium.svg" />
-      </label>
+      <div className="col-span-2 sm:col-span-3">
+        <ImageField name="image" label="صورة العربية (بتظهر للعميل في الرئيسية وشاشة الطلب)" defaultValue={c?.image} camera={false} maxWidth={900} />
+      </div>
     </div>
   );
 }

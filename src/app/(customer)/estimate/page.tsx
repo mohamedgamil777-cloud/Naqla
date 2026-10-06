@@ -5,7 +5,12 @@ export const dynamic = "force-dynamic";
 
 export default async function EstimatePage({ searchParams }: { searchParams: Promise<{ size?: string }> }) {
   const { size } = await searchParams;
-  const [cats, branch, pricing] = await Promise.all([repo.listCategories(), repo.defaultBranch(), repo.defaultPricingInput()]);
+  const [cats, branch, business, content] = await Promise.all([
+    repo.listCategories(),
+    repo.defaultBranch(),
+    repo.getBusiness(),
+    repo.getAppContent(),
+  ]);
   const sizes = cats
     .filter((c) => c.sizeCode)
     .map((c) => ({
@@ -29,7 +34,15 @@ export default async function EstimatePage({ searchParams }: { searchParams: Pro
           مفيش أحجام متاحة دلوقتي.
         </div>
       ) : (
-        <DeliveryEstimator sizes={sizes} initialSizeCode={size} loaderFee={pricing.loaderFeePerPerson} center={{ lat: branch.lat ?? 30.0444, lng: branch.lng ?? 31.2357 }} />
+        <DeliveryEstimator sizes={sizes} initialSizeCode={size} loaderFee={content.order.loaderFee}
+          options={{
+            hours: branch.working,
+            advanceDays: business.advanceDays,
+            maxLoaders: content.order.maxLoaders,
+            disclaimer: content.order.disclaimer,
+            cargo: content.order.cargo,
+          }}
+          center={{ lat: branch.lat ?? 30.0444, lng: branch.lng ?? 31.2357 }} />
       )}
     </div>
   );

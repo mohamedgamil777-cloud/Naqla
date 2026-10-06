@@ -28,7 +28,23 @@ function fileToDataUrl(file: File, maxW = 1100, quality = 0.8): Promise<string> 
 }
 
 /** A labelled image picker that stores a data URL into a hidden form field. */
-export function ImageField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string | null }) {
+export function ImageField({
+  name,
+  label,
+  defaultValue,
+  camera = true,
+  maxWidth = 1100,
+  wide = false,
+}: {
+  name: string;
+  label: string;
+  defaultValue?: string | null;
+  /** open the camera directly on phones (documents); false = pick from gallery too */
+  camera?: boolean;
+  maxWidth?: number;
+  /** wide preview (banners) instead of a square thumbnail */
+  wide?: boolean;
+}) {
   const [value, setValue] = useState<string>(defaultValue ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -43,7 +59,7 @@ export function ImageField({ name, label, defaultValue }: { name: string; label:
     }
     setBusy(true);
     try {
-      setValue(await fileToDataUrl(file));
+      setValue(await fileToDataUrl(file, maxWidth));
     } catch {
       setErr("مش قادر يقرأ الصورة.");
     } finally {
@@ -56,7 +72,7 @@ export function ImageField({ name, label, defaultValue }: { name: string; label:
       <span className="text-xs font-bold text-ink-2">{label}</span>
       <input type="hidden" name={name} value={value} />
       <div className="flex items-center gap-3">
-        <div className="w-20 h-20 shrink-0 rounded-xl bg-panel-2 border border-line-2 overflow-hidden grid place-items-center text-2xl text-muted">
+        <div className={`${wide ? "w-40 h-[5.3rem]" : "w-20 h-20"} shrink-0 rounded-xl bg-panel-2 border border-line-2 overflow-hidden grid place-items-center text-2xl text-muted`}>
           {value ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={value} alt={label} className="w-full h-full object-cover" />
@@ -66,7 +82,7 @@ export function ImageField({ name, label, defaultValue }: { name: string; label:
         </div>
         <label className="rounded-xl bg-primary-soft text-primary-ink px-4 py-2 font-bold tap cursor-pointer">
           {busy ? "…" : value ? "تغيير الصورة" : "رفع صورة"}
-          <input type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />
+          <input type="file" accept="image/*" capture={camera ? "environment" : undefined} onChange={onFile} className="hidden" />
         </label>
         {value && (
           <button type="button" onClick={() => setValue("")} className="text-booked text-sm font-bold tap">

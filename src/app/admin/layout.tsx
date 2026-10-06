@@ -28,6 +28,7 @@ const nav: { href: string; label: string; icon: string; roles: StaffRole[] }[] =
   { href: "/admin/fleet", label: "العربيات", icon: "🚙", roles: ["super_admin", "fleet_mgr"] },
   { href: "/admin/categories", label: "الأنواع", icon: "🏷️", roles: ["super_admin", "fleet_mgr"] },
   { href: "/admin/coupons", label: "كوبونات الخصم", icon: "🎟️", roles: ["super_admin", "agent"] },
+  { href: "/admin/content", label: "محتوى التطبيق", icon: "🖼️", roles: ["super_admin"] },
   { href: "/admin/staff", label: "الموظفين", icon: "👥", roles: ["super_admin"] },
   { href: "/admin/settings", label: "الإعدادات", icon: "⚙️", roles: ["super_admin"] },
 ];

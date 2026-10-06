@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { repo } from "@/data/repo";
+import { telHref, waDigits } from "@/data/content";
 import { getSession } from "@/services/session";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
@@ -18,7 +19,8 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
   if (!session || session.phone !== b.contactPhone) redirect("/login");
 
   const canCancel = ["pending", "confirmed", "ready"].includes(b.status);
-  const wa = (process.env.NEXT_PUBLIC_WHATSAPP ?? "+201000000000").replace(/\D/g, "");
+  const content = await repo.getAppContent();
+  const wa = waDigits(content.whatsapp);
 
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -44,7 +46,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
         {canCancel && <CancelButton code={b.code} />}
         <div className="grid grid-cols-2 gap-3">
           <a
-            href={`tel:${process.env.NEXT_PUBLIC_SUPPORT_PHONE ?? "+201000000000"}`}
+            href={telHref(content.supportPhone)}
             className="tap inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-lg font-bold bg-panel border-2 border-line-2"
           >
             📞 اتصل بنا

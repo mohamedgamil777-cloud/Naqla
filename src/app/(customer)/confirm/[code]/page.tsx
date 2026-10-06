@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { repo } from "@/data/repo";
+import { waDigits } from "@/data/content";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { LinkButton } from "@/components/ui";
@@ -12,7 +13,7 @@ export default async function ConfirmPage({ params }: { params: Promise<{ code: 
   const b = await repo.getBooking(code);
   if (!b) notFound();
 
-  const wa = (process.env.NEXT_PUBLIC_WHATSAPP ?? "+201000000000").replace(/\D/g, "");
+  const wa = waDigits((await repo.getAppContent()).whatsapp);
   const waMsg = encodeURIComponent(`مرحباً، بخصوص حجز رقم ${b.code} (${b.vehicleName})`);
 
   return (

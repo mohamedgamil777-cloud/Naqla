@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createDeliveryOrder } from "@/services/delivery-service";
 import { getSession } from "@/services/session";
-import { cairoDateTime } from "@/lib/time";
+import { cairoDateISO, cairoDateTime } from "@/lib/time";
+import { repo } from "@/data/repo";
 
 const Body = z.object({
   categoryId: z.string().uuid(),
@@ -42,6 +43,14 @@ export async function POST(req: NextRequest) {
   if (scheduledAt.getTime() < Date.now()) {
     return NextResponse.json({ error: "PAST" }, { status: 400 });
   }
+  // Must match what the order screen offers: working hours + booking window from admin settings.
+  const [branch, business] = await Promise.all([repo.defaultBranch(), repo.getBusiness()]);
+  const mins = hour * 60 + minute;
+  if (mins < branch.working.open * 60 || mins >= branch.working.close * 60) {
+    return NextResponse.json({ error: "HOURS" }, { status: 400 });
+  }
+  const lastDay = cairoDateISO(new Date(Date.now() + business.advanceDays * 864e5));
+  if (d.date > lastDay) return NextResponse.json({ error: "TOO_FAR" }, { status: 400 });
 
   const result = await createDeliveryOrder({
     categoryId: d.categoryId,

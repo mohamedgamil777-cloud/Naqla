@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSession } from "@/services/session";
 import { repo } from "@/data/repo";
+import { waDigits } from "@/data/content";
 import { toLocal } from "@/lib/phone";
 import { EmptyState, LinkButton } from "@/components/ui";
 import { LogoutButton } from "@/components/LogoutButton";
@@ -20,10 +21,10 @@ export default async function AccountPage() {
     );
   }
 
-  const orders = await repo.listDeliveryOrdersByPhone(session.phone);
+  const [orders, content] = await Promise.all([repo.listDeliveryOrdersByPhone(session.phone), repo.getAppContent()]);
   const active = orders.filter((o) => o.status !== "completed" && o.status !== "cancelled").length;
   const done = orders.filter((o) => o.status === "completed").length;
-  const wa = (process.env.NEXT_PUBLIC_WHATSAPP ?? "+201000000000").replace(/\D/g, "");
+  const wa = waDigits(content.whatsapp);
 
   return (
     <div className="p-4 flex flex-col gap-5">
@@ -54,7 +55,7 @@ export default async function AccountPage() {
         <Item href="/bookings" icon="orders" label="طلباتي" hint="تابع حالة توصيلاتك" />
         <Item href="/estimate" icon="truck" label="اطلب توصيلة جديدة" hint="السعر قدامك قبل ما تطلب" />
         <Item href="/help" icon="help" label="المساعدة والأسئلة الشائعة" />
-        <Item href={`https://wa.me/${wa}`} external icon="whatsapp" label="كلّمنا على واتساب" hint="أسرع وسيلة للمساعدة" />
+        {wa && <Item href={`https://wa.me/${wa}`} external icon="whatsapp" label="كلّمنا على واتساب" hint="أسرع وسيلة للمساعدة" />}
       </nav>
 
       <LogoutButton />
