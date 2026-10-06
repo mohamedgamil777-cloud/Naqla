@@ -27,13 +27,16 @@ export default function LoginPage() {
         body: JSON.stringify({ phone }),
       });
       const j = await r.json();
-      if (j.ok) {
+      if (j.ok && j.staffUsePasscode) {
+        setErr("الرقم ده لموظف إدارة. ادخل من صفحة دخول الإدارة بكلمة السر.");
+      } else if (j.ok) {
         setSent(true);
         if (j.devCode) {
           setCode(j.devCode);
           setDevCode(j.devCode);
         }
-      } else setErr("رقم الموبايل مش صحيح. اكتبه كده: 01xxxxxxxxx");
+      } else if (j.error === "TOO_SOON") setErr("استنى نص دقيقة قبل ما تطلب كود جديد.");
+      else setErr("رقم الموبايل مش صحيح. اكتبه كده: 01xxxxxxxxx");
     } finally {
       setBusy(false);
     }

@@ -14,8 +14,8 @@ export async function POST(req: NextRequest) {
   const parsed = Body.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "INVALID_PHONE" }, { status: 400 });
   try {
-    const { phone, devCode } = await sendOtp(parsed.data.phone);
-    return NextResponse.json({ ok: true, phone, devCode });
+    const { phone, devCode, staffUsePasscode } = await sendOtp(parsed.data.phone);
+    return NextResponse.json({ ok: true, phone, devCode, staffUsePasscode });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.code }, { status: 400 });
     throw e;

@@ -100,6 +100,7 @@ export async function createDeliveryOrder(input: {
     cat.name,
     cat.sizeCode
   );
+  if (est.promoApplied && input.promoCode) await repo.redeemPromo(input.promoCode);
   fireNotify(input.contactPhone, deliveryCustomerMessage("created", code));
   return { ok: true, code };
 }

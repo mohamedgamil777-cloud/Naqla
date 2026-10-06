@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { isAdminAuthed } from "@/services/admin-auth";
+import { isDevSms } from "@/services/auth";
 import { AdminLoginForm } from "./AdminLoginForm";
 import { Logo } from "@/components/Logo";
 
@@ -16,9 +17,12 @@ export default async function AdminLoginPage() {
           <p className="text-muted text-sm mt-1">اكتب كلمة السر عشان تدخل لوحة التحكم.</p>
         </div>
         <AdminLoginForm />
-        <p className="text-center text-sm text-muted">
-          موظف؟ <a href="/login?next=/admin" className="text-primary font-bold">ادخل برقم موبايلك</a>
-        </p>
+        {/* Phone login for staff only once real SMS is on (demo codes are never shown to staff). */}
+        {!isDevSms() && (
+          <p className="text-center text-sm text-muted">
+            موظف؟ <a href="/login?next=/admin" className="text-primary font-bold">ادخل برقم موبايلك</a>
+          </p>
+        )}
       </div>
     </div>
   );

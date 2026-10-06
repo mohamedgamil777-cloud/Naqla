@@ -443,6 +443,10 @@ const pgRepo = {
   },
 
   // ---------- coupons / promo codes ----------
+  /** Count one use of a coupon (called after an order/booking is actually created). */
+  redeemPromo: async (code: string): Promise<void> => {
+    await db!.update(promoCodes).set({ used: sql`${promoCodes.used} + 1` }).where(eq(promoCodes.code, code.trim()));
+  },
   listCoupons: async (): Promise<CouponDTO[]> => {
     const rows = await db!.select().from(promoCodes).orderBy(desc(promoCodes.createdAt));
     return rows.map((p) => ({

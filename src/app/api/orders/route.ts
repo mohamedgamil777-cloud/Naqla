@@ -10,8 +10,9 @@ const Body = z.object({
   km: z.number().min(0).max(100000),
   loaders: z.number().int().min(0).max(10).optional(),
   promoCode: z.string().max(40).optional().nullable(),
-  pickupAddress: z.string().max(300).optional().nullable(),
-  dropoffAddress: z.string().max(300).optional().nullable(),
+  // the driver needs readable addresses — required, not just pins
+  pickupAddress: z.string().trim().min(3).max(300),
+  dropoffAddress: z.string().trim().min(3).max(300),
   pickupDetails: z.string().max(200).optional().nullable(),
   dropoffDetails: z.string().max(200).optional().nullable(),
   cargoType: z.string().max(60).optional().nullable(),
@@ -40,11 +41,11 @@ export async function POST(req: NextRequest) {
 
   const [hour, minute] = d.time.split(":").map(Number);
   const scheduledAt = cairoDateTime(d.date, hour, minute);
-  if (scheduledAt.getTime() < Date.now()) {
+  // Must match what the order screen offers: minimum notice, working hours, booking window.
+  const [branch, business] = await Promise.all([repo.defaultBranch(), repo.getBusiness()]);
+  if (scheduledAt.getTime() < Date.now() + business.nowLeadHours * 3600e3 - 60e3) {
     return NextResponse.json({ error: "PAST" }, { status: 400 });
   }
-  // Must match what the order screen offers: working hours + booking window from admin settings.
-  const [branch, business] = await Promise.all([repo.defaultBranch(), repo.getBusiness()]);
   const mins = hour * 60 + minute;
   if (mins < branch.working.open * 60 || mins >= branch.working.close * 60) {
     return NextResponse.json({ error: "HOURS" }, { status: 400 });

@@ -38,6 +38,7 @@ export default async function EstimatePage({ searchParams }: { searchParams: Pro
           options={{
             hours: branch.working,
             advanceDays: business.advanceDays,
+            leadHours: business.nowLeadHours,
             maxLoaders: content.order.maxLoaders,
             disclaimer: content.order.disclaimer,
             cargo: content.order.cargo,

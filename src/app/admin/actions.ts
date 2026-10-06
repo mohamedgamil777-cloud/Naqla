@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { repo } from "@/data/repo";
+import { requireAdminRole } from "@/services/admin-auth";
 import { createBooking, extendBooking } from "@/services/booking-service";
 import { egpToPiastres } from "@/lib/money";
 import { cairoDateTime } from "@/lib/time";
@@ -78,6 +79,7 @@ function parseVehicle(fd: FormData): { input: VehicleInput; error?: string } {
 }
 
 export async function saveVehicle(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdminRole(["super_admin", "fleet_mgr"]);
   const id = str(fd, "id");
   const { input, error } = parseVehicle(fd);
   if (error) return { ok: false, error };
@@ -92,6 +94,7 @@ export async function saveVehicle(_prev: FormState, fd: FormData): Promise<FormS
 }
 
 export async function setVehicleStatus(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr"]);
   const id = str(fd, "id");
   const status = str(fd, "status") as VehicleStatus;
   if (id && status) await repo.setVehicleStatus(id, status);
@@ -101,6 +104,7 @@ export async function setVehicleStatus(fd: FormData): Promise<void> {
 }
 
 export async function deleteVehicle(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr"]);
   const id = str(fd, "id");
   if (id) await repo.deleteVehicle(id);
   revalidatePath("/admin/fleet");
@@ -108,6 +112,7 @@ export async function deleteVehicle(fd: FormData): Promise<void> {
 }
 
 export async function saveCategory(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdminRole(["super_admin", "fleet_mgr"]);
   const id = str(fd, "id");
   const name = str(fd, "name");
   const kind = str(fd, "kind") as VehicleKind;
@@ -134,6 +139,7 @@ export async function saveCategory(_prev: FormState, fd: FormData): Promise<Form
 }
 
 export async function renameCategory(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr"]);
   const id = str(fd, "id");
   const name = str(fd, "name");
   const kind = str(fd, "kind") as VehicleKind;
@@ -145,12 +151,14 @@ export async function renameCategory(fd: FormData): Promise<void> {
 }
 
 export async function deleteCategory(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr"]);
   const id = str(fd, "id");
   if (id) await repo.deleteCategory(id);
   revalidatePath("/admin/categories");
 }
 
 export async function saveCoupon(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdminRole(["super_admin", "agent"]);
   const id = str(fd, "id");
   const code = str(fd, "code");
   const type = str(fd, "type") as "pct" | "fixed";
@@ -182,12 +190,14 @@ export async function saveCoupon(_prev: FormState, fd: FormData): Promise<FormSt
 }
 
 export async function deleteCoupon(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "agent"]);
   const id = str(fd, "id");
   if (id) await repo.deleteCoupon(id);
   revalidatePath("/admin/coupons");
 }
 
 export async function setDeliveryOrderStatus(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr", "agent"]);
   const code = str(fd, "code");
   const status = str(fd, "status") as DeliveryOrderStatus;
   const allowed = ["new", "confirmed", "assigned", "completed", "cancelled"];
@@ -202,6 +212,7 @@ export async function setDeliveryOrderStatus(fd: FormData): Promise<void> {
 }
 
 export async function setDriverFeeAction(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr", "agent", "finance"]);
   const code = str(fd, "code");
   const fee = egp(fd, "fee");
   if (code) await repo.setDriverFee(code, fee);
@@ -209,6 +220,7 @@ export async function setDriverFeeAction(fd: FormData): Promise<void> {
 }
 
 export async function addDriverPayoutAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdminRole(["super_admin", "finance"]);
   const driverId = str(fd, "driverId");
   const amount = egp(fd, "amount");
   const method = str(fd, "method") as PayoutMethod;
@@ -222,6 +234,7 @@ export async function addDriverPayoutAction(_prev: FormState, fd: FormData): Pro
 }
 
 export async function deletePayoutAction(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "finance"]);
   const id = str(fd, "id");
   if (id) await repo.deleteDriverPayout(id);
   revalidatePath("/admin/settlements");
@@ -229,6 +242,7 @@ export async function deletePayoutAction(fd: FormData): Promise<void> {
 }
 
 export async function addExpenseAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdminRole(["super_admin", "finance"]);
   const amount = egp(fd, "amount");
   const category = str(fd, "category");
   if (amount <= 0) return { ok: false, error: "اكتب المبلغ." };
@@ -240,6 +254,7 @@ export async function addExpenseAction(_prev: FormState, fd: FormData): Promise<
 }
 
 export async function deleteExpenseAction(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "finance"]);
   const id = str(fd, "id");
   if (id) await repo.deleteExpense(id);
   revalidatePath("/admin/expenses");
@@ -247,9 +262,12 @@ export async function deleteExpenseAction(fd: FormData): Promise<void> {
 }
 
 export async function assignDeliveryDriver(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr", "agent"]);
   const code = str(fd, "code");
   const driverId = str(fd, "driverId") || null;
-  if (code) {
+  const current = code ? await repo.getDeliveryOrder(code) : null;
+  // Finished or cancelled orders can't get a (new) driver.
+  if (current && current.status !== "completed" && current.status !== "cancelled") {
     await repo.assignDeliveryDriver(code, driverId);
     if (driverId) {
       const o = await repo.getDeliveryOrder(code);
@@ -264,6 +282,7 @@ export async function assignDeliveryDriver(fd: FormData): Promise<void> {
 }
 
 export async function saveBranch(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdminRole(["super_admin"]);
   const name = str(fd, "name");
   if (!name) return { ok: false, error: "اكتب اسم الفرع." };
   const open = numOrNull(fd, "open") ?? 8;
@@ -281,6 +300,7 @@ export async function saveBranch(_prev: FormState, fd: FormData): Promise<FormSt
 
 // ---------------- vehicle availability blocks ----------------
 export async function addVehicleBlock(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdminRole(["super_admin", "fleet_mgr"]);
   const vehicleId = str(fd, "vehicleId");
   const date = str(fd, "date");
   const from = numOrNull(fd, "from");
@@ -305,6 +325,7 @@ export async function addVehicleBlock(_prev: FormState, fd: FormData): Promise<F
 }
 
 export async function deleteVehicleBlock(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr"]);
   const id = str(fd, "id");
   const vehicleId = str(fd, "vehicleId");
   if (id) await repo.deleteVehicleBlock(id);
@@ -314,6 +335,7 @@ export async function deleteVehicleBlock(fd: FormData): Promise<void> {
 
 // ---------------- agent creates a booking for a customer ----------------
 export async function agentCreateBooking(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdminRole(["super_admin", "agent"]);
   const vehicleId = str(fd, "vehicleId");
   const startISO = str(fd, "startISO");
   const hours = numOrNull(fd, "hours") ?? 0;
@@ -361,6 +383,7 @@ export async function agentCreateBooking(_prev: FormState, fd: FormData): Promis
 
 // ---------------- booking lifecycle ----------------
 export async function adminSetBookingStatus(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr", "agent"]);
   const code = str(fd, "code");
   const status = str(fd, "status") as BookingStatus;
   const valid: BookingStatus[] = ["pending", "confirmed", "ready", "active", "completed", "cancelled"];
@@ -372,6 +395,7 @@ export async function adminSetBookingStatus(fd: FormData): Promise<void> {
 }
 
 export async function extendBookingAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdminRole(["super_admin", "fleet_mgr", "agent"]);
   const code = str(fd, "code");
   const hours = numOrNull(fd, "hours") ?? 0;
   if (!code) return { ok: false, error: "حصلت مشكلة." };
@@ -396,6 +420,7 @@ export async function extendBookingAction(_prev: FormState, fd: FormData): Promi
 }
 
 export async function adminAssignDriver(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr", "agent"]);
   const code = str(fd, "code");
   const driverId = str(fd, "driverId") || null;
   if (code) await repo.adminAssignDriver(code, driverId);
@@ -404,6 +429,7 @@ export async function adminAssignDriver(fd: FormData): Promise<void> {
 
 // ---------------- payments ----------------
 export async function adminAddPayment(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdminRole(["super_admin", "fleet_mgr", "agent", "finance"]);
   const code = str(fd, "code");
   const method = str(fd, "method") as PaymentMethod;
   const kind = str(fd, "kind") as PaymentKind;
@@ -418,6 +444,7 @@ export async function adminAddPayment(_prev: FormState, fd: FormData): Promise<F
 }
 
 export async function adminRefundPayment(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr", "agent", "finance"]);
   const id = str(fd, "id");
   const code = str(fd, "code");
   if (id) await repo.refundPayment(id);
@@ -425,6 +452,7 @@ export async function adminRefundPayment(fd: FormData): Promise<void> {
 }
 
 export async function adminDeletePayment(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr", "agent", "finance"]);
   const id = str(fd, "id");
   const code = str(fd, "code");
   if (id) await repo.deletePayment(id);
@@ -433,6 +461,7 @@ export async function adminDeletePayment(fd: FormData): Promise<void> {
 
 // ---------------- staff / employees ----------------
 export async function saveStaff(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdminRole(["super_admin"]);
   const id = str(fd, "id");
   const name = str(fd, "name");
   const rawPhone = str(fd, "phone");
@@ -466,6 +495,7 @@ export async function saveStaff(_prev: FormState, fd: FormData): Promise<FormSta
 }
 
 export async function updateStaffRole(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin"]);
   const id = str(fd, "id");
   const role = str(fd, "role") as StaffRole;
   if (id && role) await repo.updateStaffRole(id, role);
@@ -473,12 +503,14 @@ export async function updateStaffRole(fd: FormData): Promise<void> {
 }
 
 export async function deleteStaff(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin"]);
   const id = str(fd, "id");
   if (id) await repo.deleteStaff(id);
   revalidatePath("/admin/staff");
 }
 
 export async function saveBusiness(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdminRole(["super_admin"]);
   const durationOptions = str(fd, "durationOptions")
     .split(/[,،\s]+/)
     .map((x) => Number(x))

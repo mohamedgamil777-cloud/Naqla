@@ -600,6 +600,12 @@ export const memRepo = {
     return { code: c.code, type: c.type, value: c.value };
   },
 
+  /** Count one use of a coupon (called after an order/booking is actually created). */
+  redeemPromo: async (code: string): Promise<void> => {
+    const c = state.coupons.find((x) => x.code.trim() === code.trim());
+    if (c) c.used += 1;
+  },
+
   // ---------- coupons / promo codes ----------
   listCoupons: async (): Promise<CouponDTO[]> => state.coupons.map((c) => ({ ...c })),
 

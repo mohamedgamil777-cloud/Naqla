@@ -4,6 +4,7 @@ import { getDatasets } from "@/services/reporting-service";
 import { BOOKING_STATUS_LABEL } from "@/lib/constants";
 import { cairoDateISO } from "@/lib/time";
 import { toCsv } from "@/lib/csv";
+import { getAdminRole } from "@/services/admin-auth";
 
 const egp = (piastres: number) => (piastres / 100).toFixed(2);
 
@@ -20,6 +21,11 @@ function csvResponse(csv: string, name: string, from: string, to: string) {
 }
 
 export async function GET(req: NextRequest) {
+  // Company data (customers, phones, money) — admins with finance access only.
+  const role = await getAdminRole();
+  if (role !== "super_admin" && role !== "finance") {
+    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
   const q = req.nextUrl.searchParams;
   const report = q.get("report") ?? "bookings";
   const today = cairoDateISO(new Date());

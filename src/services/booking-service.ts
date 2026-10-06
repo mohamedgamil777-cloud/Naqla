@@ -152,6 +152,7 @@ export async function createBooking(input: {
 
   try {
     const { code } = await repo.createBooking(createInput, q, branchId);
+    if (input.promoCode && q.discount > 0) await repo.redeemPromo(input.promoCode);
     return { code, quote: q };
   } catch (e) {
     const msg = (e as Error).message;

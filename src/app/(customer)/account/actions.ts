@@ -26,6 +26,8 @@ export async function deleteCustomerDocument(fd: FormData): Promise<void> {
   const session = await getSession();
   if (!session) return;
   const id = String(fd.get("id") ?? "");
-  if (id) await repo.deleteDocument(id);
+  // Only your own documents.
+  const mine = await repo.listDocuments(session.phone);
+  if (id && mine.some((d) => d.id === id)) await repo.deleteDocument(id);
   revalidatePath("/account");
 }

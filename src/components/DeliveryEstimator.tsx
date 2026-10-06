@@ -25,6 +25,8 @@ export interface OrderOptions {
   /** working hours from admin settings (whole hours, close is exclusive) */
   hours: { open: number; close: number };
   advanceDays: number;
+  /** minimum notice before a pickup today (hours, from الإعدادات) */
+  leadHours: number;
   maxLoaders: number;
   disclaimer: string;
   /** "what are you moving?" cards → suggested size (admin → محتوى التطبيق) */
@@ -52,6 +54,16 @@ function timeSlots(open: number, close: number): string[] {
     out.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
   }
   return out;
+}
+
+function slotMinutes(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+/** Minutes since midnight, Cairo time. */
+function cairoNowMinutes() {
+  const parts = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Africa/Cairo" }).format(new Date());
+  return slotMinutes(parts);
 }
 
 function timeLabel(t: string) {
@@ -166,8 +178,20 @@ export function DeliveryEstimator({
   const [compareOpen, setCompareOpen] = useState(false);
 
   const today = cairoDateISO(0);
-  const [date, setDate] = useState(today);
-  const [time, setTime] = useState(() => (TIME_SLOTS.includes("10:00") ? "10:00" : TIME_SLOTS[0] ?? "10:00"));
+  // Today only offers times that are still bookable (now + minimum notice).
+  const slotsFor = (d: string) =>
+    d === today ? TIME_SLOTS.filter((t) => slotMinutes(t) >= cairoNowMinutes() + options.leadHours * 60) : TIME_SLOTS;
+  const [date, setDate] = useState(() => (slotsFor(today).length ? today : addDaysISO(today, 1)));
+  const availableSlots = slotsFor(date);
+  const [time, setTime] = useState(() => {
+    const first = slotsFor(slotsFor(today).length ? today : addDaysISO(today, 1));
+    return first.includes("10:00") ? "10:00" : first[0] ?? "10:00";
+  });
+  // Changing the day can make the chosen time unavailable → jump to the first free one.
+  useEffect(() => {
+    if (availableSlots.length && !availableSlots.includes(time)) setTime(availableSlots[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date]);
   const [timeTouched, setTimeTouched] = useState(false);
 
   const [loaders, setLoaders] = useState(0);
@@ -180,6 +204,38 @@ export function DeliveryEstimator({
   const [ordering, setOrdering] = useState(false);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [orderErr, setOrderErr] = useState<string | null>(null);
+
+  // ---- keep the order through the login detour ----
+  // Ordering while logged out sends the customer to /login and back; without this
+  // they'd return to an empty form. The draft lives in sessionStorage (this tab only).
+  const DRAFT_KEY = "naqla_order_draft";
+  useEffect(() => {
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(DRAFT_KEY);
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch {}
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw);
+      if (d.pickup) setPickup(d.pickup);
+      if (d.dropoff) setDropoff(d.dropoff);
+      setPickupAddr(d.pickupAddr ?? "");
+      setDropoffAddr(d.dropoffAddr ?? "");
+      setPickupDetails(d.pickupDetails ?? "");
+      setDropoffDetails(d.dropoffDetails ?? "");
+      setNotes(d.notes ?? "");
+      if (sizes.some((s) => s.id === d.sizeId)) { setSizeId(d.sizeId); setVehicleTouched(true); }
+      if (d.hint) setHint(d.hint);
+      if (d.date && d.date >= today) setDate(d.date);
+      if (d.time && slotsFor(d.date ?? today).includes(d.time)) setTime(d.time);
+      setTimeTouched(true);
+      setLoaders(Math.min(options.maxLoaders, Number(d.loaders) || 0));
+      if (d.promo) { setPromo(d.promo); setAppliedPromo(d.promo); }
+      // distance is recomputed from the restored pins
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---- map (lazy: built the first time it's opened) ----
   useEffect(() => {
@@ -315,12 +371,18 @@ export function DeliveryEstimator({
         }),
       });
       if (r.status === 401) {
+        try {
+          sessionStorage.setItem(
+            DRAFT_KEY,
+            JSON.stringify({ pickup, dropoff, pickupAddr, dropoffAddr, pickupDetails, dropoffDetails, notes, sizeId, hint, date, time, loaders, promo: appliedPromo })
+          );
+        } catch {}
         window.location.href = "/login?next=/estimate";
         return;
       }
       const j = await r.json();
       if (j.code) setOrderCode(j.code);
-      else if (j.error === "PAST") { setOrderErr("اختار ميعاد في المستقبل."); goTo("sec-time"); }
+      else if (j.error === "PAST") { setOrderErr("الميعاد ده قريب أوي — اختار ميعاد بعد كده عشان نلحق نجهّز العربية."); goTo("sec-time"); }
       else if (j.error === "HOURS") { setOrderErr("الميعاد ده بره مواعيد الشغل، اختار ساعة تانية."); goTo("sec-time"); }
       else if (j.error === "TOO_FAR") { setOrderErr("الميعاد ده بعيد أوي، اختار يوم أقرب."); goTo("sec-time"); }
       else setOrderErr("حصلت مشكلة، حاول تاني.");
@@ -507,7 +569,7 @@ export function DeliveryEstimator({
           <span className="font-bold whitespace-nowrap truncate">{dateLabel(date)}</span>
           <input
             type="date"
-            min={today}
+            min={slotsFor(today).length ? today : addDaysISO(today, 1)}
             max={addDaysISO(today, options.advanceDays)}
             value={date}
             onChange={(e) => { if (e.target.value) { setDate(e.target.value); setTimeTouched(true); } }}
@@ -530,7 +592,7 @@ export function DeliveryEstimator({
             aria-label="الوقت"
             className="absolute inset-0 opacity-0 cursor-pointer"
           >
-            {TIME_SLOTS.map((t) => (
+            {availableSlots.map((t) => (
               <option key={t} value={t}>
                 {timeLabel(t).clock} {timeLabel(t).part}
               </option>
