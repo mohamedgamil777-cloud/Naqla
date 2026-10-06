@@ -39,6 +39,10 @@ export const users = pgTable(
     })
       .notNull()
       .default("customer"),
+    nationalId: text("national_id"),
+    photo: text("photo"),
+    drivingLicense: text("driving_license"),
+    vehicleLicense: text("vehicle_license"),
     ...timestamps,
   },
   (t) => [uniqueIndex("users_phone_uq").on(t.phone)]

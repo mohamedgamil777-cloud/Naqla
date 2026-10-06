@@ -433,6 +433,7 @@ export async function adminDeletePayment(fd: FormData): Promise<void> {
 
 // ---------------- staff / employees ----------------
 export async function saveStaff(_prev: FormState, fd: FormData): Promise<FormState> {
+  const id = str(fd, "id");
   const name = str(fd, "name");
   const rawPhone = str(fd, "phone");
   const role = str(fd, "role") as StaffRole;
@@ -445,8 +446,18 @@ export async function saveStaff(_prev: FormState, fd: FormData): Promise<FormSta
   } catch {
     return { ok: false, error: "رقم الموبايل مش صحيح." };
   }
+  const input = {
+    name,
+    phone,
+    role,
+    nationalId: str(fd, "nationalId") || null,
+    photo: str(fd, "photo") || null,
+    drivingLicense: role === "driver" ? str(fd, "drivingLicense") || null : null,
+    vehicleLicense: role === "driver" ? str(fd, "vehicleLicense") || null : null,
+  };
   try {
-    await repo.createStaff({ name, phone, role });
+    if (id) await repo.updateStaff(id, input);
+    else await repo.createStaff(input);
   } catch {
     return { ok: false, error: "الرقم ده مضاف قبل كده." };
   }

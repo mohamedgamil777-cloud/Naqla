@@ -56,10 +56,19 @@ export default async function DriverProfilePage() {
         <Row k="طريقة الدخول" v="برقم الموبايل (كود تحقق)" />
       </div>
 
-      {/* Documents placeholder (Order B) */}
-      <div className="bg-panel border border-line rounded-card p-4">
-        <h2 className="font-extrabold mb-1">مستنداتي</h2>
-        <p className="text-muted text-sm">رخصة القيادة، رخصة العربية، البطاقة، والصور — هتتفعّل قريباً مع صفحة التسجيل.</p>
+      {/* Documents (added by admin in الموظفين) */}
+      <div className="bg-panel border border-line rounded-card p-4 flex flex-col gap-3">
+        <h2 className="font-extrabold">مستنداتي</h2>
+        {driver.nationalId && <Row k="الرقم القومي" v={driver.nationalId} ltr />}
+        {(driver.photo || driver.drivingLicense || driver.vehicleLicense) ? (
+          <div className="grid grid-cols-3 gap-3">
+            <DocThumb label="الصورة" url={driver.photo} />
+            <DocThumb label="رخصة القيادة" url={driver.drivingLicense} />
+            <DocThumb label="رخصة العربية" url={driver.vehicleLicense} />
+          </div>
+        ) : (
+          <p className="text-muted text-sm">مستنداتك (الرخص والصور) هتظهر هنا بعد ما الإدارة تضيفها.</p>
+        )}
       </div>
 
       {/* Recent completed deliveries */}
@@ -78,6 +87,22 @@ export default async function DriverProfilePage() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function DocThumb({ label, url }: { label: string; url: string | null }) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="w-full aspect-square rounded-xl bg-panel-2 border border-line-2 overflow-hidden grid place-items-center text-2xl text-muted">
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt={label} className="w-full h-full object-cover" />
+        ) : (
+          <span>—</span>
+        )}
+      </div>
+      <span className="text-[11px] font-bold text-ink-2 text-center">{label}</span>
     </div>
   );
 }

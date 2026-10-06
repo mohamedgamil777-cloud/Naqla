@@ -85,7 +85,7 @@ interface MemDocument { id: string; phone: string; type: "national_id" | "licens
 interface OtpRec { phone: string; codeHash: string; expiresAt: Date; attempts: number; consumed: boolean; createdAt: Date }
 interface UserRec { id: string; phone: string; name: string | null }
 interface MemBlock { id: string; vehicleId: string; startsAt: Date; endsAt: Date; reason: "maintenance" | "block"; note: string | null }
-interface StaffRec { id: string; name: string; phone: string; role: string }
+interface StaffRec { id: string; name: string; phone: string; role: string; nationalId?: string | null; photo?: string | null; drivingLicense?: string | null; vehicleLicense?: string | null }
 
 interface MemState {
   branch: BranchDTO;
@@ -421,6 +421,19 @@ function pricingInputToRule(p: VehiclePricingInput, base: PricingRule): PricingR
     deliveryFee: p.deliveryFee,
     minHours: state.business.minHours,
     maxHours: state.business.maxHours,
+  };
+}
+
+function toStaffDTO(s: StaffRec): StaffDTO {
+  return {
+    id: s.id,
+    name: s.name,
+    phone: s.phone,
+    role: s.role as StaffRole,
+    nationalId: s.nationalId ?? null,
+    photo: s.photo ?? null,
+    drivingLicense: s.drivingLicense ?? null,
+    vehicleLicense: s.vehicleLicense ?? null,
   };
 }
 
@@ -886,12 +899,29 @@ export const memRepo = {
   },
 
   // ---------- staff / employees ----------
-  listStaff: async (): Promise<StaffDTO[]> => state.staff.map((s) => ({ ...s, role: s.role as StaffRole })),
+  listStaff: async (): Promise<StaffDTO[]> => state.staff.map(toStaffDTO),
 
   createStaff: async (input: StaffInput): Promise<{ id: string }> => {
     const id = crypto.randomUUID();
-    state.staff.push({ id, name: input.name, phone: input.phone, role: input.role });
+    state.staff.push({
+      id, name: input.name, phone: input.phone, role: input.role,
+      nationalId: input.nationalId ?? null, photo: input.photo ?? null,
+      drivingLicense: input.drivingLicense ?? null, vehicleLicense: input.vehicleLicense ?? null,
+    });
     return { id };
+  },
+
+  updateStaff: async (id: string, input: StaffInput): Promise<boolean> => {
+    const s = state.staff.find((x) => x.id === id);
+    if (!s) return false;
+    s.name = input.name;
+    s.phone = input.phone;
+    s.role = input.role;
+    if (input.nationalId !== undefined) s.nationalId = input.nationalId;
+    if (input.photo !== undefined) s.photo = input.photo;
+    if (input.drivingLicense !== undefined) s.drivingLicense = input.drivingLicense;
+    if (input.vehicleLicense !== undefined) s.vehicleLicense = input.vehicleLicense;
+    return true;
   },
 
   updateStaffRole: async (id: string, role: StaffRole): Promise<boolean> => {
@@ -906,12 +936,12 @@ export const memRepo = {
   },
 
   listDrivers: async (): Promise<StaffDTO[]> =>
-    state.staff.filter((s) => s.role === "driver").map((s) => ({ ...s, role: s.role as StaffRole })),
+    state.staff.filter((s) => s.role === "driver").map(toStaffDTO),
 
   /** Resolve a staff member by their login phone (used to identify a driver). */
   getStaffByPhone: async (phone: string): Promise<StaffDTO | null> => {
     const s = state.staff.find((x) => x.phone === phone);
-    return s ? { ...s, role: s.role as StaffRole } : null;
+    return s ? toStaffDTO(s) : null;
   },
 
   /** All trips assigned to a driver, soonest first. */

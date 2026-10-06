@@ -96,6 +96,19 @@ function branchWorking(b: typeof branches.$inferSelect): { open: number; close: 
   return { open: wh.open ?? 8, close: wh.close ?? 22 };
 }
 
+function userToStaff(u: typeof users.$inferSelect): StaffDTO {
+  return {
+    id: u.id,
+    name: u.name ?? "",
+    phone: u.phone,
+    role: u.role as StaffRole,
+    nationalId: u.nationalId ?? null,
+    photo: u.photo ?? null,
+    drivingLicense: u.drivingLicense ?? null,
+    vehicleLicense: u.vehicleLicense ?? null,
+  };
+}
+
 function mapDeliveryOrder(r: typeof deliveryOrders.$inferSelect, driverName: string | null = null): DeliveryOrderDTO {
   return {
     code: r.code,
@@ -840,14 +853,28 @@ const pgRepo = {
   // ---------- staff / employees ----------
   listStaff: async (): Promise<StaffDTO[]> => {
     const rows = await db!.select().from(users).where(sql`${users.role} <> 'customer'`).orderBy(users.createdAt);
-    return rows.map((u) => ({ id: u.id, name: u.name ?? "", phone: u.phone, role: u.role as StaffRole }));
+    return rows.map(userToStaff);
   },
   createStaff: async (input: StaffInput): Promise<{ id: string }> => {
     const [created] = await db!
       .insert(users)
-      .values({ name: input.name, phone: input.phone, role: input.role })
+      .values({
+        name: input.name, phone: input.phone, role: input.role,
+        nationalId: input.nationalId ?? null, photo: input.photo ?? null,
+        drivingLicense: input.drivingLicense ?? null, vehicleLicense: input.vehicleLicense ?? null,
+      })
       .returning({ id: users.id });
     return { id: created.id };
+  },
+  updateStaff: async (id: string, input: StaffInput): Promise<boolean> => {
+    await db!.update(users).set({
+      name: input.name, phone: input.phone, role: input.role,
+      ...(input.nationalId !== undefined ? { nationalId: input.nationalId } : {}),
+      ...(input.photo !== undefined ? { photo: input.photo } : {}),
+      ...(input.drivingLicense !== undefined ? { drivingLicense: input.drivingLicense } : {}),
+      ...(input.vehicleLicense !== undefined ? { vehicleLicense: input.vehicleLicense } : {}),
+    }).where(eq(users.id, id));
+    return true;
   },
   updateStaffRole: async (id: string, role: StaffRole): Promise<boolean> => {
     await db!.update(users).set({ role }).where(eq(users.id, id));
@@ -859,7 +886,7 @@ const pgRepo = {
   },
   listDrivers: async (): Promise<StaffDTO[]> => {
     const rows = await db!.select().from(users).where(eq(users.role, "driver")).orderBy(users.createdAt);
-    return rows.map((u) => ({ id: u.id, name: u.name ?? "", phone: u.phone, role: "driver" as StaffRole }));
+    return rows.map(userToStaff);
   },
   /** Resolve a staff member by their login phone (used to identify a driver). */
   getStaffByPhone: async (phone: string): Promise<StaffDTO | null> => {
@@ -868,7 +895,7 @@ const pgRepo = {
       .from(users)
       .where(and(eq(users.phone, phone), sql`${users.role} <> 'customer'`))
       .limit(1);
-    return u ? { id: u.id, name: u.name ?? "", phone: u.phone, role: u.role as StaffRole } : null;
+    return u ? userToStaff(u) : null;
   },
   /** All trips assigned to a driver, soonest first. */
   listBookingsByDriver: async (driverId: string): Promise<BookingDTO[]> => {

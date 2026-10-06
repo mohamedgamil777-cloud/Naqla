@@ -191,12 +191,20 @@ export interface StaffDTO {
   name: string;
   phone: string;
   role: StaffRole;
+  nationalId: string | null;
+  photo: string | null; // personal photo (url / data URL)
+  drivingLicense: string | null; // driver only (image)
+  vehicleLicense: string | null; // driver only (image)
 }
 
 export interface StaffInput {
   name: string;
   phone: string;
   role: StaffRole;
+  nationalId?: string | null;
+  photo?: string | null;
+  drivingLicense?: string | null;
+  vehicleLicense?: string | null;
 }
 
 export type PaymentMethod = "cash" | "card" | "online";
