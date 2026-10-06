@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { PriceBreakdown } from "@/components/ui";
 import { Icon, type IconName } from "@/components/Icons";
 import { cairoDateISO } from "@/lib/client-time";
+import { useTyping } from "@/lib/useTyping";
 import { formatEgp } from "@/lib/money";
 import type { Quote } from "@/engines/pricing";
 
@@ -148,6 +149,7 @@ export function DeliveryEstimator({
   options: OrderOptions;
 }) {
   const CARGO_HINTS = options.cargo;
+  const typing = useTyping(); // keyboard up → hide the sticky order bar
   const TIME_SLOTS = timeSlots(options.hours.open, options.hours.close);
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -753,7 +755,12 @@ export function DeliveryEstimator({
       <div className="h-24" aria-hidden />
 
       {/* Sticky order bar (sits above the bottom nav) */}
-      <div className="fixed inset-x-0 bottom-[calc(4.4rem+env(safe-area-inset-bottom))] z-30">
+      <div
+        aria-hidden={typing || undefined}
+        className={`fixed inset-x-0 bottom-[calc(4.4rem+env(safe-area-inset-bottom))] z-30 transition-[transform,opacity] duration-200 ${
+          typing ? "translate-y-[calc(100%+5rem)] opacity-0 pointer-events-none" : ""
+        }`}
+      >
         <div className="max-w-lg mx-auto bg-panel border-t border-line shadow-[0_-8px_24px_rgba(16,32,28,0.08)] rounded-t-3xl">
           {detailsOpen && quote && (
             <div className="px-4 pt-4 max-h-[45vh] overflow-y-auto">

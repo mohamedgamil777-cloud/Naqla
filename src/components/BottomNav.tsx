@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/Icons";
+import { useTyping } from "@/lib/useTyping";
 
 const items: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "الرئيسية", icon: "home" },
@@ -12,8 +13,15 @@ const items: { href: string; label: string; icon: IconName }[] = [
 
 export function BottomNav() {
   const path = usePathname();
+  // slide away while the keyboard is up so it never covers the field being typed in
+  const typing = useTyping();
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 bg-panel border-t border-line pb-[env(safe-area-inset-bottom)]">
+    <nav
+      aria-hidden={typing || undefined}
+      className={`fixed bottom-0 inset-x-0 z-40 bg-panel border-t border-line pb-[env(safe-area-inset-bottom)] transition-transform duration-200 ${
+        typing ? "translate-y-full" : ""
+      }`}
+    >
       <div className="max-w-lg mx-auto grid grid-cols-4">
         {items.map((it) => {
           const active = it.href === "/" ? path === "/" : path.startsWith(it.href);
