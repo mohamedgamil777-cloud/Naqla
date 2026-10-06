@@ -89,6 +89,26 @@ function capacityLabel(kg: number) {
   return `حتى ${kg.toLocaleString("en-US")} كجم`;
 }
 
+/** Address box: clearly an input — border, tinted background, strong focus ring; red when missing. */
+function addrField(missing: boolean) {
+  return `w-full rounded-xl border-2 px-4 py-3.5 text-lg font-semibold text-ink outline-none transition placeholder:text-muted/70 placeholder:font-normal placeholder:text-base focus:bg-panel focus:border-primary focus:shadow-[0_0_0_4px_var(--color-primary-soft)] ${
+    missing ? "border-booked bg-booked-soft/50" : "border-line-2 bg-ground"
+  }`;
+}
+const detailField =
+  "w-full rounded-xl border border-line bg-panel px-4 py-2.5 text-ink-2 outline-none transition placeholder:text-muted/70 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-soft)]";
+
+/** "مطلوب" until filled, then a green check. */
+function RequiredTag({ done }: { done: boolean }) {
+  return done ? (
+    <span className="w-5 h-5 rounded-full bg-ok text-white grid place-items-center" aria-label="تم">
+      <Icon name="check" className="w-3 h-3" strokeWidth={3.5} />
+    </span>
+  ) : (
+    <span className="text-[11px] font-bold text-booked bg-booked-soft rounded-full px-2 py-0.5">مطلوب</span>
+  );
+}
+
 function haversineKm(a: LatLng, b: LatLng): number {
   const R = 6371;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
@@ -206,6 +226,14 @@ export function DeliveryEstimator({
   const [ordering, setOrdering] = useState(false);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [orderErr, setOrderErr] = useState<string | null>(null);
+  const [addrError, setAddrError] = useState(false);
+  // once both addresses are filled, drop the "missing address" warning
+  useEffect(() => {
+    if (addrError && pickupAddr.trim() && dropoffAddr.trim()) {
+      setAddrError(false);
+      setOrderErr(null);
+    }
+  }, [addrError, pickupAddr, dropoffAddr]);
 
   // ---- keep the order through the login detour ----
   // Ordering while logged out sends the customer to /login and back; without this
@@ -343,7 +371,7 @@ export function DeliveryEstimator({
   async function placeOrder() {
     if (!sizeId) return;
     if (!pickupAddr.trim() || !dropoffAddr.trim()) {
-      setOrderErr("اكتب عنوان الاستلام والتسليم عشان السواق يعرف المكان بالظبط.");
+      setAddrError(true); // the message shows right under the address fields
       goTo("sec-places");
       return;
     }
@@ -444,67 +472,60 @@ export function DeliveryEstimator({
 
       {/* Places */}
       <section id="sec-places" className="scroll-mt-20 bg-panel border border-line rounded-card shadow-sm overflow-hidden">
-        <div className="relative">
-          {/* pickup */}
-          <div className="flex items-center gap-3 p-4 pb-3">
-            <span className="w-11 h-11 shrink-0 rounded-full bg-booked-soft text-booked grid place-items-center">
-              <Icon name="mapPin" className="w-6 h-6" />
+        {/* pickup */}
+        <div className="p-4 flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 shrink-0 rounded-full bg-booked-soft text-booked grid place-items-center">
+              <Icon name="mapPin" className="w-5 h-5" />
             </span>
-            <label className="flex-1 min-w-0">
-              <span className="block font-extrabold">مكان الاستلام</span>
-              <input
-                value={pickupAddr}
-                onChange={(e) => setPickupAddr(e.target.value)}
-                onFocus={() => setActive("a")}
-                placeholder="العنوان بالتفصيل"
-                className="w-full bg-transparent text-ink-2 placeholder:text-muted/70 outline-none py-0.5"
-              />
-              <input
-                value={pickupDetails}
-                onChange={(e) => setPickupDetails(e.target.value)}
-                placeholder="تفاصيل: الدور، علامة مميزة (اختياري)"
-                className="w-full bg-transparent text-sm text-muted placeholder:text-muted/60 outline-none"
-              />
-            </label>
+            <span className="flex-1 min-w-0 flex items-center gap-2 font-extrabold text-lg whitespace-nowrap">
+              مكان الاستلام <RequiredTag done={!!pickupAddr.trim()} />
+            </span>
             <button type="button" onClick={useMyLocation} disabled={locating} className="shrink-0 flex items-center gap-1.5 text-sm font-bold text-primary rounded-full border border-line px-2.5 py-1.5 hover:bg-primary-soft disabled:opacity-50">
               <Icon name="locate" className="w-4 h-4" />
-              {locating ? "…" : "موقعي الحالي"}
+              {locating ? "…" : "موقعي"}
             </button>
           </div>
-          <span className="absolute right-[2.3rem] top-[3.9rem] h-6 border-r-2 border-dotted border-primary/50" aria-hidden />
-          {/* swap */}
-          <div className="relative h-0">
-            <span className="absolute inset-x-4 top-0 border-t border-line" aria-hidden />
-            <button
-              type="button"
-              onClick={swap}
-              aria-label="بدّل الاستلام والتسليم"
-              className="absolute left-1/2 -translate-x-1/2 -top-[18px] w-9 h-9 rounded-full bg-panel border border-line shadow-sm grid place-items-center text-ink-2 hover:text-primary"
-            >
-              <Icon name="swap" className="w-4 h-4" />
-            </button>
-          </div>
-          {/* drop-off */}
-          <div className="flex items-center gap-3 p-4 pt-4">
-            <span className="w-11 h-11 shrink-0 rounded-full bg-primary-soft text-primary grid place-items-center">
+          <input
+            value={pickupAddr}
+            onChange={(e) => setPickupAddr(e.target.value)}
+            onFocus={() => setActive("a")}
+            placeholder="المنطقة، الشارع، رقم العمارة"
+            aria-label="عنوان الاستلام"
+            aria-invalid={addrError && !pickupAddr.trim() ? true : undefined}
+            className={addrField(addrError && !pickupAddr.trim())}
+          />
+          <input
+            value={pickupDetails}
+            onChange={(e) => setPickupDetails(e.target.value)}
+            placeholder="الدور، الشقة، علامة مميزة (اختياري)"
+            aria-label="تفاصيل الاستلام"
+            className={detailField}
+          />
+        </div>
+
+        {/* swap */}
+        <div className="relative h-0">
+          <span className="absolute inset-x-4 top-0 border-t border-dashed border-line-2" aria-hidden />
+          <button
+            type="button"
+            onClick={swap}
+            aria-label="بدّل الاستلام والتسليم"
+            className="absolute left-6 -top-[18px] w-9 h-9 rounded-full bg-panel border border-line shadow-sm grid place-items-center text-ink-2 hover:text-primary"
+          >
+            <Icon name="swap" className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* drop-off */}
+        <div className="p-4 flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 shrink-0 rounded-full bg-primary-soft text-primary grid place-items-center">
               <Icon name="flag" className="w-5 h-5" />
             </span>
-            <label className="flex-1 min-w-0">
-              <span className="block font-extrabold">مكان التسليم</span>
-              <input
-                value={dropoffAddr}
-                onChange={(e) => setDropoffAddr(e.target.value)}
-                onFocus={() => setActive("b")}
-                placeholder="العنوان بالتفصيل"
-                className="w-full bg-transparent text-ink-2 placeholder:text-muted/70 outline-none py-0.5"
-              />
-              <input
-                value={dropoffDetails}
-                onChange={(e) => setDropoffDetails(e.target.value)}
-                placeholder="تفاصيل: الدور، علامة مميزة (اختياري)"
-                className="w-full bg-transparent text-sm text-muted placeholder:text-muted/60 outline-none"
-              />
-            </label>
+            <span className="flex-1 min-w-0 flex items-center gap-2 font-extrabold text-lg whitespace-nowrap">
+              مكان التسليم <RequiredTag done={!!dropoffAddr.trim()} />
+            </span>
             <button
               type="button"
               onClick={() => setMapOpen((o) => !o)}
@@ -513,9 +534,27 @@ export function DeliveryEstimator({
             >
               <Icon name="map" className="w-4 h-4" />
               الخريطة
-              <Icon name={mapOpen ? "chevronUp" : "chevronDown"} className="w-4 h-4" />
             </button>
           </div>
+          <input
+            value={dropoffAddr}
+            onChange={(e) => setDropoffAddr(e.target.value)}
+            onFocus={() => setActive("b")}
+            placeholder="المنطقة، الشارع، رقم العمارة"
+            aria-label="عنوان التسليم"
+            aria-invalid={addrError && !dropoffAddr.trim() ? true : undefined}
+            className={addrField(addrError && !dropoffAddr.trim())}
+          />
+          <input
+            value={dropoffDetails}
+            onChange={(e) => setDropoffDetails(e.target.value)}
+            placeholder="الدور، الشقة، علامة مميزة (اختياري)"
+            aria-label="تفاصيل التسليم"
+            className={detailField}
+          />
+          {addrError && (!pickupAddr.trim() || !dropoffAddr.trim()) && (
+            <p className="text-sm font-bold text-booked">اكتب عنوان الاستلام والتسليم عشان السواق يوصل للمكان بالظبط.</p>
+          )}
         </div>
 
         {/* map (collapsible) */}
