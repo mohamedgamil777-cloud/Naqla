@@ -2,7 +2,6 @@ import { repo } from "@/data/repo";
 import { getSession } from "@/services/session";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic } from "@/lib/time";
-import { DriverTabs } from "@/components/driver/DriverTabs";
 import { DriverSwitch } from "@/components/driver/DriverSwitch";
 import { LinkButton } from "@/components/ui";
 
@@ -25,16 +24,15 @@ export default async function DriverProfilePage() {
   const orders = await repo.listDeliveryOrdersByDriver(driver.id);
   const completed = orders.filter((o) => o.status === "completed");
   const totalEarned = completed.reduce((s, o) => s + (o.driverFee || 0), 0);
-  const activeCount = orders.filter((o) => o.status === "assigned" || o.status === "en_route").length;
+  const activeCount = orders.filter((o) => o.status === "assigned" || o.status === "en_route" || o.status === "arrived").length;
   const firstName = (driver.name || "").split(" ")[0] || "يا كابتن";
 
   return (
     <div className="p-4 flex flex-col gap-4">
       <div className="flex items-start justify-between gap-2">
-        <h1 className="text-2xl font-extrabold">👤 صفحتي</h1>
+        <h1 className="text-2xl font-extrabold">صفحتي</h1>
         <DriverSwitch label="خروج" subtle />
       </div>
-      <DriverTabs active="profile" />
 
       {/* Earnings */}
       <div className="bg-primary text-white rounded-card p-5 shadow-sm">

@@ -141,6 +141,9 @@ export function DeliveryEstimator({
   const [dropoff, setDropoff] = useState<LatLng>({ lat: center.lat - 0.008, lng: center.lng + 0.008 });
   const [pickupAddr, setPickupAddr] = useState("");
   const [dropoffAddr, setDropoffAddr] = useState("");
+  const [pickupDetails, setPickupDetails] = useState("");
+  const [dropoffDetails, setDropoffDetails] = useState("");
+  const [notes, setNotes] = useState("");
   const [km, setKm] = useState(() => roadKm({ lat: center.lat + 0.008, lng: center.lng - 0.008 }, { lat: center.lat - 0.008, lng: center.lng + 0.008 }));
   const [editKm, setEditKm] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -243,6 +246,8 @@ export function DeliveryEstimator({
     setDropoff(pickup);
     setPickupAddr(dropoffAddr);
     setDropoffAddr(pickupAddr);
+    setPickupDetails(dropoffDetails);
+    setDropoffDetails(pickupDetails);
     const { a, b } = markersRef.current;
     if (a && b) { a.setLatLng([dropoff.lat, dropoff.lng]); b.setLatLng([pickup.lat, pickup.lng]); }
   }
@@ -288,6 +293,10 @@ export function DeliveryEstimator({
           promoCode: appliedPromo || null,
           pickupAddress: pickupAddr || null,
           dropoffAddress: dropoffAddr || null,
+          pickupDetails: pickupDetails || null,
+          dropoffDetails: dropoffDetails || null,
+          cargoType: CARGO_HINTS.find((h) => h.size === hint)?.label ?? null,
+          notes: notes || null,
           pickupLat: pickup.lat,
           pickupLng: pickup.lng,
           dropoffLat: dropoff.lat,
@@ -375,6 +384,12 @@ export function DeliveryEstimator({
                 placeholder="العنوان بالتفصيل"
                 className="w-full bg-transparent text-ink-2 placeholder:text-muted/70 outline-none py-0.5"
               />
+              <input
+                value={pickupDetails}
+                onChange={(e) => setPickupDetails(e.target.value)}
+                placeholder="تفاصيل: الدور، علامة مميزة (اختياري)"
+                className="w-full bg-transparent text-sm text-muted placeholder:text-muted/60 outline-none"
+              />
             </label>
             <button type="button" onClick={useMyLocation} disabled={locating} className="shrink-0 flex items-center gap-1.5 text-sm font-bold text-primary rounded-full border border-line px-2.5 py-1.5 hover:bg-primary-soft disabled:opacity-50">
               <Icon name="locate" className="w-4 h-4" />
@@ -407,6 +422,12 @@ export function DeliveryEstimator({
                 onFocus={() => setActive("b")}
                 placeholder="العنوان بالتفصيل"
                 className="w-full bg-transparent text-ink-2 placeholder:text-muted/70 outline-none py-0.5"
+              />
+              <input
+                value={dropoffDetails}
+                onChange={(e) => setDropoffDetails(e.target.value)}
+                placeholder="تفاصيل: الدور، علامة مميزة (اختياري)"
+                className="w-full bg-transparent text-sm text-muted placeholder:text-muted/60 outline-none"
               />
             </label>
             <button
@@ -638,6 +659,20 @@ export function DeliveryEstimator({
             </span>
           )}
         </div>
+        <label className="bg-panel border border-line rounded-card shadow-sm p-4 flex flex-col gap-2">
+          <span className="flex items-center gap-3 font-extrabold">
+            <Icon name="file" className="w-7 h-7 text-ink-2 shrink-0" /> ملاحظات للسواق
+            <span className="text-sm text-muted font-normal">(اختياري)</span>
+          </span>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            maxLength={500}
+            rows={2}
+            placeholder="مثلاً: في أسانسير، اتصل قبل ما توصل بـ 10 دقايق"
+            className="rounded-xl bg-panel-2 border border-line px-3 py-2.5 outline-none focus:border-primary resize-none"
+          />
+        </label>
         <p className="text-xs text-muted text-center">السعر تقديري حسب المسافة والحجم، والسعر النهائي بيتأكد مع خدمة العملاء.</p>
       </section>
 

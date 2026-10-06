@@ -15,7 +15,8 @@ const STATUS_ORDER: Record<DeliveryOrderStatus, number> = {
   confirmed: 1,
   assigned: 2,
   en_route: 3,
-  completed: 4,
+  arrived: 4,
+  completed: 5,
   cancelled: -1,
 };
 
@@ -24,6 +25,7 @@ const STATUS_PILL: Record<DeliveryOrderStatus, { label: string; cls: string }> =
   confirmed: { label: "تم التأكيد", cls: "bg-primary-soft text-primary-ink" },
   assigned: { label: "تم تعيين سائق", cls: "bg-primary-soft text-primary-ink" },
   en_route: { label: "في الطريق", cls: "bg-rented-soft text-rented" },
+  arrived: { label: "السائق وصل", cls: "bg-rented-soft text-rented" },
   completed: { label: "تم التوصيل", cls: "bg-ok-soft text-ok" },
   cancelled: { label: "ملغي", cls: "bg-booked-soft text-booked" },
 };
@@ -35,7 +37,8 @@ const STEPS: { label: string; at: number; icon: IconName }[] = [
   { label: "جاري البحث عن سائق", at: 1, icon: "search" },
   { label: "تم تعيين السائق", at: 2, icon: "user" },
   { label: "السائق في الطريق", at: 3, icon: "truck" },
-  { label: "تم التوصيل", at: 4, icon: "flag" },
+  { label: "السائق وصل لمكان الاستلام", at: 4, icon: "mapPin" },
+  { label: "تم التوصيل", at: 5, icon: "flag" },
 ];
 
 export default async function BookingsPage() {
@@ -192,14 +195,14 @@ function ActiveOrder({ o }: { o: DeliveryOrderDTO }) {
       <Route o={o} />
       <Meta o={o} />
 
-      {o.driverName && (o.status === "assigned" || o.status === "en_route") && (
-        <div className={`rounded-2xl px-3.5 py-3 flex items-center gap-3 ${o.status === "en_route" ? "bg-ok-soft" : "bg-primary-soft"}`}>
+      {o.driverName && (o.status === "assigned" || o.status === "en_route" || o.status === "arrived") && (
+        <div className={`rounded-2xl px-3.5 py-3 flex items-center gap-3 ${o.status === "assigned" ? "bg-primary-soft" : "bg-ok-soft"}`}>
           <span className="w-10 h-10 shrink-0 rounded-full bg-panel grid place-items-center text-primary">
             <Icon name="user" className="w-5 h-5" />
           </span>
           <div className="text-sm">
             <div className="font-extrabold">{o.driverName}</div>
-            <div className="text-ink-2">{o.status === "en_route" ? "السائق في الطريق إليك دلوقتي" : "هيكون عندك في الميعاد"}</div>
+            <div className="text-ink-2">{o.status === "en_route" ? "السائق في الطريق لمكان الاستلام" : o.status === "arrived" ? "السائق وصل لمكان الاستلام" : "هيكون عندك في الميعاد"}</div>
           </div>
         </div>
       )}

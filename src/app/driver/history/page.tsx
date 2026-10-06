@@ -5,6 +5,7 @@ import { labelDateArabic, labelTime } from "@/lib/time";
 import { DriverTabs } from "@/components/driver/DriverTabs";
 import { DriverSwitch } from "@/components/driver/DriverSwitch";
 import { LinkButton } from "@/components/ui";
+import { Icon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export default async function DriverHistoryPage() {
   return (
     <div className="p-4 flex flex-col gap-4">
       <div className="flex items-start justify-between gap-2">
-        <h1 className="text-2xl font-extrabold">🕓 الرحلات القديمة</h1>
+        <h1 className="text-2xl font-extrabold">الرحلات القديمة</h1>
         <DriverSwitch label="خروج" subtle />
       </div>
       <DriverTabs active="old" />
@@ -64,7 +65,9 @@ export default async function DriverHistoryPage() {
           {items.map((it) => {
             const card = (
               <div className="bg-panel border border-line rounded-card p-4 flex items-center gap-3">
-                <div className="text-2xl" aria-hidden>{it.kind === "order" ? "📦" : "🚚"}</div>
+                <span className={`w-11 h-11 shrink-0 rounded-full grid place-items-center ${it.done ? "bg-ok-soft text-ok" : "bg-booked-soft text-booked"}`} aria-hidden>
+                  <Icon name={it.done ? "checkCircle" : "xCircle"} className="w-6 h-6" />
+                </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-extrabold">{it.title}</span>
@@ -75,7 +78,7 @@ export default async function DriverHistoryPage() {
                   <div className="text-sm text-muted truncate">{it.sub}</div>
                   <div className="text-xs text-ink-2 mt-0.5">{labelDateArabic(it.when)} — {labelTime(it.when)}</div>
                 </div>
-                {it.kind === "order" && <span className="text-muted" aria-hidden>›</span>}
+                {it.kind === "order" && <Icon name="chevronLeft" className="w-5 h-5 text-muted" />}
               </div>
             );
             return it.kind === "order" ? (

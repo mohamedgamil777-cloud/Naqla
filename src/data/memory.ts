@@ -85,7 +85,7 @@ interface MemDocument { id: string; phone: string; type: "national_id" | "licens
 interface OtpRec { phone: string; codeHash: string; expiresAt: Date; attempts: number; consumed: boolean; createdAt: Date }
 interface UserRec { id: string; phone: string; name: string | null }
 interface MemBlock { id: string; vehicleId: string; startsAt: Date; endsAt: Date; reason: "maintenance" | "block"; note: string | null }
-interface StaffRec { id: string; name: string; phone: string; role: string; nationalId?: string | null; photo?: string | null; drivingLicense?: string | null; vehicleLicense?: string | null }
+interface StaffRec { id: string; name: string; phone: string; role: string; nationalId?: string | null; photo?: string | null; drivingLicense?: string | null; vehicleLicense?: string | null; available?: boolean }
 
 interface MemState {
   branch: BranchDTO;
@@ -287,6 +287,8 @@ function seedState(): MemState {
         categoryId: "22222222-0000-0000-0000-0000000000a2",
         sizeName: "دبابه", sizeCode: "M",
         pickupAddress: "٦ أكتوبر — الحي الأول", dropoffAddress: "الشيخ زايد — بوابة ٢",
+        pickupDetails: "الدور التالت، جنب صيدلية الحي", dropoffDetails: "كمبوند بيفرلي هيلز، بوابة 1",
+        cargoType: "أثاث / أجهزة", notes: "يوجد مصعد في المبنى، اتصل قبل الوصول بـ 10 دقائق",
         pickupLat: 29.9716, pickupLng: 30.9426, dropoffLat: 30.03, dropoffLng: 30.976,
         km: 9.5, loaders: 1, scheduledAt: cairoDateTime(today, 11),
         status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق", driverFee: 9000, rating: null, ratingComment: null,
@@ -305,6 +307,7 @@ function seedState(): MemState {
         categoryId: "22222222-0000-0000-0000-0000000000a1",
         sizeName: "سوزوكي فان", sizeCode: "S",
         pickupAddress: "فيصل — محطة المريوطية", dropoffAddress: "الهرم — شارع الطالبية",
+        pickupDetails: null, dropoffDetails: null, cargoType: "صناديق / كراسي", notes: null,
         pickupLat: 29.996, pickupLng: 31.153, dropoffLat: 29.987, dropoffLng: 31.17,
         km: 4.2, loaders: 0, scheduledAt: cairoDateTime(tomorrow, 15),
         status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق", driverFee: 5000, rating: null, ratingComment: null,
@@ -339,6 +342,23 @@ state.coupons ??= [
   { id: "cccc1111-0000-0000-0000-000000000002", code: "خصم10", type: "pct", value: 10, minValue: 0, validTo: null, maxUses: null, used: 0, active: true },
 ];
 state.deliveryOrders ??= [];
+// Backfill fields added after the store was created (dev hot-reload keeps old objects).
+for (const o of state.deliveryOrders) {
+  o.pickupDetails ??= null;
+  o.dropoffDetails ??= null;
+  o.cargoType ??= null;
+  o.notes ??= null;
+}
+// Sample details on the seeded order so the driver screens show the full layout.
+{
+  const demo = state.deliveryOrders.find((o) => o.code === "50001");
+  if (demo && demo.notes === null && demo.cargoType === null) {
+    demo.cargoType = "أثاث / أجهزة";
+    demo.notes = "يوجد مصعد في المبنى، اتصل قبل الوصول بـ 10 دقائق";
+    demo.pickupDetails = "الدور التالت، جنب صيدلية الحي";
+    demo.dropoffDetails = "كمبوند بيفرلي هيلز، بوابة 1";
+  }
+}
 state.driverPayouts ??= [];
 state.expenses ??= [];
 state.staff ??= [
@@ -434,6 +454,7 @@ function toStaffDTO(s: StaffRec): StaffDTO {
     photo: s.photo ?? null,
     drivingLicense: s.drivingLicense ?? null,
     vehicleLicense: s.vehicleLicense ?? null,
+    available: s.available ?? true,
   };
 }
 
@@ -621,6 +642,10 @@ export const memRepo = {
       sizeCode,
       pickupAddress: input.pickupAddress ?? null,
       dropoffAddress: input.dropoffAddress ?? null,
+      pickupDetails: input.pickupDetails ?? null,
+      dropoffDetails: input.dropoffDetails ?? null,
+      cargoType: input.cargoType ?? null,
+      notes: input.notes ?? null,
       pickupLat: input.pickupLat ?? null,
       pickupLng: input.pickupLng ?? null,
       dropoffLat: input.dropoffLat ?? null,
@@ -937,6 +962,13 @@ export const memRepo = {
 
   listDrivers: async (): Promise<StaffDTO[]> =>
     state.staff.filter((s) => s.role === "driver").map(toStaffDTO),
+
+  /** Driver's own "متاح للعمل" toggle. */
+  setStaffAvailable: async (id: string, available: boolean): Promise<boolean> => {
+    const s = state.staff.find((x) => x.id === id);
+    if (s) s.available = available;
+    return true;
+  },
 
   /** Resolve a staff member by their login phone (used to identify a driver). */
   getStaffByPhone: async (phone: string): Promise<StaffDTO | null> => {

@@ -106,6 +106,7 @@ function userToStaff(u: typeof users.$inferSelect): StaffDTO {
     photo: u.photo ?? null,
     drivingLicense: u.drivingLicense ?? null,
     vehicleLicense: u.vehicleLicense ?? null,
+    available: u.available ?? true,
   };
 }
 
@@ -117,6 +118,10 @@ function mapDeliveryOrder(r: typeof deliveryOrders.$inferSelect, driverName: str
     sizeCode: r.sizeCode ?? null,
     pickupAddress: r.pickupAddress ?? null,
     dropoffAddress: r.dropoffAddress ?? null,
+    pickupDetails: r.pickupDetails ?? null,
+    dropoffDetails: r.dropoffDetails ?? null,
+    cargoType: r.cargoType ?? null,
+    notes: r.notes ?? null,
     pickupLat: r.pickupLat ?? null,
     pickupLng: r.pickupLng ?? null,
     dropoffLat: r.dropoffLat ?? null,
@@ -501,6 +506,10 @@ const pgRepo = {
       sizeCode,
       pickupAddress: input.pickupAddress ?? null,
       dropoffAddress: input.dropoffAddress ?? null,
+      pickupDetails: input.pickupDetails ?? null,
+      dropoffDetails: input.dropoffDetails ?? null,
+      cargoType: input.cargoType ?? null,
+      notes: input.notes ?? null,
       pickupLat: input.pickupLat ?? null,
       pickupLng: input.pickupLng ?? null,
       dropoffLat: input.dropoffLat ?? null,
@@ -887,6 +896,11 @@ const pgRepo = {
   listDrivers: async (): Promise<StaffDTO[]> => {
     const rows = await db!.select().from(users).where(eq(users.role, "driver")).orderBy(users.createdAt);
     return rows.map(userToStaff);
+  },
+  /** Driver's own "متاح للعمل" toggle. */
+  setStaffAvailable: async (id: string, available: boolean): Promise<boolean> => {
+    await db!.update(users).set({ available }).where(eq(users.id, id));
+    return true;
   },
   /** Resolve a staff member by their login phone (used to identify a driver). */
   getStaffByPhone: async (phone: string): Promise<StaffDTO | null> => {

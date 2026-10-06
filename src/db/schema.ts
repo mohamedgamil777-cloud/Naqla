@@ -43,6 +43,7 @@ export const users = pgTable(
     photo: text("photo"),
     drivingLicense: text("driving_license"),
     vehicleLicense: text("vehicle_license"),
+    available: boolean("available").notNull().default(true),
     ...timestamps,
   },
   (t) => [uniqueIndex("users_phone_uq").on(t.phone)]
@@ -280,6 +281,10 @@ export const deliveryOrders = pgTable(
     sizeCode: text("size_code"),
     pickupAddress: text("pickup_address"),
     dropoffAddress: text("dropoff_address"),
+    pickupDetails: text("pickup_details"),
+    dropoffDetails: text("dropoff_details"),
+    cargoType: text("cargo_type"),
+    notes: text("notes"),
     pickupLat: real("pickup_lat"),
     pickupLng: real("pickup_lng"),
     dropoffLat: real("dropoff_lat"),
@@ -288,7 +293,7 @@ export const deliveryOrders = pgTable(
     loaders: integer("loaders").notNull().default(0),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
     driverId: uuid("driver_id"),
-    status: text("status", { enum: ["new", "confirmed", "assigned", "en_route", "completed", "cancelled"] })
+    status: text("status", { enum: ["new", "confirmed", "assigned", "en_route", "arrived", "completed", "cancelled"] })
       .notNull()
       .default("new"),
     driverFee: integer("driver_fee").notNull().default(0),

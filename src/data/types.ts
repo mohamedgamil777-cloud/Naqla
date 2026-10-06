@@ -195,6 +195,7 @@ export interface StaffDTO {
   photo: string | null; // personal photo (url / data URL)
   drivingLicense: string | null; // driver only (image)
   vehicleLicense: string | null; // driver only (image)
+  available: boolean; // driver's "متاح للعمل" toggle
 }
 
 export interface StaffInput {
@@ -285,7 +286,8 @@ export interface ExpenseInput {
   note?: string | null;
 }
 
-export type DeliveryOrderStatus = "new" | "confirmed" | "assigned" | "en_route" | "completed" | "cancelled";
+/** en_route = driving to pickup · arrived = at pickup (loading), then on to drop-off */
+export type DeliveryOrderStatus = "new" | "confirmed" | "assigned" | "en_route" | "arrived" | "completed" | "cancelled";
 
 export interface DeliveryOrderDTO {
   code: string;
@@ -294,6 +296,10 @@ export interface DeliveryOrderDTO {
   sizeCode: string | null;
   pickupAddress: string | null;
   dropoffAddress: string | null;
+  pickupDetails: string | null; // floor / landmark, optional
+  dropoffDetails: string | null;
+  cargoType: string | null; // what the customer is moving, e.g. "أثاث / أجهزة"
+  notes: string | null; // customer notes for the driver
   pickupLat: number | null;
   pickupLng: number | null;
   dropoffLat: number | null;
@@ -317,6 +323,10 @@ export interface DeliveryOrderInput {
   categoryId: string;
   pickupAddress?: string | null;
   dropoffAddress?: string | null;
+  pickupDetails?: string | null;
+  dropoffDetails?: string | null;
+  cargoType?: string | null;
+  notes?: string | null;
   pickupLat?: number | null;
   pickupLng?: number | null;
   dropoffLat?: number | null;

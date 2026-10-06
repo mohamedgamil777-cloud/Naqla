@@ -11,7 +11,8 @@ const STATUS: Record<DeliveryOrderStatus, { label: string; cls: string }> = {
   new: { label: "جديد", cls: "bg-rented-soft text-rented" },
   confirmed: { label: "مؤكد · جاري البحث عن سائق", cls: "bg-reserved-soft text-reserved" },
   assigned: { label: "تم تعيين سائق", cls: "bg-primary-soft text-primary-ink" },
-  en_route: { label: "السائق في الطريق", cls: "bg-ok-soft text-ok" },
+  en_route: { label: "السائق في الطريق للاستلام", cls: "bg-ok-soft text-ok" },
+  arrived: { label: "السائق وصل للاستلام", cls: "bg-ok-soft text-ok" },
   completed: { label: "تم التوصيل", cls: "bg-ok-soft text-ok" },
   cancelled: { label: "ملغي", cls: "bg-booked-soft text-booked" },
 };
@@ -50,11 +51,13 @@ export default async function AdminOrdersPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[15px]">
                   <Row k="الميعاد" v={`${labelDateArabic(o.scheduledAt)} — ${labelTime(o.scheduledAt)}`} />
                   <Row k="المسافة" v={`${o.km} كم`} />
-                  <Row k="الاستلام" v={o.pickupAddress || "على الخريطة"} />
-                  <Row k="التسليم" v={o.dropoffAddress || "على الخريطة"} />
+                  <Row k="الاستلام" v={[o.pickupAddress || "على الخريطة", o.pickupDetails].filter(Boolean).join(" — ")} />
+                  <Row k="التسليم" v={[o.dropoffAddress || "على الخريطة", o.dropoffDetails].filter(Boolean).join(" — ")} />
+                  {o.cargoType && <Row k="نوع الحمولة" v={o.cargoType} />}
                   {o.loaders > 0 && <Row k="العمالة" v={`${o.loaders} أفراد`} />}
                   <Row k="العميل" v={o.contactName ?? "-"} />
                   <Row k="الموبايل" v={o.contactPhone ?? "-"} ltr />
+                  {o.notes && <Row k="ملاحظات العميل" v={o.notes} />}
                   {o.rating != null && <Row k="تقييم العميل" v={`${"⭐".repeat(o.rating)}${o.ratingComment ? ` — ${o.ratingComment}` : ""}`} />}
                 </div>
 
@@ -67,7 +70,7 @@ export default async function AdminOrdersPage() {
                       <select name="driverId" defaultValue={o.driverId ?? ""} className="rounded-xl border border-line-2 bg-panel px-3 py-2 flex-1">
                         <option value="">— اختار سائق —</option>
                         {drivers.map((d: StaffDTO) => (
-                          <option key={d.id} value={d.id}>{d.name}</option>
+                          <option key={d.id} value={d.id}>{d.name}{d.available ? "" : " (مش متاح)"}</option>
                         ))}
                       </select>
                       <button className="rounded-xl bg-primary text-white px-4 py-2 font-bold tap">تعيين</button>
@@ -96,7 +99,7 @@ export default async function AdminOrdersPage() {
                       <button name="status" value="cancelled" className="rounded-xl text-booked border border-booked-soft px-4 py-2 font-bold tap">إلغاء</button>
                     </form>
                   )}
-                  {(o.status === "confirmed" || o.status === "assigned" || o.status === "en_route") && (
+                  {(o.status === "confirmed" || o.status === "assigned" || o.status === "en_route" || o.status === "arrived") && (
                     <form action={setDeliveryOrderStatus} className="contents">
                       <input type="hidden" name="code" value={o.code} />
                       <button name="status" value="cancelled" className="rounded-xl text-booked border border-booked-soft px-4 py-2 font-bold tap">إلغاء الطلب</button>

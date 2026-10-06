@@ -18,7 +18,7 @@ const HALF_HOUR = 30 * 60 * 1000;
  *  2) Optional phone notifications: one tap to allow, then — while the app is
  *     open — a reminder fires half an hour before each trip and at its time.
  */
-export function DriverNotify({ trips }: { trips: NotifyTrip[] }) {
+export function DriverNotify({ trips, banner = true }: { trips: NotifyTrip[]; banner?: boolean }) {
   const [now, setNow] = useState(() => Date.now());
   const [perm, setPerm] = useState<NotificationPermission | "unsupported">("default");
 
@@ -81,7 +81,7 @@ export function DriverNotify({ trips }: { trips: NotifyTrip[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {next ? (
+      {!banner ? null : next ? (
         <div className="bg-primary text-white rounded-card p-4 shadow-sm">
           <div className="text-sm font-bold opacity-90">{started ? "🚗 رحلتك دلوقتي" : "🔔 رحلتك الجاية"}</div>
           <div className="text-2xl font-extrabold mt-1">
@@ -103,9 +103,9 @@ export function DriverNotify({ trips }: { trips: NotifyTrip[] }) {
               setPerm(await Notification.requestPermission());
             } catch {}
           }}
-          className="w-full rounded-2xl bg-accent text-on-accent py-3.5 text-lg font-extrabold tap"
+          className="w-full rounded-2xl border-2 border-primary text-primary bg-panel py-3 text-base font-extrabold tap hover:bg-primary-soft"
         >
-          🔔 شغّل التنبيهات عشان تفكّرك بالرحلة
+          🔔 شغّل التنبيهات عشان نفكّرك بالرحلة
         </button>
       )}
       {perm === "granted" && (

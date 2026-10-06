@@ -57,6 +57,10 @@ export async function createDeliveryOrder(input: {
   promoCode?: string | null;
   pickupAddress?: string | null;
   dropoffAddress?: string | null;
+  pickupDetails?: string | null;
+  dropoffDetails?: string | null;
+  cargoType?: string | null;
+  notes?: string | null;
   pickupLat?: number | null;
   pickupLng?: number | null;
   dropoffLat?: number | null;
@@ -82,6 +86,10 @@ export async function createDeliveryOrder(input: {
       categoryId: input.categoryId,
       pickupAddress: input.pickupAddress ?? null,
       dropoffAddress: input.dropoffAddress ?? null,
+      pickupDetails: input.pickupDetails?.trim() || null,
+      dropoffDetails: input.dropoffDetails?.trim() || null,
+      cargoType: input.cargoType?.trim() || null,
+      notes: input.notes?.trim() || null,
       pickupLat: input.pickupLat ?? null,
       pickupLng: input.pickupLng ?? null,
       dropoffLat: input.dropoffLat ?? null,

@@ -8,6 +8,7 @@
  * a staff row with role = driver. Never trust a driverId from the client.
  */
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { repo } from "@/data/repo";
 import { getSession } from "@/services/session";
 import { fireNotify, deliveryCustomerMessage } from "@/services/notify";
@@ -50,7 +51,10 @@ export async function driverAdvanceTrip(
   return { ok: true };
 }
 
-/** Driver advances their own delivery order: assigned → en_route → completed. */
+/** Driver advances their own delivery order, one step at a time:
+ *  assigned → en_route ("ابدأ الرحلة") → arrived ("تم الوصول لموقع الاستلام") → completed ("تم التوصيل"). */
+const NEXT_STEP: Record<string, string> = { en_route: "assigned", arrived: "en_route", completed: "arrived" };
+
 export async function driverAdvanceOrder(
   _prev: DriverActionState,
   fd: FormData
@@ -60,22 +64,27 @@ export async function driverAdvanceOrder(
 
   const code = String(fd.get("code") ?? "");
   const to = String(fd.get("to") ?? "");
-  if (to !== "en_route" && to !== "completed") return { ok: false, error: "أمر غير معروف" };
+  if (!(to in NEXT_STEP)) return { ok: false, error: "أمر غير معروف" };
 
   const order = await repo.getDeliveryOrder(code);
   if (!order) return { ok: false, error: "الطلب مش موجود" };
   if (order.driverId !== driver.id) return { ok: false, error: "الطلب ده مش ليك" };
+  if (order.status !== NEXT_STEP[to]) return { ok: false, error: "مش وقت الخطوة دي" };
 
-  const allowed =
-    (to === "en_route" && order.status === "assigned") ||
-    (to === "completed" && order.status === "en_route");
-  if (!allowed) return { ok: false, error: "مش وقت الخطوة دي" };
-
-  await repo.updateDeliveryOrderStatus(code, to);
-  fireNotify(
-    order.contactPhone,
-    deliveryCustomerMessage(to === "en_route" ? "en_route" : "completed", code, order.driverName)
-  );
+  const status = to as "en_route" | "arrived" | "completed";
+  await repo.updateDeliveryOrderStatus(code, status);
+  fireNotify(order.contactPhone, deliveryCustomerMessage(status, code, order.driverName));
   revalidatePath("/driver");
+  revalidatePath(`/driver/trip/${code}`);
+  // Starting from the list jumps straight into the trip screen.
+  if (fd.get("open") === "trip") redirect(`/driver/trip/${code}`);
   return { ok: true };
+}
+
+/** Driver's own "متاح للعمل" toggle. */
+export async function toggleAvailability(): Promise<void> {
+  const driver = await currentDriver();
+  if (!driver) return;
+  await repo.setStaffAvailable(driver.id, !driver.available);
+  revalidatePath("/driver");
 }

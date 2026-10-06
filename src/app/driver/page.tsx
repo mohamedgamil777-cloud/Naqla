@@ -1,178 +1,208 @@
 import Link from "next/link";
 import { repo } from "@/data/repo";
 import { getSession } from "@/services/session";
-import { cairoDateISO, labelTime } from "@/lib/time";
+import { cairoDateISO, labelDateArabic, labelTime } from "@/lib/time";
 import { fullDateLabel } from "@/lib/client-time";
 import { LinkButton } from "@/components/ui";
+import { Icon } from "@/components/Icons";
 import { DriverNotify, type NotifyTrip } from "@/components/driver/DriverNotify";
 import { OrderActions } from "@/components/driver/OrderActions";
 import { DriverSwitch } from "@/components/driver/DriverSwitch";
 import { DriverTabs } from "@/components/driver/DriverTabs";
-import type { DeliveryOrderDTO } from "@/data/types";
+import { Card, DriverNotice, Route, StatusPill, TripStats } from "@/components/driver/parts";
+import { toggleAvailability } from "@/app/driver/actions";
+import type { DeliveryOrderDTO, StaffDTO } from "@/data/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function DriverPage() {
+const ACTIVE = new Set(["assigned", "en_route", "arrived"]);
+
+export default async function DriverPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab } = await searchParams;
   const session = await getSession();
 
-  // Not logged in → send them to login and back here.
   if (!session) {
     return (
-      <Centered emoji="🔑" title="سجّل دخولك الأول">
+      <DriverNotice icon="lock" title="سجّل دخولك الأول">
         <p className="text-muted">ادخل برقم موبايلك المسجّل عند الشركة عشان تشوف شغلك.</p>
         <LinkButton href="/login?next=/driver" full>
           الدخول
         </LinkButton>
-      </Centered>
+      </DriverNotice>
     );
   }
 
   const driver = await repo.getStaffByPhone(session.phone);
   if (!driver || driver.role !== "driver") {
     return (
-      <Centered emoji="🚫" title="الرقم ده مش مسجّل كسائق">
+      <DriverNotice icon="user" title="الرقم ده مش مسجّل كسائق">
         <p className="text-muted">
           أنت داخل برقم: <span dir="ltr" className="font-bold">{session.phone}</span>. لو ده مش رقمك كسائق، ادخل برقمك الصح.
         </p>
-        <DriverSwitch label="🔁 ادخل برقم السائق" />
+        <DriverSwitch label="ادخل برقم السائق" />
         <p className="text-muted text-sm">لو رقمك مش متسجّل، كلّم إدارة الشركة عشان يضيفوك كسائق.</p>
-      </Centered>
+      </DriverNotice>
     );
   }
 
-  const allOrders = await repo.listDeliveryOrdersByDriver(driver.id);
   const todayISO = cairoDateISO(new Date());
-  // Deliveries the driver still has to do (assigned or already on the way).
-  const orders = allOrders.filter((o) => o.status === "assigned" || o.status === "en_route");
+  const orders = (await repo.listDeliveryOrdersByDriver(driver.id))
+    .filter((o) => ACTIVE.has(o.status))
+    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+  // "شغلي" = anything already started + everything due up to today; "القادمة" = later days.
+  const now = orders.filter((o) => o.status !== "assigned" || cairoDateISO(o.scheduledAt) <= todayISO);
+  const upcoming = orders.filter((o) => !now.includes(o));
+  const showUpcoming = tab === "upcoming";
 
-  const notifyTrips: NotifyTrip[] = orders
-    .map((o) => ({
-      code: o.code,
-      startMs: o.scheduledAt.getTime(),
-      timeLabel: labelTime(o.scheduledAt),
-      dayLabel: dayLabelFor(cairoDateISO(o.scheduledAt), todayISO),
-      vehicleName: o.sizeName,
-      place: o.dropoffAddress || "توصيل A→B",
-    }))
-    .sort((a, b) => a.startMs - b.startMs);
+  const notifyTrips: NotifyTrip[] = orders.map((o) => ({
+    code: o.code,
+    startMs: o.scheduledAt.getTime(),
+    timeLabel: labelTime(o.scheduledAt),
+    dayLabel: dayLabelFor(cairoDateISO(o.scheduledAt), todayISO),
+    vehicleName: o.sizeName,
+    place: o.dropoffAddress || "توصيلة",
+  }));
 
-  // Group by Cairo scheduled date.
-  const orderGroups = new Map<string, DeliveryOrderDTO[]>();
-  for (const o of orders) {
-    const key = cairoDateISO(o.scheduledAt);
-    (orderGroups.get(key) ?? orderGroups.set(key, []).get(key)!).push(o);
-  }
-  const orderDays = [...orderGroups.keys()].sort();
-
-  const firstName = (driver.name || "").split(" ")[0] || "يا كابتن";
+  const list = showUpcoming ? upcoming : now;
+  const [current, ...rest] = list;
 
   return (
     <div className="p-4 flex flex-col gap-5">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-extrabold">أهلاً {firstName} 👋</h1>
-          <p className="text-muted">دي كل التوصيلات المطلوبة منك.</p>
-        </div>
-        <DriverSwitch label="خروج" subtle />
-      </div>
+      <Greeting driver={driver} />
+      <DriverTabs active={showUpcoming ? "upcoming" : "now"} nowCount={now.length} />
 
-      <DriverTabs active="now" />
-
-      <DriverNotify trips={notifyTrips} />
-
-      {orders.length === 0 ? (
-        <div className="bg-panel border border-line rounded-card p-8 text-center">
-          <div className="text-5xl mb-3">🛋️</div>
-          <p className="text-lg font-bold">مفيش توصيلات عليك دلوقتي</p>
-          <p className="text-muted mt-1">هتلاقي الطلبات هنا أول ما الإدارة تكلّفك.</p>
-        </div>
+      {list.length === 0 ? (
+        <Card className="p-8 text-center flex flex-col items-center gap-2">
+          <span className="w-16 h-16 rounded-full bg-primary-soft text-primary grid place-items-center">
+            <Icon name="checkCircle" className="w-8 h-8" />
+          </span>
+          <p className="text-lg font-extrabold">{showUpcoming ? "مفيش توصيلات جاية" : "مفيش توصيلات عليك دلوقتي"}</p>
+          <p className="text-muted">هتلاقي الطلبات هنا أول ما الإدارة تكلّفك.</p>
+          {!showUpcoming && upcoming.length > 0 && (
+            <Link href="/driver?tab=upcoming" className="mt-2 font-bold text-primary">
+              عندك {upcoming.length} توصيلة في الأيام الجاية ‹
+            </Link>
+          )}
+        </Card>
       ) : (
-        orderDays.map((key) => (
-          <section key={key} className="flex flex-col gap-3">
-            <h2 className="text-lg font-extrabold text-emph sticky top-16 bg-ground py-1 z-10">
-              📦 {dayLabelFor(key, todayISO)}
-              <span className="text-muted font-bold text-sm"> · {orderGroups.get(key)!.length} توصيلة</span>
-            </h2>
-            {orderGroups.get(key)!.map((o) => (
-              <OrderCard key={o.code} o={o} />
-            ))}
-          </section>
-        ))
+        <>
+          {showUpcoming ? (
+            list.map((o) => <NextOrder key={o.code} o={o} label={dayLabelFor(cairoDateISO(o.scheduledAt), todayISO)} />)
+          ) : (
+            <>
+              <CurrentOrder o={current} todayISO={todayISO} />
+              {rest.map((o) => (
+                <NextOrder key={o.code} o={o} label="التوصيلة التالية" />
+              ))}
+            </>
+          )}
+        </>
       )}
+
+      <DriverNotify trips={notifyTrips} banner={false} />
     </div>
   );
 }
 
-function OrderCard({ o }: { o: DeliveryOrderDTO }) {
-  const phone = o.contactPhone ?? "";
-  const wa = phone.replace(/[^0-9]/g, "");
-
+function Greeting({ driver }: { driver: StaffDTO }) {
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone: "Africa/Cairo" }).format(new Date()));
+  const hello = hour < 12 ? "صباح الخير" : "مساء الخير";
   return (
-    <div className="bg-panel border border-line rounded-card p-4 flex flex-col gap-3 shadow-sm">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="text-3xl font-extrabold text-emph leading-none">{labelTime(o.scheduledAt)}</div>
-          <div className="text-sm text-muted mt-1">توصيلة #{o.code}</div>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <span className="rounded-full bg-primary-soft text-primary-ink px-3 py-1 text-sm font-bold">
-            {o.sizeName}{o.sizeCode ? ` · ${o.sizeCode}` : ""}
+    <div className="flex items-center gap-3">
+      <span className="relative shrink-0">
+        {driver.photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={driver.photo} alt={driver.name} className="w-16 h-16 rounded-full object-cover border-2 border-panel shadow-sm" />
+        ) : (
+          <span className="w-16 h-16 rounded-full bg-primary-soft text-primary grid place-items-center">
+            <Icon name="user" className="w-8 h-8" />
           </span>
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${o.status === "en_route" ? "bg-ok-soft text-ok" : "bg-reserved-soft text-reserved"}`}>
-            {o.status === "en_route" ? "في الطريق" : "متعيّن ليك"}
-          </span>
-        </div>
-      </div>
-
-      {/* From → To (the trip location) */}
-      <div className="flex flex-col gap-1.5 text-[15px]">
-        <InfoRow icon="📍" text={`من: ${o.pickupAddress || "على الخريطة"}`} />
-        <InfoRow icon="🏁" text={`لـ: ${o.dropoffAddress || "على الخريطة"}`} />
-        <InfoRow icon="🛣️" text={`${o.km} كم`} />
-        {o.loaders > 0 && <InfoRow icon="👷" text={`عمالة مشال: ${o.loaders} أفراد`} />}
-      </div>
-
-      {/* Customer + one-tap contact */}
-      <div className="bg-panel-2 rounded-2xl p-3 flex flex-col gap-2">
-        <div className="flex items-center gap-2 font-bold">
-          <span aria-hidden>👤</span> {o.contactName ?? "العميل"}
-        </div>
-        {phone && (
-          <div className="grid grid-cols-2 gap-2">
-            <a href={`tel:${phone}`} className="rounded-2xl bg-ok text-white py-3 text-center text-lg font-extrabold tap">📞 اتصل</a>
-            <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="rounded-2xl bg-[#25D366] text-white py-3 text-center text-lg font-extrabold tap">💬 واتساب</a>
-          </div>
         )}
+        <span className={`absolute bottom-0.5 left-0.5 w-4 h-4 rounded-full border-2 border-ground ${driver.available ? "bg-ok" : "bg-off"}`} aria-hidden />
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm text-muted">{hello}</div>
+        <div className="text-xl font-extrabold truncate">{driver.name || "يا كابتن"}</div>
+        <form action={toggleAvailability}>
+          <button className={`mt-0.5 flex items-center gap-1 text-sm font-bold ${driver.available ? "text-ok" : "text-muted"}`}>
+            {driver.available ? "متاح للعمل" : "مش متاح دلوقتي"}
+            <Icon name="chevronDown" className="w-4 h-4" />
+            <span className="sr-only">— دوس للتغيير</span>
+          </button>
+        </form>
       </div>
+      <DriverSwitch label="خروج" subtle />
+    </div>
+  );
+}
 
-      <Link
-        href={`/driver/trip/${o.code}`}
-        className="rounded-2xl border-2 border-line-2 text-primary py-3 text-center text-lg font-extrabold tap"
-      >
-        🗺️ شوف الطريق والتفاصيل
+function CurrentOrder({ o, todayISO }: { o: DeliveryOrderDTO; todayISO: string }) {
+  const started = o.status !== "assigned";
+  return (
+    <Card className="overflow-hidden">
+      {/* time header */}
+      <Link href={`/driver/trip/${o.code}`} className="block bg-primary-soft/70 px-4 pt-4 pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-lg font-extrabold">الطلب الحالي</span>
+          <StatusPill status={o.status} />
+        </div>
+        <div className="text-ink-2 mt-2">
+          {dayLabelFor(cairoDateISO(o.scheduledAt), todayISO)} • {labelDateArabic(o.scheduledAt)}
+        </div>
+        <div className="flex items-center justify-between mt-1">
+          <span className="flex items-center gap-2 text-4xl font-extrabold text-emph">
+            <Icon name="clock" className="w-8 h-8" strokeWidth={2.2} />
+            {labelTime(o.scheduledAt)}
+          </span>
+          <span className="w-10 h-10 rounded-full bg-panel grid place-items-center text-ink-2" aria-hidden>
+            <Icon name="chevronLeft" className="w-5 h-5" />
+          </span>
+        </div>
       </Link>
 
-      <OrderActions code={o.code} status={o.status} />
-    </div>
+      <div className="p-4 flex flex-col gap-4">
+        <Route o={o} />
+        <div className="border-t border-line pt-3">
+          <TripStats o={o} />
+        </div>
+        {started ? (
+          <Link
+            href={`/driver/trip/${o.code}`}
+            className="w-full min-h-[60px] rounded-2xl bg-accent text-on-accent text-xl font-extrabold flex items-center justify-center gap-2 shadow-[0_6px_16px_rgba(242,165,65,0.35)]"
+          >
+            كمّل الرحلة <Icon name="chevronLeft" className="w-6 h-6" strokeWidth={2.6} />
+          </Link>
+        ) : (
+          <OrderActions code={o.code} status={o.status} openTrip />
+        )}
+      </div>
+    </Card>
   );
 }
 
-function InfoRow({ icon, text }: { icon: string; text: string }) {
+function NextOrder({ o, label }: { o: DeliveryOrderDTO; label: string }) {
   return (
-    <div className="flex items-center gap-2">
-      <span aria-hidden className="w-6 text-center">{icon}</span>
-      <span className="font-semibold">{text}</span>
-    </div>
-  );
-}
-
-function Centered({ emoji, title, children }: { emoji: string; title: string; children: React.ReactNode }) {
-  return (
-    <div className="p-6 min-h-[60vh] flex flex-col items-center justify-center text-center gap-3">
-      <div className="text-6xl">{emoji}</div>
-      <h1 className="text-2xl font-extrabold">{title}</h1>
-      <div className="flex flex-col gap-3 w-full max-w-xs">{children}</div>
-    </div>
+    <Link href={`/driver/trip/${o.code}`} className="block">
+      <Card className="p-4 flex flex-col gap-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="rounded-full bg-reserved-soft text-reserved px-3 py-1 text-sm font-bold">{label}</span>
+          <span className="text-2xl font-extrabold text-emph">{labelTime(o.scheduledAt)}</span>
+        </div>
+        <div className="flex items-center gap-2 font-bold text-lg">
+          <span className="truncate">{o.pickupAddress || "على الخريطة"}</span>
+          <Icon name="chevronLeft" className="w-5 h-5 text-muted shrink-0" />
+          <span className="truncate">{o.dropoffAddress || "على الخريطة"}</span>
+        </div>
+        <div className="flex items-center gap-4 text-ink-2">
+          <span className="flex items-center gap-1.5">
+            <Icon name="truck" className="w-5 h-5 text-muted" /> {o.sizeName}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Icon name="map" className="w-5 h-5 text-muted" /> {o.km} كم
+          </span>
+        </div>
+      </Card>
+    </Link>
   );
 }
 
@@ -180,5 +210,6 @@ function dayLabelFor(iso: string, todayISO: string): string {
   if (iso === todayISO) return "النهاردة";
   const tomorrowISO = cairoDateISO(new Date(Date.now() + 24 * 60 * 60 * 1000));
   if (iso === tomorrowISO) return "بكرة";
+  if (iso < todayISO) return "متأخرة";
   return fullDateLabel(iso);
 }

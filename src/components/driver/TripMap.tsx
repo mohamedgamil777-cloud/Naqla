@@ -24,12 +24,18 @@ function loadLeaflet(): Promise<any> {
     document.head.appendChild(s);
   });
 }
-function pinIcon(L: any, emoji: string) {
+/** Same pin language as the order screen: red pin = pickup, teal flag = drop-off. */
+function pinIcon(L: any, kind: "a" | "b") {
+  const bg = kind === "a" ? "#d9452b" : "#135f5a";
+  const glyph =
+    kind === "a"
+      ? '<circle cx="12" cy="10" r="3" fill="#fff"/>'
+      : '<path d="M8 17V6s1-1 3-1 3 1.5 5 1.5 2-.5 2-.5v6s-.5.5-2 .5-3-1.5-5-1.5-3 1-3 1" fill="#fff"/>';
   return L.divIcon({
     className: "",
-    html: `<div style="font-size:30px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))">${emoji}</div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
+    html: `<svg width="34" height="42" viewBox="0 0 24 30" style="filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))"><path d="M12 29s9-8.6 9-17A9 9 0 0 0 3 12c0 8.4 9 17 9 17z" fill="${bg}"/>${glyph}</svg>`,
+    iconSize: [34, 42],
+    iconAnchor: [17, 42],
   });
 }
 
@@ -47,10 +53,10 @@ export function TripMap({ pickup, dropoff }: { pickup: LatLng | null; dropoff: L
         if (cancelled || !el.current || mapRef.current) return;
         const map = L.map(el.current, { zoomControl: true });
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }).addTo(map);
-        L.marker([pickup.lat, pickup.lng], { icon: pinIcon(L, "📍") }).addTo(map);
-        L.marker([dropoff.lat, dropoff.lng], { icon: pinIcon(L, "🏁") }).addTo(map);
-        L.polyline([[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]], { color: "#7b1d2c", weight: 4, dashArray: "6 6" }).addTo(map);
-        map.fitBounds([[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]], { padding: [40, 40] });
+        L.marker([pickup.lat, pickup.lng], { icon: pinIcon(L, "a") }).addTo(map);
+        L.marker([dropoff.lat, dropoff.lng], { icon: pinIcon(L, "b") }).addTo(map);
+        L.polyline([[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]], { color: "#135f5a", weight: 5, dashArray: "8 8" }).addTo(map);
+        map.fitBounds([[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]], { paddingTopLeft: [40, 80], paddingBottomRight: [40, 80] });
         mapRef.current = map;
       })
       .catch(() => setErr(true));
@@ -60,10 +66,10 @@ export function TripMap({ pickup, dropoff }: { pickup: LatLng | null; dropoff: L
 
   if (!pickup || !dropoff || err) {
     return (
-      <div className="h-64 grid place-items-center bg-panel-2 rounded-card border border-line text-center text-muted p-4">
+      <div className="h-72 grid place-items-center bg-panel-2 rounded-card border border-line text-center text-muted p-4">
         المكان على الخريطة مش متوفر — اتصل بالعميل لتحديد المكان.
       </div>
     );
   }
-  return <div ref={el} className="h-64 w-full rounded-card overflow-hidden border border-line bg-panel-2" />;
+  return <div ref={el} className="h-72 w-full rounded-card overflow-hidden border border-line bg-panel-2 relative z-0" />;
 }
