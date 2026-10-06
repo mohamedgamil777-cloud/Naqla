@@ -2,6 +2,7 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { rateOrderAction, type RateState } from "@/app/(customer)/bookings/actions";
+import { Icon } from "@/components/Icons";
 
 /** Star rating input for a completed delivery order. */
 export function RateOrder({ code }: { code: string }) {
@@ -9,32 +10,26 @@ export function RateOrder({ code }: { code: string }) {
   const [stars, setStars] = useState(0);
 
   if (state.ok) {
-    return <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-bold text-center">شكراً لتقييمك! ⭐</div>;
+    return (
+      <div className="bg-ok-soft text-ok rounded-xl px-3 py-2.5 text-sm font-bold flex items-center justify-center gap-1.5">
+        <Icon name="checkCircle" className="w-5 h-5" /> شكراً لتقييمك!
+      </div>
+    );
   }
 
   return (
-    <form action={action} className="bg-panel-2 rounded-2xl p-3 flex flex-col gap-2">
-      <div className="font-bold text-sm">قيّم التوصيلة</div>
+    <form action={action} className="bg-panel-2 rounded-2xl p-3 flex flex-col gap-2.5">
+      <div className="font-bold text-sm text-center">إيه رأيك في التوصيلة؟</div>
       <input type="hidden" name="code" value={code} />
       <input type="hidden" name="rating" value={stars} />
-      <div className="flex gap-1 justify-center" dir="ltr">
+      <div className="flex gap-1.5 justify-center" dir="ltr">
         {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => setStars(n)}
-            className={`text-3xl tap leading-none ${n <= stars ? "" : "grayscale opacity-40"}`}
-            aria-label={`${n} نجوم`}
-          >
-            ⭐
+          <button key={n} type="button" onClick={() => setStars(n)} className="p-0.5" aria-label={`${n} نجوم`} aria-pressed={n <= stars}>
+            <Icon name="star" className={`w-8 h-8 ${n <= stars ? "text-accent fill-current" : "text-line-2"}`} />
           </button>
         ))}
       </div>
-      <input
-        name="comment"
-        placeholder="رأيك (اختياري)"
-        className="rounded-xl border border-line-2 bg-panel px-3 py-2 text-sm"
-      />
+      <input name="comment" placeholder="اكتب رأيك (اختياري)" className="rounded-xl border border-line bg-panel px-3 py-2.5 text-sm outline-none focus:border-primary" />
       {state.error && <div className="text-booked text-xs font-bold text-center">{state.error}</div>}
       <SubmitBtn disabled={stars === 0} />
     </form>
@@ -44,11 +39,7 @@ export function RateOrder({ code }: { code: string }) {
 function SubmitBtn({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending || disabled}
-      className="rounded-xl bg-primary text-white py-2.5 font-bold tap disabled:opacity-40"
-    >
+    <button type="submit" disabled={pending || disabled} className="tap rounded-xl bg-primary text-white font-bold disabled:opacity-40">
       {pending ? "…" : "ابعت التقييم"}
     </button>
   );

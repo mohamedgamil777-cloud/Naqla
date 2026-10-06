@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogoMark } from "@/components/Logo";
 import type { ReactNode } from "react";
 import { formatEgp } from "@/lib/money";
 import type { Quote } from "@/engines/pricing";
@@ -146,8 +147,10 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="text-center py-16 px-6">
-      <div className="text-5xl mb-4">🚚</div>
+    <div className="text-center py-16 px-6 flex flex-col items-center">
+      <div className="w-28 h-28 rounded-full bg-primary-soft grid place-items-center mb-5">
+        <LogoMark className="w-20" />
+      </div>
       <h3 className="text-xl font-bold">{title}</h3>
       {subtitle && <p className="text-muted mt-2">{subtitle}</p>}
       {action && <div className="mt-6 flex justify-center">{action}</div>}

@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { Button } from "./ui";
+import { Icon } from "@/components/Icons";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -10,8 +10,12 @@ export function LogoutButton() {
     router.refresh();
   }
   return (
-    <Button variant="secondary" full onClick={logout}>
-      تسجيل الخروج
-    </Button>
+    <button
+      type="button"
+      onClick={logout}
+      className="tap w-full rounded-2xl border-2 border-line-2 bg-panel text-booked font-bold flex items-center justify-center gap-2 hover:bg-booked-soft"
+    >
+      <Icon name="logOut" className="w-5 h-5" /> تسجيل الخروج
+    </button>
   );
 }
