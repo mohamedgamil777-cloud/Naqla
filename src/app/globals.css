@@ -102,7 +102,7 @@ a.tap:active {
   }
 }
 main > * {
-  animation: naqla-rise 0.32s ease-out both;
+  animation: naqla-rise 0.32s ease-out backwards; /* not "both": a held transform would trap position:fixed children */
 }
 ::selection {
   background: var(--color-accent-soft);
