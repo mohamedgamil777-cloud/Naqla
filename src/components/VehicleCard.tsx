@@ -29,7 +29,7 @@ export function VehicleCard({ v }: { v: VehicleListItem }) {
         </div>
         <div className="mt-3 flex items-end justify-between">
           <div>
-            <span className="text-2xl font-extrabold text-primary">{formatEgp(v.fromHourlyPiastres, { withUnit: false })}</span>
+            <span className="text-2xl font-extrabold text-emph">{formatEgp(v.fromHourlyPiastres, { withUnit: false })}</span>
             <span className="text-muted text-sm"> جنيه / ساعة</span>
           </div>
           {bookable ? (

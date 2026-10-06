@@ -298,7 +298,7 @@ export function BookingWizard({
                 </div>
                 <div className="flex-1">
                   <div className="font-extrabold">{v.name}</div>
-                  <div className="text-primary font-bold">
+                  <div className="text-emph font-bold">
                     {formatEgp(v.fromHourlyPiastres, { withUnit: false })} <span className="text-muted text-sm font-normal">جنيه/ساعة</span>
                   </div>
                 </div>
@@ -515,7 +515,7 @@ function Stepper({ current }: { current: number }) {
       {STEPS_LABELS.map((l, i) => (
         <div key={l} className="flex-1 flex flex-col items-center gap-1">
           <div className={`h-1.5 w-full rounded-full ${i <= current ? "bg-primary" : "bg-line-2"}`} />
-          <span className={`text-[11px] font-semibold ${i === current ? "text-primary" : "text-muted"}`}>{l}</span>
+          <span className={`text-[11px] font-semibold ${i === current ? "text-emph" : "text-muted"}`}>{l}</span>
         </div>
       ))}
     </div>

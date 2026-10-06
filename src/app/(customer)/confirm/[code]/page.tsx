@@ -34,7 +34,7 @@ export default async function ConfirmPage({ params }: { params: Promise<{ code: 
         {b.loaders > 0 && <Row k="العمالة" v={`${b.loaders} ${b.loaders === 1 ? "فرد" : "أفراد"}`} />}
         <div className="flex justify-between border-t border-dashed border-line-2 pt-3 mt-1">
           <span className="font-bold text-lg">الإجمالي</span>
-          <span className="font-extrabold text-xl text-primary">{formatEgp(b.priceSnapshot.total)}</span>
+          <span className="font-extrabold text-xl text-emph">{formatEgp(b.priceSnapshot.total)}</span>
         </div>
         {b.priceSnapshot.deposit > 0 && (
           <p className="text-sm text-muted">+ تأمين مسترد {formatEgp(b.priceSnapshot.deposit)}</p>

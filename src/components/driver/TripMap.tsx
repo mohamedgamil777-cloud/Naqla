@@ -49,7 +49,7 @@ export function TripMap({ pickup, dropoff }: { pickup: LatLng | null; dropoff: L
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }).addTo(map);
         L.marker([pickup.lat, pickup.lng], { icon: pinIcon(L, "📍") }).addTo(map);
         L.marker([dropoff.lat, dropoff.lng], { icon: pinIcon(L, "🏁") }).addTo(map);
-        L.polyline([[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]], { color: "#0e7a5f", weight: 4, dashArray: "6 6" }).addTo(map);
+        L.polyline([[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]], { color: "#7b1d2c", weight: 4, dashArray: "6 6" }).addTo(map);
         map.fitBounds([[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]], { padding: [40, 40] });
         mapRef.current = map;
       })

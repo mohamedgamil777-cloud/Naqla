@@ -82,7 +82,7 @@ export default async function DriverProfilePage() {
                 <div className="text-xs text-muted truncate">{o.pickupAddress || "من الخريطة"} ← {o.dropoffAddress || "للخريطة"}</div>
                 <div className="text-xs text-ink-2">{labelDateArabic(o.scheduledAt)}</div>
               </div>
-              <span className="font-extrabold text-primary whitespace-nowrap">{formatEgp(o.driverFee || 0)}</span>
+              <span className="font-extrabold text-emph whitespace-nowrap">{formatEgp(o.driverFee || 0)}</span>
             </div>
           ))}
         </div>

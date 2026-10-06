@@ -87,7 +87,7 @@ export default async function AdminDashboard() {
             </Link>
             <Link href="/admin/finance" className="rounded-2xl p-5 bg-panel border border-line tap">
               <div className="text-sm text-muted">الحسابات التفصيلية</div>
-              <div className="text-xl font-extrabold mt-2 text-primary">تقارير الدخل ›</div>
+              <div className="text-xl font-extrabold mt-2 text-emph">تقارير الدخل ›</div>
             </Link>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default async function AdminDashboard() {
                   <div className="text-sm text-muted">{labelDateArabic(b.startsAt)} — {labelTime(b.startsAt)}</div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-bold text-primary">{formatEgp(b.priceSnapshot.total)}</span>
+                  <span className="font-bold text-emph">{formatEgp(b.priceSnapshot.total)}</span>
                   <BookingStatusBadge status={b.status} />
                 </div>
               </div>

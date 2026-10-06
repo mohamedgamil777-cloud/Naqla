@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Icon, type IconName } from "@/components/Icons";
 
-const items = [
-  { href: "/", label: "الرئيسية", icon: "🏠" },
-  { href: "/bookings", label: "طلباتي", icon: "📦" },
-  { href: "/help", label: "المساعدة", icon: "💬" },
-  { href: "/account", label: "حسابي", icon: "👤" },
+const items: { href: string; label: string; icon: IconName }[] = [
+  { href: "/", label: "الرئيسية", icon: "home" },
+  { href: "/bookings", label: "طلباتي", icon: "orders" },
+  { href: "/help", label: "المساعدة", icon: "help" },
+  { href: "/account", label: "حسابي", icon: "user" },
 ];
 
 export function BottomNav() {
@@ -20,11 +21,11 @@ export function BottomNav() {
             <Link
               key={it.href}
               href={it.href}
-              className={`flex flex-col items-center gap-1 py-2.5 text-sm font-semibold ${
-                active ? "text-primary" : "text-muted"
+              className={`flex flex-col items-center gap-1 py-2.5 text-sm ${
+                active ? "text-primary font-bold" : "text-muted font-semibold"
               }`}
             >
-              <span className="text-2xl leading-none">{it.icon}</span>
+              <Icon name={it.icon} className="w-6 h-6" strokeWidth={active ? 2.3 : 1.8} />
               {it.label}
             </Link>
           );

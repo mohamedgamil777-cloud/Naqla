@@ -109,7 +109,7 @@ function OrderCard({ o, compact }: { o: DeliveryOrderDTO; compact?: boolean }) {
           </div>
           <div className="text-muted text-sm mt-0.5">طلب #{o.code}</div>
         </div>
-        <span className="font-extrabold text-primary">{formatEgp(o.priceSnapshot.total)}</span>
+        <span className="font-extrabold text-emph">{formatEgp(o.priceSnapshot.total)}</span>
       </div>
 
       <div className="text-[15px] text-ink-2">
@@ -159,7 +159,7 @@ function Tracker({ cur }: { cur: number }) {
             <div className="w-full flex items-center">
               <div className={`h-1.5 flex-1 rounded-full ${done ? "bg-primary" : "bg-line-2"}`} />
             </div>
-            <span className={`text-[10px] font-bold text-center leading-tight ${done ? "text-primary" : "text-muted"}`}>
+            <span className={`text-[10px] font-bold text-center leading-tight ${done ? "text-emph" : "text-muted"}`}>
               {s.label}
             </span>
           </div>
@@ -174,7 +174,7 @@ function RentalRow({ b }: { b: BookingDTO }) {
     <Link href={`/bookings/${b.code}`} className="block bg-panel border border-line rounded-card p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <span className="font-bold">{b.vehicleName} — #{b.code}</span>
-        <span className="font-bold text-primary">{formatEgp(b.priceSnapshot.total)}</span>
+        <span className="font-bold text-emph">{formatEgp(b.priceSnapshot.total)}</span>
       </div>
       <div className="text-sm text-muted mt-1">{labelDateArabic(b.startsAt)} — {labelTime(b.startsAt)}</div>
     </Link>

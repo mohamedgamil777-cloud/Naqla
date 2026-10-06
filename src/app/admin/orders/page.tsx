@@ -44,7 +44,7 @@ export default async function AdminOrdersPage() {
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${STATUS[o.status].cls}`}>{STATUS[o.status].label}</span>
                     <span className="rounded-full bg-ink/10 px-2 py-0.5 text-xs font-bold">{o.sizeName}{o.sizeCode ? ` · ${o.sizeCode}` : ""}</span>
                   </div>
-                  <span className="font-extrabold text-xl text-primary">{formatEgp(o.priceSnapshot.total)}</span>
+                  <span className="font-extrabold text-xl text-emph">{formatEgp(o.priceSnapshot.total)}</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[15px]">

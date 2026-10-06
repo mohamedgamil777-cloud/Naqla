@@ -89,7 +89,7 @@ export default async function DriverPage() {
       ) : (
         orderDays.map((key) => (
           <section key={key} className="flex flex-col gap-3">
-            <h2 className="text-lg font-extrabold text-primary sticky top-16 bg-ground py-1 z-10">
+            <h2 className="text-lg font-extrabold text-emph sticky top-16 bg-ground py-1 z-10">
               📦 {dayLabelFor(key, todayISO)}
               <span className="text-muted font-bold text-sm"> · {orderGroups.get(key)!.length} توصيلة</span>
             </h2>
@@ -111,7 +111,7 @@ function OrderCard({ o }: { o: DeliveryOrderDTO }) {
     <div className="bg-panel border border-line rounded-card p-4 flex flex-col gap-3 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="text-3xl font-extrabold text-primary leading-none">{labelTime(o.scheduledAt)}</div>
+          <div className="text-3xl font-extrabold text-emph leading-none">{labelTime(o.scheduledAt)}</div>
           <div className="text-sm text-muted mt-1">توصيلة #{o.code}</div>
         </div>
         <div className="flex flex-col items-end gap-1">

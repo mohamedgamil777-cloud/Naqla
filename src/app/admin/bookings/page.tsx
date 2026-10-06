@@ -104,7 +104,7 @@ export default async function AdminBookings({
                   </Td>
                   <Td>{labelDateArabic(b.startsAt)}<div className="text-muted text-xs">{labelTime(b.startsAt)} → {labelTime(b.endsAt)}</div></Td>
                   <Td>{durationLabel(b.hours)}</Td>
-                  <Td className="font-bold text-primary">{formatEgp(b.priceSnapshot.total)}</Td>
+                  <Td className="font-bold text-emph">{formatEgp(b.priceSnapshot.total)}</Td>
                   <Td><BookingStatusBadge status={b.status} /></Td>
                 </tr>
               ))}

@@ -51,7 +51,7 @@ export default async function DriverTripPage({ params }: { params: Promise<{ cod
       {/* Big time + size */}
       <div className="bg-panel border border-line rounded-card p-4 flex items-center justify-between">
         <div>
-          <div className="text-3xl font-extrabold text-primary leading-none">{labelTime(o.scheduledAt)}</div>
+          <div className="text-3xl font-extrabold text-emph leading-none">{labelTime(o.scheduledAt)}</div>
           <div className="text-sm text-muted mt-1">{labelDateArabic(o.scheduledAt)}</div>
         </div>
         <span className="rounded-full bg-ink/10 px-3 py-1 font-bold">{o.sizeName}{o.sizeCode ? ` · ${o.sizeCode}` : ""}</span>

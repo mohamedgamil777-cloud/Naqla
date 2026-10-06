@@ -3,7 +3,8 @@ import { DeliveryEstimator } from "@/components/DeliveryEstimator";
 
 export const dynamic = "force-dynamic";
 
-export default async function EstimatePage() {
+export default async function EstimatePage({ searchParams }: { searchParams: Promise<{ size?: string }> }) {
+  const { size } = await searchParams;
   const [cats, branch] = await Promise.all([repo.listCategories(), repo.defaultBranch()]);
   const sizes = cats
     .filter((c) => c.sizeCode)
@@ -28,7 +29,7 @@ export default async function EstimatePage() {
           مفيش أحجام متاحة دلوقتي.
         </div>
       ) : (
-        <DeliveryEstimator sizes={sizes} center={{ lat: branch.lat ?? 30.0444, lng: branch.lng ?? 31.2357 }} />
+        <DeliveryEstimator sizes={sizes} initialSizeCode={size} center={{ lat: branch.lat ?? 30.0444, lng: branch.lng ?? 31.2357 }} />
       )}
     </div>
   );

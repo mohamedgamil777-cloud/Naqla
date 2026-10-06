@@ -103,7 +103,7 @@ export function DriverNotify({ trips }: { trips: NotifyTrip[] }) {
               setPerm(await Notification.requestPermission());
             } catch {}
           }}
-          className="w-full rounded-2xl bg-accent text-accent-ink py-3.5 text-lg font-extrabold tap"
+          className="w-full rounded-2xl bg-accent text-on-accent py-3.5 text-lg font-extrabold tap"
         >
           🔔 شغّل التنبيهات عشان تفكّرك بالرحلة
         </button>

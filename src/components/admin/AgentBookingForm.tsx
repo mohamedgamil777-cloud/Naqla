@@ -188,7 +188,7 @@ export function AgentBookingForm({ vehicles, staff }: { vehicles: VehicleListIte
 function SubmitBtn({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={disabled || pending} className="rounded-2xl px-6 py-3.5 font-bold bg-accent text-accent-ink disabled:opacity-40 self-start">
+    <button type="submit" disabled={disabled || pending} className="rounded-2xl px-6 py-3.5 font-bold bg-accent text-on-accent disabled:opacity-40 self-start">
       {pending ? "بيحجز…" : "احجز للعميل"}
     </button>
   );

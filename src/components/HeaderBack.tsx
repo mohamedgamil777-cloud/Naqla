@@ -14,7 +14,7 @@ export function HeaderBack() {
       type="button"
       onClick={() => router.back()}
       aria-label="رجوع"
-      className="tap w-9 h-9 rounded-full bg-white/15 grid place-items-center text-xl font-extrabold shrink-0"
+      className="tap w-9 h-9 rounded-full bg-bar-chip text-bar-chip-ink grid place-items-center text-xl font-extrabold shrink-0"
     >
       →
     </button>

@@ -37,7 +37,7 @@ export default async function AdminFleet() {
                   <div className="font-extrabold">{v.name}</div>
                   <div className="text-muted text-sm">{v.categoryName}</div>
                 </div>
-                <span className="text-primary font-bold whitespace-nowrap">{formatEgp(v.fromHourlyPiastres)}/س</span>
+                <span className="text-emph font-bold whitespace-nowrap">{formatEgp(v.fromHourlyPiastres)}/س</span>
               </div>
               <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-line">
                 <QuickStatus id={v.id} status={v.status} />

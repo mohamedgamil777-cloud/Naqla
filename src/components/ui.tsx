@@ -13,7 +13,7 @@ type Variant = "primary" | "accent" | "secondary" | "ghost" | "danger";
 
 const variants: Record<Variant, string> = {
   primary: "bg-primary text-white hover:brightness-110 shadow-sm",
-  accent: "bg-accent text-accent-ink hover:brightness-105 shadow-sm",
+  accent: "bg-accent text-on-accent hover:brightness-105 shadow-sm",
   secondary: "bg-panel text-ink border-2 border-line-2 hover:border-primary",
   ghost: "bg-transparent text-primary hover:bg-primary-soft",
   danger: "bg-booked text-white hover:brightness-110",
@@ -125,7 +125,7 @@ export function PriceBreakdown({ quote }: { quote: Quote }) {
       </div>
       <div className="mt-3 pt-3 border-t border-dashed border-line-2 flex justify-between items-center">
         <span className="font-bold text-lg">الإجمالي</span>
-        <span className="font-extrabold text-2xl text-primary">{formatEgp(quote.total)}</span>
+        <span className="font-extrabold text-2xl text-emph">{formatEgp(quote.total)}</span>
       </div>
       {quote.deposit > 0 && (
         <p className="mt-2 text-sm text-muted">

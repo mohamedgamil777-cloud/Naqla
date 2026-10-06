@@ -68,7 +68,7 @@ function pinIcon(L: any, emoji: string) {
   });
 }
 
-export function DeliveryEstimator({ sizes, center }: { sizes: SizeOpt[]; center: LatLng }) {
+export function DeliveryEstimator({ sizes, center, initialSizeCode }: { sizes: SizeOpt[]; center: LatLng; initialSizeCode?: string }) {
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<{ a: any; b: any }>({ a: null, b: null });
@@ -85,7 +85,9 @@ export function DeliveryEstimator({ sizes, center }: { sizes: SizeOpt[]; center:
   const [km, setKm] = useState(() => roadKm({ lat: center.lat + 0.008, lng: center.lng - 0.008 }, { lat: center.lat - 0.008, lng: center.lng + 0.008 }));
 
   // recommend S by default if present, else the first size.
-  const [sizeId, setSizeId] = useState(() => (sizes.find((s) => s.sizeCode === "S") ?? sizes[0])?.id ?? "");
+  const [sizeId, setSizeId] = useState(
+    () => (sizes.find((s) => s.sizeCode === initialSizeCode) ?? sizes.find((s) => s.sizeCode === "S") ?? sizes[0])?.id ?? ""
+  );
   const [recommended, setRecommended] = useState<string | null>(null);
 
   const today = cairoDateISO(0);
@@ -342,7 +344,7 @@ export function DeliveryEstimator({ sizes, center }: { sizes: SizeOpt[]; center:
           <button
             onClick={placeOrder}
             disabled={ordering}
-            className="w-full rounded-2xl bg-accent text-accent-ink py-4 text-xl font-extrabold tap disabled:opacity-50"
+            className="w-full rounded-2xl bg-accent text-on-accent py-4 text-xl font-extrabold tap disabled:opacity-50"
           >
             {ordering ? "بنبعت الطلب…" : "اطلب التوصيلة"}
           </button>
