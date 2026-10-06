@@ -47,31 +47,6 @@ export default async function HomePage() {
         </Link>
       </section>
 
-      {/* Trust badges */}
-      <section className="px-4 grid grid-cols-3 gap-3">
-        {TRUST.map((x) => (
-          <div key={x.t} className="bg-panel border border-line rounded-2xl py-4 px-2 flex flex-col items-center gap-2 text-center">
-            <Icon name={x.icon} className="w-7 h-7 text-primary" />
-            <div className="text-sm font-bold leading-snug">{x.t}</div>
-          </div>
-        ))}
-      </section>
-
-      {/* How it works */}
-      <section className="px-4">
-        <h2 className="text-xl font-extrabold">بتشتغل إزاي؟</h2>
-        <p className="text-sm text-muted">4 خطوات بسيطة</p>
-        <ol className="mt-3 grid grid-cols-4 gap-2">
-          {STEPS.map((x, i) => (
-            <li key={x.t} className="bg-panel border border-line rounded-2xl py-3 px-1.5 flex flex-col items-center gap-2 text-center">
-              <span className="w-6 h-6 grid place-items-center rounded-full bg-primary-soft text-emph text-xs font-extrabold">{i + 1}</span>
-              <Icon name={x.icon} className="w-7 h-7 text-primary" />
-              <span className="text-xs font-bold leading-snug">{x.t}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
       {/* Truck sizes */}
       {sizes.length > 0 && (
         <section>
@@ -104,6 +79,32 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      {/* Trust badges */}
+      <section className="px-4 grid grid-cols-3 gap-3">
+        {TRUST.map((x) => (
+          <div key={x.t} className="bg-panel border border-line rounded-2xl py-4 px-2 flex flex-col items-center gap-2 text-center">
+            <Icon name={x.icon} className="w-7 h-7 text-primary" />
+            <div className="text-sm font-bold leading-snug">{x.t}</div>
+          </div>
+        ))}
+      </section>
+
+      {/* How it works */}
+      <section className="px-4">
+        <h2 className="text-xl font-extrabold">بتشتغل إزاي؟</h2>
+        <p className="text-sm text-muted">4 خطوات بسيطة</p>
+        <ol className="mt-3 grid grid-cols-4 gap-2">
+          {STEPS.map((x, i) => (
+            <li key={x.t} className="bg-panel border border-line rounded-2xl py-3 px-1.5 flex flex-col items-center gap-2 text-center">
+              <span className="w-6 h-6 grid place-items-center rounded-full bg-primary-soft text-emph text-xs font-extrabold">{i + 1}</span>
+              <Icon name={x.icon} className="w-7 h-7 text-primary" />
+              <span className="text-xs font-bold leading-snug">{x.t}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
     </div>
   );
 }
