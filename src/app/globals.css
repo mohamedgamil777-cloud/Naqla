@@ -13,12 +13,12 @@
   --color-line: #e6dfd0;
   --color-line-2: #d6cdb9;
 
-  --color-primary: #135f5a; /* teal: selected states, step buttons, links */
-  --color-primary-ink: #0d4743;
+  --color-primary: #11645f; /* teal: selected states, step buttons, links */
+  --color-primary-ink: #0c4a46;
   --color-primary-soft: #e3efec;
   --color-accent: #f2a541; /* amber: main call-to-action only */
   --color-on-accent: #3a2306; /* text on a solid accent button */
-  --color-accent-ink: #8e1f31; /* small labels on accent-soft */
+  --color-accent-ink: #8f1f30; /* small labels on accent-soft */
   --color-accent-soft: #f7e9eb;
   --color-emph: #10201c; /* emphasised plain text: prices, times, totals */
 
@@ -26,7 +26,7 @@
   --color-bar: #ffffff;
   --color-on-bar: #10201c;
   --color-bar-chip: #e3efec;
-  --color-bar-chip-ink: #135f5a;
+  --color-bar-chip-ink: #11645f;
   --color-bar-edge: rgb(16 32 28 / 0.08);
   --color-bar-ink: #0f3b38; /* admin sidebar (dark teal) */
 
@@ -44,16 +44,6 @@
   --font-sans: var(--font-cairo), system-ui, "Segoe UI", sans-serif;
 
   --radius-card: 16px;
-}
-
-/* Logo colours per surface: page (light), app header (bar), dark panel (admin sidebar) */
-:root {
-  --logo-truck-light: #135f5a;
-  --logo-truck-bar: #135f5a;
-  --logo-truck-dark: currentColor;
-  --logo-parcel-light: #8e1f31;
-  --logo-parcel-bar: #8e1f31;
-  --logo-parcel-dark: #e9dcc6;
 }
 
 html {

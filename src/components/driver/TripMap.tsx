@@ -26,7 +26,7 @@ function loadLeaflet(): Promise<any> {
 }
 /** Same pin language as the order screen: red pin = pickup, teal flag = drop-off. */
 function pinIcon(L: any, kind: "a" | "b") {
-  const bg = kind === "a" ? "#d9452b" : "#135f5a";
+  const bg = kind === "a" ? "#d9452b" : "#11645f";
   const glyph =
     kind === "a"
       ? '<circle cx="12" cy="10" r="3" fill="#fff"/>'
@@ -55,7 +55,7 @@ export function TripMap({ pickup, dropoff }: { pickup: LatLng | null; dropoff: L
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }).addTo(map);
         L.marker([pickup.lat, pickup.lng], { icon: pinIcon(L, "a") }).addTo(map);
         L.marker([dropoff.lat, dropoff.lng], { icon: pinIcon(L, "b") }).addTo(map);
-        L.polyline([[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]], { color: "#135f5a", weight: 5, dashArray: "8 8" }).addTo(map);
+        L.polyline([[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]], { color: "#11645f", weight: 5, dashArray: "8 8" }).addTo(map);
         map.fitBounds([[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]], { paddingTopLeft: [40, 80], paddingBottomRight: [40, 80] });
         mapRef.current = map;
       })

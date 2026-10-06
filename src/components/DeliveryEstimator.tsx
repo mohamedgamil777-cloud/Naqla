@@ -141,7 +141,7 @@ function loadLeaflet(): Promise<any> {
 }
 /** Round map pin: red for pickup, teal flag for drop-off (matches the location card). */
 function pinIcon(L: any, kind: "a" | "b") {
-  const bg = kind === "a" ? "#d9452b" : "#135f5a";
+  const bg = kind === "a" ? "#d9452b" : "#11645f";
   const glyph =
     kind === "a"
       ? '<circle cx="12" cy="10" r="3" fill="#fff"/>'

@@ -12,7 +12,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
           <div className="flex items-center gap-2">
             <HeaderBack />
             <Link href="/" aria-label="نقلة — الرئيسية" className="flex items-center">
-              <Logo markClass="h-8" wordClass="text-2xl" surface="bar" caption />
+              <Logo className="h-11" surface="bar" />
             </Link>
           </div>
           <Link

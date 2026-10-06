@@ -1,14 +1,16 @@
 {
-  "name": "نقلة — تأجير بيك أب وفان",
+  "name": "نقلة — Naqla",
   "short_name": "نقلة",
-  "description": "أجّر بيك أب أو فان بسهولة",
+  "description": "اطلب عربية نقل من مكان لمكان، والسعر قدامك قبل ما تطلب",
   "lang": "ar",
   "dir": "rtl",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f1e8",
-  "theme_color": "#135f5a",
+  "theme_color": "#ffffff",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

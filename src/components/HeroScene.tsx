@@ -61,13 +61,13 @@ export function HeroScene({ className = "" }: { className?: string }) {
       </g>
       <path d="M226 98h38l17 24h-55z" fill="#9db9b5" />
       <path d="M248 98v24" stroke="#ffffff" strokeWidth="2" />
-      <rect x="76" y="140" width="140" height="4" fill="#135f5a" />
-      <rect x="216" y="140" width="108" height="4" fill="#135f5a" />
+      <rect x="76" y="140" width="140" height="4" fill="#11645f" />
+      <rect x="216" y="140" width="108" height="4" fill="#11645f" />
       <rect x="314" y="134" width="10" height="6" rx="2" fill="#f2a541" />
       <rect x="70" y="128" width="8" height="10" rx="2" fill="#d9452b" />
       <path d="M300 156h28" stroke="#5d6662" strokeWidth="5" strokeLinecap="round" />
       {/* Naqla mark on the door */}
-      <LogoMark x={228} y={124} width={40} surface="light" />
+      <LogoMark x={228} y={124} width={40} />
 
       {/* wheels */}
       {[112, 280].map((cx) => (
