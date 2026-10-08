@@ -196,14 +196,35 @@ function ActiveOrder({ o }: { o: DeliveryOrderDTO }) {
       <Meta o={o} />
 
       {o.driverName && (o.status === "assigned" || o.status === "en_route" || o.status === "arrived") && (
-        <div className={`rounded-2xl px-3.5 py-3 flex items-center gap-3 ${o.status === "assigned" ? "bg-primary-soft" : "bg-ok-soft"}`}>
-          <span className="w-10 h-10 shrink-0 rounded-full bg-panel grid place-items-center text-primary">
-            <Icon name="user" className="w-5 h-5" />
-          </span>
-          <div className="text-sm">
-            <div className="font-extrabold">{o.driverName}</div>
-            <div className="text-ink-2">{o.status === "en_route" ? "السائق في الطريق لمكان الاستلام" : o.status === "arrived" ? "السائق وصل لمكان الاستلام" : "هيكون عندك في الميعاد"}</div>
+        <div className={`rounded-2xl px-3.5 py-3 flex flex-col gap-3 ${o.status === "assigned" ? "bg-primary-soft" : "bg-ok-soft"}`}>
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 shrink-0 rounded-full bg-panel grid place-items-center text-primary">
+              <Icon name="user" className="w-5 h-5" />
+            </span>
+            <div className="text-sm">
+              <div className="text-xs text-muted">السائق</div>
+              <div className="font-extrabold text-base">{o.driverName}</div>
+              <div className="text-ink-2">{o.status === "en_route" ? "السائق في الطريق لمكان الاستلام" : o.status === "arrived" ? "السائق وصل لمكان الاستلام" : "هيكون عندك في الميعاد"}</div>
+            </div>
           </div>
+          {o.driverPhone && (
+            <div className="grid grid-cols-2 gap-2">
+              <a
+                href={`tel:${o.driverPhone}`}
+                className="tap rounded-xl bg-primary text-white font-extrabold flex items-center justify-center gap-2 shadow-sm"
+              >
+                <Icon name="phone" className="w-5 h-5" /> اتصل بالسواق
+              </a>
+              <a
+                href={`https://wa.me/${o.driverPhone.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="tap rounded-xl border-2 border-primary bg-panel text-primary font-extrabold flex items-center justify-center gap-2"
+              >
+                <Icon name="whatsapp" className="w-5 h-5" /> واتساب
+              </a>
+            </div>
+          )}
         </div>
       )}
 

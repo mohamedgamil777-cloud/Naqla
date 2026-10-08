@@ -293,7 +293,7 @@ function seedState(): MemState {
         cargoType: "أثاث / أجهزة", notes: "يوجد مصعد في المبنى، اتصل قبل الوصول بـ 10 دقائق",
         pickupLat: 29.9716, pickupLng: 30.9426, dropoffLat: 30.03, dropoffLng: 30.976,
         km: 9.5, loaders: 1, scheduledAt: cairoDateTime(today, 11),
-        status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق", driverFee: 9000, rating: null, ratingComment: null,
+        status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق", driverPhone: null, driverFee: 9000, rating: null, ratingComment: null,
         priceSnapshot: {
           hours: 0,
           lines: [
@@ -312,7 +312,7 @@ function seedState(): MemState {
         pickupDetails: null, dropoffDetails: null, cargoType: "صناديق / كراسي", notes: null,
         pickupLat: 29.996, pickupLng: 31.153, dropoffLat: 29.987, dropoffLng: 31.17,
         km: 4.2, loaders: 0, scheduledAt: cairoDateTime(tomorrow, 15),
-        status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق", driverFee: 5000, rating: null, ratingComment: null,
+        status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق", driverPhone: null, driverFee: 5000, rating: null, ratingComment: null,
         priceSnapshot: {
           hours: 0,
           lines: [
@@ -444,6 +444,11 @@ function pricingInputToRule(p: VehiclePricingInput, base: PricingRule): PricingR
     minHours: state.business.minHours,
     maxHours: state.business.maxHours,
   };
+}
+
+/** Copy of an order with the assigned driver's current phone (looked up, never stale). */
+function withDriverPhone(o: DeliveryOrderDTO): DeliveryOrderDTO {
+  return { ...o, driverPhone: o.driverId ? state.staff.find((x) => x.id === o.driverId)?.phone ?? null : null };
 }
 
 function toStaffDTO(s: StaffRec): StaffDTO {
@@ -664,6 +669,7 @@ export const memRepo = {
       status: "new",
       driverId: null,
       driverName: null,
+      driverPhone: null,
       driverFee: 0,
       rating: null,
       ratingComment: null,
@@ -676,10 +682,10 @@ export const memRepo = {
   },
 
   listDeliveryOrders: async (): Promise<DeliveryOrderDTO[]> =>
-    state.deliveryOrders.slice().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map((o) => ({ ...o })),
+    state.deliveryOrders.slice().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map(withDriverPhone),
 
   listDeliveryOrdersByPhone: async (phone: string): Promise<DeliveryOrderDTO[]> =>
-    state.deliveryOrders.filter((o) => o.contactPhone === phone).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map((o) => ({ ...o })),
+    state.deliveryOrders.filter((o) => o.contactPhone === phone).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map(withDriverPhone),
 
   updateDeliveryOrderStatus: async (code: string, status: DeliveryOrderStatus): Promise<boolean> => {
     const o = state.deliveryOrders.find((x) => x.code === code);
@@ -699,14 +705,14 @@ export const memRepo = {
 
   getDeliveryOrder: async (code: string): Promise<DeliveryOrderDTO | null> => {
     const o = state.deliveryOrders.find((x) => x.code === code);
-    return o ? { ...o } : null;
+    return o ? withDriverPhone(o) : null;
   },
 
   listDeliveryOrdersByDriver: async (driverId: string): Promise<DeliveryOrderDTO[]> =>
     state.deliveryOrders
       .filter((o) => o.driverId === driverId)
       .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
-      .map((o) => ({ ...o })),
+      .map(withDriverPhone),
 
   setDriverFee: async (code: string, fee: number): Promise<boolean> => {
     const o = state.deliveryOrders.find((x) => x.code === code);

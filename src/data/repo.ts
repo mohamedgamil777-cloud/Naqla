@@ -111,7 +111,7 @@ function userToStaff(u: typeof users.$inferSelect): StaffDTO {
   };
 }
 
-function mapDeliveryOrder(r: typeof deliveryOrders.$inferSelect, driverName: string | null = null): DeliveryOrderDTO {
+function mapDeliveryOrder(r: typeof deliveryOrders.$inferSelect, driverName: string | null = null, driverPhone: string | null = null): DeliveryOrderDTO {
   return {
     code: r.code,
     categoryId: r.categoryId ?? "",
@@ -133,6 +133,7 @@ function mapDeliveryOrder(r: typeof deliveryOrders.$inferSelect, driverName: str
     status: r.status,
     driverId: r.driverId ?? null,
     driverName,
+    driverPhone,
     driverFee: r.driverFee ?? 0,
     rating: r.rating ?? null,
     ratingComment: r.ratingComment ?? null,
@@ -530,38 +531,38 @@ const pgRepo = {
   },
   listDeliveryOrders: async (): Promise<DeliveryOrderDTO[]> => {
     const rows = await db!
-      .select({ o: deliveryOrders, driverName: users.name })
+      .select({ o: deliveryOrders, driverName: users.name, driverPhone: users.phone })
       .from(deliveryOrders)
       .leftJoin(users, eq(deliveryOrders.driverId, users.id))
       .orderBy(desc(deliveryOrders.createdAt));
-    return rows.map((r) => mapDeliveryOrder(r.o, r.driverName ?? null));
+    return rows.map((r) => mapDeliveryOrder(r.o, r.driverName ?? null, r.driverPhone ?? null));
   },
   listDeliveryOrdersByPhone: async (phone: string): Promise<DeliveryOrderDTO[]> => {
     const rows = await db!
-      .select({ o: deliveryOrders, driverName: users.name })
+      .select({ o: deliveryOrders, driverName: users.name, driverPhone: users.phone })
       .from(deliveryOrders)
       .leftJoin(users, eq(deliveryOrders.driverId, users.id))
       .where(eq(deliveryOrders.contactPhone, phone))
       .orderBy(desc(deliveryOrders.createdAt));
-    return rows.map((r) => mapDeliveryOrder(r.o, r.driverName ?? null));
+    return rows.map((r) => mapDeliveryOrder(r.o, r.driverName ?? null, r.driverPhone ?? null));
   },
   listDeliveryOrdersByDriver: async (driverId: string): Promise<DeliveryOrderDTO[]> => {
     const rows = await db!
-      .select({ o: deliveryOrders, driverName: users.name })
+      .select({ o: deliveryOrders, driverName: users.name, driverPhone: users.phone })
       .from(deliveryOrders)
       .leftJoin(users, eq(deliveryOrders.driverId, users.id))
       .where(eq(deliveryOrders.driverId, driverId))
       .orderBy(deliveryOrders.scheduledAt);
-    return rows.map((r) => mapDeliveryOrder(r.o, r.driverName ?? null));
+    return rows.map((r) => mapDeliveryOrder(r.o, r.driverName ?? null, r.driverPhone ?? null));
   },
   getDeliveryOrder: async (code: string): Promise<DeliveryOrderDTO | null> => {
     const [r] = await db!
-      .select({ o: deliveryOrders, driverName: users.name })
+      .select({ o: deliveryOrders, driverName: users.name, driverPhone: users.phone })
       .from(deliveryOrders)
       .leftJoin(users, eq(deliveryOrders.driverId, users.id))
       .where(eq(deliveryOrders.code, code))
       .limit(1);
-    return r ? mapDeliveryOrder(r.o, r.driverName ?? null) : null;
+    return r ? mapDeliveryOrder(r.o, r.driverName ?? null, r.driverPhone ?? null) : null;
   },
   updateDeliveryOrderStatus: async (code: string, status: DeliveryOrderStatus): Promise<boolean> => {
     const res = await db!.update(deliveryOrders).set({ status }).where(eq(deliveryOrders.code, code)).returning({ id: deliveryOrders.id });

@@ -310,6 +310,7 @@ export interface DeliveryOrderDTO {
   status: DeliveryOrderStatus;
   driverId: string | null;
   driverName: string | null;
+  driverPhone: string | null; // so the customer can call their assigned driver
   driverFee: number; // piastres the driver earns for this delivery (pre-agreed, by governorate)
   rating: number | null; // 1-5, set by customer after completion
   ratingComment: string | null;
