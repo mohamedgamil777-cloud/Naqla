@@ -700,6 +700,8 @@ export const memRepo = {
     o.driverId = driverId;
     o.driverName = driverId ? state.staff.find((s) => s.id === driverId)?.name ?? null : null;
     if (driverId) o.status = "assigned";
+    // removing the driver: never leave it "assigned" with nobody assigned
+    else if (o.status === "assigned" || o.status === "en_route" || o.status === "arrived") o.status = "confirmed";
     return true;
   },
 

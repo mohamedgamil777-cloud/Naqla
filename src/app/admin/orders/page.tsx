@@ -64,11 +64,16 @@ export default async function AdminOrdersPage() {
                 {/* Driver assignment */}
                 <div className="bg-panel-2 rounded-xl p-3 flex flex-col gap-2">
                   <div className="font-bold text-sm">🧑‍✈️ السائق: {o.driverName ?? "لسه متعيّنش"}</div>
+                  {!o.driverId && (o.status === "assigned" || o.status === "en_route" || o.status === "arrived") && (
+                    <div className="bg-booked-soft text-booked rounded-lg px-3 py-2 text-sm font-bold">
+                      ⚠️ الطلب حالته «{STATUS[o.status].label}» بس مفيش سواق متعيّن — اختار سواق ودوس «تعيين» عشان العميل يقدر يكلّمه.
+                    </div>
+                  )}
                   {o.status !== "completed" && o.status !== "cancelled" && (
                     <form action={assignDeliveryDriver} className="flex gap-2 items-center">
                       <input type="hidden" name="code" value={o.code} />
                       <select name="driverId" defaultValue={o.driverId ?? ""} className="rounded-xl border border-line-2 bg-panel px-3 py-2 flex-1">
-                        <option value="">— اختار سائق —</option>
+                        <option value="">— بدون سائق —</option>
                         {drivers.map((d: StaffDTO) => (
                           <option key={d.id} value={d.id}>{d.name}{d.available ? "" : " (مش متاح)"}</option>
                         ))}

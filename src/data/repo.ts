@@ -571,7 +571,13 @@ const pgRepo = {
   assignDeliveryDriver: async (code: string, driverId: string | null): Promise<boolean> => {
     const res = await db!
       .update(deliveryOrders)
-      .set(driverId ? { driverId, status: "assigned" } : { driverId: null })
+      // Removing the driver sends an in-progress order back to "confirmed · looking for a driver"
+      // (it must never stay "assigned" with nobody assigned).
+      .set(
+        driverId
+          ? { driverId, status: "assigned" }
+          : { driverId: null, status: sql`case when ${deliveryOrders.status} in ('assigned','en_route','arrived') then 'confirmed' else ${deliveryOrders.status} end` }
+      )
       .where(eq(deliveryOrders.code, code))
       .returning({ id: deliveryOrders.id });
     return res.length > 0;

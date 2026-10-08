@@ -200,7 +200,8 @@ export async function setDeliveryOrderStatus(fd: FormData): Promise<void> {
   await requireAdminRole(["super_admin", "fleet_mgr", "agent"]);
   const code = str(fd, "code");
   const status = str(fd, "status") as DeliveryOrderStatus;
-  const allowed = ["new", "confirmed", "assigned", "completed", "cancelled"];
+  // "assigned" only happens by choosing a driver (assignDeliveryDriver), never by hand
+  const allowed = ["new", "confirmed", "completed", "cancelled"];
   if (code && allowed.includes(status)) {
     await repo.updateDeliveryOrderStatus(code, status);
     if (status === "confirmed" || status === "completed") {
