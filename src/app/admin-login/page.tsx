@@ -12,7 +12,7 @@ export default async function AdminLoginPage() {
     <div className="min-h-dvh grid place-items-center bg-ground p-6" dir="rtl">
       <div className="w-full max-w-sm bg-panel border border-line rounded-card p-6 shadow-sm flex flex-col gap-4">
         <div className="text-center">
-          <Logo className="h-16 mx-auto" />
+          <Logo className="h-20 mx-auto" full />
           <h1 className="text-2xl font-extrabold mt-4">🔒 دخول الإدارة</h1>
           <p className="text-muted text-sm mt-1">اكتب كلمة السر عشان تدخل لوحة التحكم.</p>
         </div>
