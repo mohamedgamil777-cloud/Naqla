@@ -2,7 +2,7 @@
 import { ImageField } from "@/components/admin/ImageField";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { saveCategory, deleteCategory, type FormState } from "@/app/admin/actions";
+import { saveCategory, deleteCategory, toggleCategoryActive, type FormState } from "@/app/admin/actions";
 import { piastresToEgp } from "@/lib/money";
 import type { CategoryDTO } from "@/data/types";
 
@@ -31,7 +31,16 @@ function Fields({ c }: { c?: CategoryDTO }) {
           <option value="S">S</option>
           <option value="M">M</option>
           <option value="L">L</option>
+          <option value="XL">XL</option>
         </select>
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className={lbl}>الترتيب (الأصغر يظهر الأول)</span>
+        <input className={inp} name="sort" type="number" min="0" defaultValue={c?.sort ?? ""} placeholder="1" />
+      </label>
+      <label className="flex items-center gap-2 col-span-2 sm:col-span-1 self-end pb-2.5 font-bold text-sm cursor-pointer">
+        <input type="checkbox" name="active" defaultChecked={c ? c.active : true} className="w-5 h-5 accent-[var(--color-primary)]" />
+        يظهر للعملاء
       </label>
       <label className="flex flex-col gap-1">
         <span className={lbl}>الحمولة (كجم)</span>
@@ -60,9 +69,13 @@ function Fields({ c }: { c?: CategoryDTO }) {
   );
 }
 
-export function CategoryManager({ categories, usedIds = [] }: { categories: CategoryDTO[]; usedIds?: string[] }) {
+export interface CategoryUsage {
+  vehicles: number;
+  orders: number;
+}
+
+export function CategoryManager({ categories, usage = {} }: { categories: CategoryDTO[]; usage?: Record<string, CategoryUsage> }) {
   const [state, action] = useActionState<FormState, FormData>(saveCategory, { ok: false });
-  const used = new Set(usedIds);
 
   return (
     <div className="flex flex-col gap-5">
@@ -78,18 +91,19 @@ export function CategoryManager({ categories, usedIds = [] }: { categories: Cate
       {/* List */}
       <div className="flex flex-col gap-3">
         {categories.map((c) => (
-          <CategoryRow key={c.id} c={c} used={used.has(c.id)} />
+          <CategoryRow key={c.id} c={c} use={usage[c.id] ?? { vehicles: 0, orders: 0 }} />
         ))}
       </div>
       <p className="text-muted text-sm">
-        «الحجم» (XS/S/M/L) هو اللي العميل بيختار منه في التوصيل. النوع من غير حجم مش هيظهر للعميل.
-        مينفعش تحذف نوع مرتبط بعربيات — غيّر نوع العربيات الأول.
+        «الحجم» (XS/S/M/L/XL) هو اللي العميل بيختار منه في التوصيل. النوع من غير حجم أو المخفي مش بيظهر للعميل.
+        النوع اللي اتعمل عليه طلبات مينفعش يتحذف (عشان الطلبات القديمة) — اخفيه بدل الحذف.
       </p>
     </div>
   );
 }
 
-function CategoryRow({ c, used }: { c: CategoryDTO; used: boolean }) {
+function CategoryRow({ c, use }: { c: CategoryDTO; use: CategoryUsage }) {
+  const used = use.vehicles + use.orders > 0;
   const [state, action] = useActionState<FormState, FormData>(saveCategory, { ok: false });
   return (
     <form action={action} className="bg-panel border border-line rounded-card p-4 flex flex-col gap-3">
@@ -97,16 +111,29 @@ function CategoryRow({ c, used }: { c: CategoryDTO; used: boolean }) {
       <div className="flex items-center gap-2">
         <span className="font-extrabold text-lg">{c.name}</span>
         {c.sizeCode && <span className="rounded-full bg-primary-soft text-primary-ink px-2.5 py-0.5 text-xs font-bold">{c.sizeCode}</span>}
+        {!c.active && <span className="rounded-full bg-off-soft text-off px-2.5 py-0.5 text-xs font-bold">مخفي عن العملاء</span>}
+        {used && (
+          <span className="text-xs text-muted mr-auto">
+            مستخدم في {[use.orders ? `${use.orders} طلب` : "", use.vehicles ? `${use.vehicles} عربية في الأسطول` : ""].filter(Boolean).join(" و")}
+          </span>
+        )}
       </div>
       {state.error && <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">{state.error}</div>}
       {state.ok && <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">اتحفظ ✅</div>}
       <Fields c={c} />
       <div className="flex gap-2">
         <SaveBtn />
-        {used ? (
-          <span className="rounded-xl px-4 py-2 font-bold text-muted bg-panel-2" title="النوع ده مستخدم في عربيات">مستخدمة</span>
-        ) : (
-          <button formAction={deleteCategory} name="id" value={c.id} className="rounded-xl px-4 py-2 font-bold text-booked border border-booked-soft hover:bg-booked-soft">
+        <button formAction={toggleCategoryActive} className="rounded-xl px-4 py-2 font-bold text-ink-2 border border-line-2 hover:bg-panel-2">
+          {c.active ? "إخفاء عن العملاء" : "إظهار للعملاء"}
+        </button>
+        {!used && (
+          <button
+            formAction={deleteCategory}
+            onClick={(e) => {
+              if (!confirm(`تمسح «${c.name}» نهائياً؟`)) e.preventDefault();
+            }}
+            className="rounded-xl px-4 py-2 font-bold text-booked border border-booked-soft hover:bg-booked-soft"
+          >
             حذف
           </button>
         )}

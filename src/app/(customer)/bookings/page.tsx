@@ -70,6 +70,8 @@ export default async function BookingsPage() {
 
   const activeOrders = orders.filter((o) => o.status !== "cancelled" && o.status !== "completed");
   const pastOrders = orders.filter((o) => o.status === "completed" || o.status === "cancelled");
+  // the most recent delivered trip that still has no rating gets a highlighted card at the top
+  const toRate = pastOrders.find((o) => o.status === "completed" && o.rating == null) ?? null;
 
   return (
     <div className="p-4 flex flex-col gap-6">
@@ -77,6 +79,23 @@ export default async function BookingsPage() {
         <h1 className="text-[1.7rem] font-extrabold leading-tight">طلباتي</h1>
         <p className="text-muted mt-1">تابع حالة توصيلاتك خطوة بخطوة</p>
       </header>
+
+      {toRate && (
+        <section className="bg-panel border-2 border-accent rounded-card shadow-sm p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <span className="w-11 h-11 shrink-0 rounded-full bg-accent-soft grid place-items-center">
+              <Icon name="star" className="w-6 h-6 text-accent fill-current" />
+            </span>
+            <div className="min-w-0">
+              <div className="font-extrabold text-lg">وصلت توصيلتك! قيّم السواق</div>
+              <div className="text-sm text-muted truncate">
+                <span dir="ltr">#{toRate.code}</span> · {toRate.pickupAddress || "—"} ← {toRate.dropoffAddress || "—"}
+              </div>
+            </div>
+          </div>
+          <RateOrder code={toRate.code} driverName={toRate.driverName} />
+        </section>
+      )}
 
       {activeOrders.length > 0 && (
         <section className="flex flex-col gap-3">
@@ -97,7 +116,7 @@ export default async function BookingsPage() {
         <section className="flex flex-col gap-3">
           <SectionTitle title="الطلبات السابقة" count={pastOrders.length} />
           {pastOrders.map((o) => (
-            <PastOrder key={o.code} o={o} />
+            <PastOrder key={o.code} o={o} ratingAbove={o.code === toRate?.code} />
           ))}
         </section>
       )}
@@ -273,7 +292,7 @@ function Tracker({ cur }: { cur: number }) {
   );
 }
 
-function PastOrder({ o }: { o: DeliveryOrderDTO }) {
+function PastOrder({ o, ratingAbove = false }: { o: DeliveryOrderDTO; ratingAbove?: boolean }) {
   return (
     <article className={`bg-panel border border-line rounded-card p-4 flex flex-col gap-3 ${o.status === "cancelled" ? "opacity-75" : ""}`}>
       <OrderHead o={o} />
@@ -282,15 +301,17 @@ function PastOrder({ o }: { o: DeliveryOrderDTO }) {
       {o.status === "completed" &&
         (o.rating != null ? (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted">تقييمك:</span>
+            <span className="text-muted">تقييمك للسواق:</span>
             <span className="flex gap-0.5" dir="ltr">
               {[1, 2, 3, 4, 5].map((n) => (
                 <Icon key={n} name="star" className={`w-5 h-5 ${n <= (o.rating ?? 0) ? "text-accent fill-current" : "text-line-2"}`} />
               ))}
             </span>
           </div>
+        ) : ratingAbove ? (
+          <span className="text-sm font-bold text-accent-ink">⭐ قيّم السواق من فوق</span>
         ) : (
-          <RateOrder code={o.code} />
+          <RateOrder code={o.code} driverName={o.driverName} />
         ))}
     </article>
   );

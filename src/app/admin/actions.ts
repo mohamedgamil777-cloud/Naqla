@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { repo } from "@/data/repo";
 import { requireAdminRole } from "@/services/admin-auth";
 import { createBooking, extendBooking } from "@/services/booking-service";
+import { changeDeliveryOrderSize } from "@/services/delivery-service";
 import { egpToPiastres } from "@/lib/money";
 import { cairoDateTime } from "@/lib/time";
 import { toE164 } from "@/lib/phone";
@@ -119,11 +120,14 @@ export async function saveCategory(_prev: FormState, fd: FormData): Promise<Form
   if (!name) return { ok: false, error: "اكتب اسم النوع." };
   if (kind !== "pickup" && kind !== "van") return { ok: false, error: "اختار الفئة." };
   const sizeRaw = str(fd, "sizeCode");
-  const sizeCode = (["XS", "S", "M", "L"].includes(sizeRaw) ? sizeRaw : null) as SizeCode | null;
+  const sizeCode = (["XS", "S", "M", "L", "XL"].includes(sizeRaw) ? sizeRaw : null) as SizeCode | null;
+  const sort = numOrNull(fd, "sort");
   const input: CategoryInput = {
     name,
     kind,
     sizeCode,
+    active: fd.get("active") === "on",
+    ...(sort != null ? { sort: Math.round(sort) } : {}),
     capacityKg: numOrNull(fd, "capacityKg"),
     dims: str(fd, "dims") || null,
     description: str(fd, "description") || null,
@@ -133,9 +137,27 @@ export async function saveCategory(_prev: FormState, fd: FormData): Promise<Form
   };
   if (id) await repo.updateCategory(id, input);
   else await repo.createCategory(input);
-  revalidatePath("/admin/categories");
-  revalidatePath("/estimate");
+  revalidatePath("/", "layout"); // home + order screen show these
   return { ok: true };
+}
+
+/** Quick show/hide of a car type for customers (hidden types stay on old orders). */
+export async function toggleCategoryActive(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr"]);
+  const id = str(fd, "id");
+  const c = (await repo.listCategories()).find((x) => x.id === id);
+  if (c) await repo.updateCategory(id, { name: c.name, kind: c.kind, active: !c.active });
+  revalidatePath("/", "layout");
+}
+
+/** Switch an order to another truck size; the price is recomputed on the server. */
+export async function changeOrderSizeAction(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr", "agent"]);
+  const code = str(fd, "code");
+  const categoryId = str(fd, "categoryId");
+  if (code && categoryId) await changeDeliveryOrderSize(code, categoryId);
+  revalidatePath("/admin/orders");
+  revalidatePath("/bookings");
 }
 
 export async function renameCategory(fd: FormData): Promise<void> {
@@ -153,8 +175,8 @@ export async function renameCategory(fd: FormData): Promise<void> {
 export async function deleteCategory(fd: FormData): Promise<void> {
   await requireAdminRole(["super_admin", "fleet_mgr"]);
   const id = str(fd, "id");
-  if (id) await repo.deleteCategory(id);
-  revalidatePath("/admin/categories");
+  if (id) await repo.deleteCategory(id); // refuses types used by vehicles/orders (UI offers "hide" instead)
+  revalidatePath("/", "layout");
 }
 
 export async function saveCoupon(_prev: FormState, fd: FormData): Promise<FormState> {

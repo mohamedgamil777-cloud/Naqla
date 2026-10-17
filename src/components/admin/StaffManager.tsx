@@ -1,4 +1,5 @@
 "use client";
+import { ratingLabel, type RatingStat } from "@/services/ratings";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { saveStaff, deleteStaff, type FormState } from "@/app/admin/actions";
@@ -17,12 +18,12 @@ const roleLabel = (r: string) => ROLES.find((x) => x.value === r)?.label ?? r;
 const inp = "rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary w-full";
 const lbl = "text-xs font-bold text-ink-2";
 
-export function StaffManager({ staff }: { staff: StaffDTO[] }) {
+export function StaffManager({ staff, ratings = {} }: { staff: StaffDTO[]; ratings?: Record<string, RatingStat> }) {
   return (
     <div className="flex flex-col gap-5">
       <StaffForm />
       <div className="flex flex-col gap-3">
-        {staff.map((s) => <StaffForm key={s.id} staff={s} />)}
+        {staff.map((s) => <StaffForm key={s.id} staff={s} rating={ratings[s.id]} />)}
         {staff.length === 0 && <p className="text-muted p-4">مفيش موظفين مضافين.</p>}
       </div>
       <p className="text-muted text-sm">بيانات السائق (الرخص والصور) بتظهر له في صفحته، وبتساعد الإدارة وقت التوصيل.</p>
@@ -30,7 +31,7 @@ export function StaffManager({ staff }: { staff: StaffDTO[] }) {
   );
 }
 
-function StaffForm({ staff }: { staff?: StaffDTO }) {
+function StaffForm({ staff, rating }: { staff?: StaffDTO; rating?: RatingStat }) {
   const [state, action] = useActionState<FormState, FormData>(saveStaff, { ok: false });
   const [role, setRole] = useState<StaffRole>(staff?.role ?? "agent");
   const isEdit = !!staff;
@@ -40,7 +41,12 @@ function StaffForm({ staff }: { staff?: StaffDTO }) {
       {isEdit && <input type="hidden" name="id" value={staff.id} />}
       <div className="flex items-center justify-between">
         <h2 className="font-extrabold">{isEdit ? staff.name || "موظف" : "إضافة موظف"}</h2>
-        {isEdit && <span className="rounded-full bg-primary-soft text-primary-ink px-2.5 py-0.5 text-xs font-bold">{roleLabel(role)}</span>}
+        <span className="flex items-center gap-2">
+          {isEdit && role === "driver" && (
+            <span className="rounded-full bg-accent-soft text-accent-ink px-2.5 py-0.5 text-xs font-bold" title="متوسط تقييم العملاء">{ratingLabel(rating)}</span>
+          )}
+          {isEdit && <span className="rounded-full bg-primary-soft text-primary-ink px-2.5 py-0.5 text-xs font-bold">{roleLabel(role)}</span>}
+        </span>
       </div>
       {state.error && <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">{state.error}</div>}
       {state.ok && <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تم الحفظ ✅</div>}

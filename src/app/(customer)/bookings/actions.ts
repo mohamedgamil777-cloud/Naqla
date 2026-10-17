@@ -1,5 +1,4 @@
 "use server";
-import { revalidatePath } from "next/cache";
 import { repo } from "@/data/repo";
 import { getSession } from "@/services/session";
 
@@ -19,6 +18,7 @@ export async function rateOrderAction(_prev: RateState, fd: FormData): Promise<R
   }
   const done = await repo.rateDeliveryOrder(code, session.phone, rating, comment);
   if (!done) return { ok: false, error: "مش قادرين نسجّل التقييم دلوقتي" };
-  revalidatePath("/bookings");
+  // No revalidatePath here (any revalidate re-renders the current page, which would drop the
+  // rating card before the "thanks" shows). Admin pages are dynamic and read fresh data anyway.
   return { ok: true };
 }

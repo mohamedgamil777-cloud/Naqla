@@ -158,6 +158,7 @@ const pgRepo = {
     const rows = await db!.select().from(vehicleCategories).orderBy(vehicleCategories.sort);
     return rows.map((r) => ({
       id: r.id, kind: r.kind, name: r.name, sort: r.sort,
+      active: r.active ?? true,
       sizeCode: r.sizeCode ?? null, capacityKg: r.capacityKg ?? null, dims: r.dims ?? null,
       description: r.description ?? null, image: r.image ?? null,
       baseFare: r.baseFare, perKm: r.perKm,
@@ -582,6 +583,15 @@ const pgRepo = {
       .returning({ id: deliveryOrders.id });
     return res.length > 0;
   },
+  /** Admin changes the truck size of an order (price already recomputed by the service). */
+  updateDeliveryOrderSize: async (code: string, p: { categoryId: string; sizeName: string; sizeCode: string | null; quote: Quote }): Promise<boolean> => {
+    const res = await db!
+      .update(deliveryOrders)
+      .set({ categoryId: p.categoryId, sizeName: p.sizeName, sizeCode: p.sizeCode, priceSnapshot: p.quote })
+      .where(eq(deliveryOrders.code, code))
+      .returning({ id: deliveryOrders.id });
+    return res.length > 0;
+  },
   setDriverFee: async (code: string, fee: number): Promise<boolean> => {
     const res = await db!
       .update(deliveryOrders)
@@ -788,6 +798,7 @@ const pgRepo = {
       .insert(vehicleCategories)
       .values({
         kind: input.kind, name: input.name, sort: input.sort ?? 0,
+        active: input.active ?? true,
         sizeCode: input.sizeCode ?? null, capacityKg: input.capacityKg ?? null, dims: input.dims ?? null,
         description: input.description ?? null, image: input.image ?? null,
         baseFare: input.baseFare ?? 0, perKm: input.perKm ?? 0,
@@ -800,6 +811,7 @@ const pgRepo = {
       kind: input.kind, name: input.name,
       ...(input.sort != null ? { sort: input.sort } : {}),
       ...(input.sizeCode !== undefined ? { sizeCode: input.sizeCode } : {}),
+      ...(input.active !== undefined ? { active: input.active } : {}),
       ...(input.capacityKg !== undefined ? { capacityKg: input.capacityKg } : {}),
       ...(input.dims !== undefined ? { dims: input.dims } : {}),
       ...(input.description !== undefined ? { description: input.description } : {}),
@@ -810,8 +822,10 @@ const pgRepo = {
     return true;
   },
   deleteCategory: async (id: string): Promise<{ ok: boolean; reason?: string }> => {
+    // used by fleet vehicles or by any delivery order (FK) → can only be hidden, not deleted
     const [{ count }] = await db!.select({ count: sql<number>`count(*)::int` }).from(vehicles).where(eq(vehicles.categoryId, id));
-    if (Number(count) > 0) return { ok: false, reason: "IN_USE" };
+    const [{ n }] = await db!.select({ n: sql<number>`count(*)::int` }).from(deliveryOrders).where(eq(deliveryOrders.categoryId, id));
+    if (Number(count) > 0 || Number(n) > 0) return { ok: false, reason: "IN_USE" };
     await db!.delete(vehicleCategories).where(eq(vehicleCategories.id, id));
     return { ok: true };
   },

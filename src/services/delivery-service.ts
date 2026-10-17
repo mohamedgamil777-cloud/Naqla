@@ -3,6 +3,7 @@
  * class (category), server-authoritative (client never sends a price). Reuses the
  * pure `computeDeliveryQuote` engine + the shared coupon validation.
  */
+import type { PromoInput } from "@/engines/pricing";
 import { repo } from "@/data/repo";
 import { computeDeliveryQuote, type Quote } from "@/engines/pricing";
 import { fireNotify, deliveryCustomerMessage } from "@/services/notify";
@@ -18,10 +19,12 @@ export async function estimateDelivery(params: {
   km: number;
   loaders?: number;
   promoCode?: string | null;
+  /** use these exact promo terms instead of validating a code (admin re-pricing) */
+  promoOverride?: PromoInput | null;
 }): Promise<DeliveryEstimate | null> {
   const [cats, business, content] = await Promise.all([repo.listCategories(), repo.getBusiness(), repo.getAppContent()]);
   const cat = cats.find((c) => c.id === params.categoryId);
-  if (!cat) return null;
+  if (!cat || !cat.active) return null; // hidden types can't be ordered
 
   const rates = {
     baseFare: cat.baseFare,
@@ -34,9 +37,9 @@ export async function estimateDelivery(params: {
   // First pass (no promo) to learn the subtotal for the coupon's min-value check.
   const preview = computeDeliveryQuote({ km, loaders, promo: null }, rates, { vatRate: business.vatRate });
 
-  let promo = null;
+  let promo: PromoInput | null = params.promoOverride ?? null;
   let promoError = false;
-  if (params.promoCode && params.promoCode.trim()) {
+  if (!promo && params.promoCode && params.promoCode.trim()) {
     promo = await repo.validatePromo(params.promoCode.trim(), preview.subtotal);
     if (!promo) promoError = true;
   }
@@ -67,7 +70,7 @@ export async function createDeliveryOrder(input: {
 }): Promise<{ ok: true; code: string } | { ok: false; reason: string }> {
   const cats = await repo.listCategories();
   const cat = cats.find((c) => c.id === input.categoryId);
-  if (!cat) return { ok: false, reason: "size" };
+  if (!cat || !cat.active) return { ok: false, reason: "size" };
 
   const est = await estimateDelivery({
     categoryId: input.categoryId,
@@ -103,4 +106,36 @@ export async function createDeliveryOrder(input: {
   if (est.promoApplied && input.promoCode) await repo.redeemPromo(input.promoCode);
   fireNotify(input.contactPhone, deliveryCustomerMessage("created", code));
   return { ok: true, code };
+}
+
+/**
+ * Admin switches an order to another truck size. Price is recomputed server-side from the new
+ * size's rates (same km + loaders). The customer's coupon is kept: re-validated if still valid,
+ * otherwise the same discount amount they already got is applied.
+ */
+export async function changeDeliveryOrderSize(code: string, categoryId: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const order = await repo.getDeliveryOrder(code);
+  if (!order) return { ok: false, reason: "NOT_FOUND" };
+  if (order.status === "completed" || order.status === "cancelled") return { ok: false, reason: "CLOSED" };
+  const cat = (await repo.listCategories()).find((c) => c.id === categoryId);
+  if (!cat || !cat.sizeCode || !cat.active) return { ok: false, reason: "SIZE" };
+  if (cat.id === order.categoryId) return { ok: true };
+
+  const oldDiscount = order.priceSnapshot.discount;
+  const code0 = order.priceSnapshot.lines.find((l) => l.key === "discount")?.labelAr.match(/\((.+)\)/)?.[1] ?? null;
+  let est = await estimateDelivery({ categoryId, km: order.km, loaders: order.loaders, promoCode: code0 });
+  if (est && oldDiscount > 0 && !est.promoApplied) {
+    est = await estimateDelivery({
+      categoryId, km: order.km, loaders: order.loaders,
+      promoOverride: { code: code0 ?? "خصم", type: "fixed", value: oldDiscount },
+    });
+  }
+  if (!est) return { ok: false, reason: "SIZE" };
+
+  await repo.updateDeliveryOrderSize(code, { categoryId, sizeName: cat.name, sizeCode: cat.sizeCode, quote: est.quote });
+  fireNotify(order.contactPhone, `تم تعديل حجم العربية لطلبك 🚚
+رقم الطلب: ${code}
+العربية: ${cat.name}
+السعر الجديد: ${(est.quote.total / 100).toFixed(2)} جنيه`);
+  return { ok: true };
 }

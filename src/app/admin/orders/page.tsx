@@ -1,9 +1,10 @@
 import { repo } from "@/data/repo";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
-import { setDeliveryOrderStatus, assignDeliveryDriver, setDriverFeeAction } from "@/app/admin/actions";
+import { setDeliveryOrderStatus, assignDeliveryDriver, setDriverFeeAction, changeOrderSizeAction } from "@/app/admin/actions";
 import { piastresToEgp } from "@/lib/money";
 import type { DeliveryOrderStatus, StaffDTO } from "@/data/types";
+import { driverRatings } from "@/services/ratings";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,9 @@ const STATUS: Record<DeliveryOrderStatus, { label: string; cls: string }> = {
 };
 
 export default async function AdminOrdersPage() {
-  const [orders, drivers] = await Promise.all([repo.listDeliveryOrders(), repo.listDrivers()]);
+  const [orders, drivers, cats] = await Promise.all([repo.listDeliveryOrders(), repo.listDrivers(), repo.listCategories()]);
+  const sizes = cats.filter((c) => c.sizeCode && c.active);
+  const ratings = driverRatings(orders);
   const openCount = orders.filter((o) => o.status === "new").length;
 
   return (
@@ -61,6 +64,24 @@ export default async function AdminOrdersPage() {
                   {o.rating != null && <Row k="تقييم العميل" v={`${"⭐".repeat(o.rating)}${o.ratingComment ? ` — ${o.ratingComment}` : ""}`} />}
                 </div>
 
+                {/* Truck size (admin can switch it; price is recomputed) */}
+                {o.status !== "completed" && o.status !== "cancelled" && (
+                  <form action={changeOrderSizeAction} className="bg-panel-2 rounded-xl p-3 flex flex-wrap gap-2 items-center">
+                    <input type="hidden" name="code" value={o.code} />
+                    <span className="font-bold text-sm">🚚 حجم العربية:</span>
+                    <select key={o.categoryId} name="categoryId" defaultValue={o.categoryId} className="rounded-xl border border-line-2 bg-panel px-3 py-2 flex-1 min-w-40">
+                      {!sizes.some((s) => s.id === o.categoryId) && <option value={o.categoryId}>{o.sizeName} (الحالي)</option>}
+                      {sizes.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} · {s.sizeCode} — {formatEgp(s.baseFare)} + {formatEgp(s.perKm)}/كم
+                        </option>
+                      ))}
+                    </select>
+                    <button className="rounded-xl bg-primary-soft text-primary-ink px-4 py-2 font-bold tap">تغيير الحجم</button>
+                    <span className="text-xs text-muted w-full">السعر بيتحسب من جديد بنفس المسافة والعمالة، والخصم بيفضل زي ما هو. العميل بيتبلّغ.</span>
+                  </form>
+                )}
+
                 {/* Driver assignment */}
                 <div className="bg-panel-2 rounded-xl p-3 flex flex-col gap-2">
                   <div className="font-bold text-sm">🧑‍✈️ السائق: {o.driverName ?? "لسه متعيّنش"}</div>
@@ -72,10 +93,14 @@ export default async function AdminOrdersPage() {
                   {o.status !== "completed" && o.status !== "cancelled" && (
                     <form action={assignDeliveryDriver} className="flex gap-2 items-center">
                       <input type="hidden" name="code" value={o.code} />
-                      <select name="driverId" defaultValue={o.driverId ?? ""} className="rounded-xl border border-line-2 bg-panel px-3 py-2 flex-1">
+                      <select key={o.driverId ?? "none"} name="driverId" defaultValue={o.driverId ?? ""} className="rounded-xl border border-line-2 bg-panel px-3 py-2 flex-1">
                         <option value="">— بدون سائق —</option>
                         {drivers.map((d: StaffDTO) => (
-                          <option key={d.id} value={d.id}>{d.name}{d.available ? "" : " (مش متاح)"}</option>
+                          <option key={d.id} value={d.id}>
+                            {d.name}
+                            {ratings[d.id] ? ` ⭐${ratings[d.id].avg.toFixed(1)}` : ""}
+                            {d.available ? "" : " (مش متاح)"}
+                          </option>
                         ))}
                       </select>
                       <button className="rounded-xl bg-primary text-white px-4 py-2 font-bold tap">تعيين</button>

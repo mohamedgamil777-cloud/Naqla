@@ -1,6 +1,7 @@
 import { repo } from "@/data/repo";
 import { getSession } from "@/services/session";
 import { formatEgp } from "@/lib/money";
+import { driverRatings, ratingLabel } from "@/services/ratings";
 import { labelDateArabic } from "@/lib/time";
 import { DriverSwitch } from "@/components/driver/DriverSwitch";
 import { LinkButton } from "@/components/ui";
@@ -26,6 +27,7 @@ export default async function DriverProfilePage() {
   const totalEarned = completed.reduce((s, o) => s + (o.driverFee || 0), 0);
   const activeCount = orders.filter((o) => o.status === "assigned" || o.status === "en_route" || o.status === "arrived").length;
   const firstName = (driver.name || "").split(" ")[0] || "يا كابتن";
+  const myRating = driverRatings(orders)[driver.id];
 
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -38,9 +40,10 @@ export default async function DriverProfilePage() {
       <div className="bg-primary text-white rounded-card p-5 shadow-sm">
         <div className="text-sm font-bold opacity-90">💵 إجمالي أرباحي</div>
         <div className="text-4xl font-extrabold mt-1">{formatEgp(totalEarned)}</div>
-        <div className="flex gap-4 mt-3 text-sm">
+        <div className="flex flex-wrap gap-2 mt-3 text-sm">
           <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold">✅ {completed.length} توصيلة مكتملة</span>
           <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold">🚚 {activeCount} شغل حالي</span>
+          <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold" title="متوسط تقييم العملاء">{ratingLabel(myRating)}</span>
         </div>
         <p className="text-xs opacity-80 mt-2">الأرباح بتتحسب حسب الأجر المتفق عليه لكل توصيلة.</p>
       </div>

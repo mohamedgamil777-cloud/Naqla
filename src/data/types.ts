@@ -3,7 +3,7 @@ import type { PricingRule } from "@/engines/pricing";
 import type { Quote } from "@/engines/pricing";
 import type { VehicleKind, VehicleStatus, BookingStatus } from "@/lib/constants";
 
-export type SizeCode = "XS" | "S" | "M" | "L";
+export type SizeCode = "XS" | "S" | "M" | "L" | "XL";
 
 export interface CategoryDTO {
   id: string;
@@ -11,6 +11,8 @@ export interface CategoryDTO {
   name: string;
   sort: number;
   /** Size tier shown to the customer (null = not a bookable size). */
+  /** shown to customers (false = hidden but kept for old orders) */
+  active: boolean;
   sizeCode: SizeCode | null;
   capacityKg: number | null;
   /** Free text, e.g. "190×130×50". */
@@ -176,6 +178,8 @@ export interface CategoryInput {
   name: string;
   sort?: number;
   sizeCode?: SizeCode | null;
+  /** shown to customers (false = hidden but kept for old orders) */
+  active?: boolean;
   capacityKg?: number | null;
   dims?: string | null;
   description?: string | null;

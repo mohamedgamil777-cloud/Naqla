@@ -172,10 +172,10 @@ function seedState(): MemState {
       working: { open: 8, close: 22 },
     },
     categories: [
-      { id: "22222222-0000-0000-0000-0000000000a4", kind: "pickup", name: "تروسكل", sort: 1, sizeCode: "XS", capacityKg: 500, dims: "190×130×50", description: "طرود صغيرة، صناديق بقالة، وثائق", image: "/vehicles/pickup-single.svg", baseFare: 5000, perKm: 500 },
-      { id: "22222222-0000-0000-0000-0000000000a1", kind: "van", name: "سوزوكي فان", sort: 2, sizeCode: "S", capacityKg: 700, dims: "170×160×100", description: "صناديق صغيرة، كراسي، ثلاجات", image: "/vehicles/van-medium.svg", baseFare: 7000, perKm: 600 },
-      { id: "22222222-0000-0000-0000-0000000000a2", kind: "pickup", name: "دبابه", sort: 3, sizeCode: "M", capacityKg: 1300, dims: "300×200×200", description: "أريكة كبيرة، صناديق نقل", image: "/vehicles/pickup-double.svg", baseFare: 10000, perKm: 800 },
-      { id: "22222222-0000-0000-0000-0000000000a3", kind: "pickup", name: "جامبو", sort: 4, sizeCode: "L", capacityKg: 5000, dims: "450×250×220", description: "نقل تقيل، انتقالات كبيرة", image: "/vehicles/van-large.svg", baseFare: 15000, perKm: 1200 },
+      { id: "22222222-0000-0000-0000-0000000000a4", kind: "pickup", name: "تروسكل", sort: 1, active: true, sizeCode: "XS", capacityKg: 500, dims: "190×130×50", description: "طرود صغيرة، صناديق بقالة، وثائق", image: "/vehicles/pickup-single.svg", baseFare: 5000, perKm: 500 },
+      { id: "22222222-0000-0000-0000-0000000000a1", kind: "van", name: "سوزوكي فان", sort: 2, active: true, sizeCode: "S", capacityKg: 700, dims: "170×160×100", description: "صناديق صغيرة، كراسي، ثلاجات", image: "/vehicles/van-medium.svg", baseFare: 7000, perKm: 600 },
+      { id: "22222222-0000-0000-0000-0000000000a2", kind: "pickup", name: "دبابه", sort: 3, active: true, sizeCode: "M", capacityKg: 1300, dims: "300×200×200", description: "أريكة كبيرة، صناديق نقل", image: "/vehicles/pickup-double.svg", baseFare: 10000, perKm: 800 },
+      { id: "22222222-0000-0000-0000-0000000000a3", kind: "pickup", name: "جامبو", sort: 4, active: true, sizeCode: "L", capacityKg: 5000, dims: "450×250×220", description: "نقل تقيل، انتقالات كبيرة", image: "/vehicles/van-large.svg", baseFare: 15000, perKm: 1200 },
     ],
     vehicles: [
       {
@@ -467,7 +467,8 @@ function toStaffDTO(s: StaffRec): StaffDTO {
 
 export const memRepo = {
   // ---------- reads ----------
-  listCategories: async (): Promise<CategoryDTO[]> => state.categories.slice().sort((a, b) => a.sort - b.sort),
+  listCategories: async (): Promise<CategoryDTO[]> =>
+    state.categories.slice().sort((a, b) => a.sort - b.sort).map((c) => ({ ...c, active: c.active ?? true })),
 
   defaultBranch: async (): Promise<BranchDTO> => state.branch,
   getBranch: async (id: string): Promise<BranchDTO | null> => (id === state.branch.id ? state.branch : null),
@@ -716,6 +717,14 @@ export const memRepo = {
       .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
       .map(withDriverPhone),
 
+  /** Admin changes the truck size of an order (price already recomputed by the service). */
+  updateDeliveryOrderSize: async (code: string, p: { categoryId: string; sizeName: string; sizeCode: string | null; quote: Quote }): Promise<boolean> => {
+    const o = state.deliveryOrders.find((x) => x.code === code);
+    if (!o) return false;
+    Object.assign(o, { categoryId: p.categoryId, sizeName: p.sizeName, sizeCode: p.sizeCode, priceSnapshot: p.quote });
+    return true;
+  },
+
   setDriverFee: async (code: string, fee: number): Promise<boolean> => {
     const o = state.deliveryOrders.find((x) => x.code === code);
     if (!o) return false;
@@ -866,6 +875,7 @@ export const memRepo = {
     const sort = input.sort ?? (state.categories.reduce((m, c) => Math.max(m, c.sort), 0) + 1);
     state.categories.push({
       id, kind: input.kind, name: input.name, sort,
+      active: input.active ?? true,
       sizeCode: input.sizeCode ?? null,
       capacityKg: input.capacityKg ?? null,
       dims: input.dims ?? null,
@@ -883,6 +893,7 @@ export const memRepo = {
     c.kind = input.kind;
     if (input.sort != null) c.sort = input.sort;
     if (input.sizeCode !== undefined) c.sizeCode = input.sizeCode;
+    if (input.active !== undefined) c.active = input.active;
     if (input.capacityKg !== undefined) c.capacityKg = input.capacityKg;
     if (input.dims !== undefined) c.dims = input.dims;
     if (input.description !== undefined) c.description = input.description;
@@ -892,7 +903,8 @@ export const memRepo = {
     return true;
   },
   deleteCategory: async (id: string): Promise<{ ok: boolean; reason?: string }> => {
-    if (state.vehicles.some((v) => v.categoryId === id)) return { ok: false, reason: "IN_USE" };
+    // used by fleet vehicles or by any delivery order → can only be hidden, not deleted
+    if (state.vehicles.some((v) => v.categoryId === id) || state.deliveryOrders.some((o) => o.categoryId === id)) return { ok: false, reason: "IN_USE" };
     state.categories = state.categories.filter((c) => c.id !== id);
     return { ok: true };
   },

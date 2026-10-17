@@ -12,7 +12,7 @@ const STEP_ICONS: IconName[] = ["mapPin", "truck", "calendar", "checkCircle"];
 
 export default async function HomePage() {
   const [cats, content] = await Promise.all([repo.listCategories(), repo.getAppContent()]);
-  const sizes = cats.filter((c) => c.sizeCode).sort((a, b) => a.sort - b.sort);
+  const sizes = cats.filter((c) => c.sizeCode && c.active).sort((a, b) => a.sort - b.sort);
   const { home } = content;
   const TRUST = home.trust.map((t, i) => ({ t, icon: TRUST_ICONS[i] }));
   const STEPS = home.steps.map((t, i) => ({ t, icon: STEP_ICONS[i] }));

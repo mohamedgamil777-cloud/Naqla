@@ -12,7 +12,7 @@ export default async function EstimatePage({ searchParams }: { searchParams: Pro
     repo.getAppContent(),
   ]);
   const sizes = cats
-    .filter((c) => c.sizeCode)
+    .filter((c) => c.sizeCode && c.active)
     .map((c) => ({
       id: c.id,
       name: c.name,
