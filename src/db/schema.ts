@@ -303,6 +303,11 @@ export const deliveryOrders = pgTable(
     priceSnapshot: jsonb("price_snapshot").notNull(),
     contactName: text("contact_name"),
     contactPhone: text("contact_phone"),
+    companyId: uuid("company_id"),
+    billing: text("billing", { enum: ["cash", "account"] }).notNull().default("cash"),
+    podName: text("pod_name"),
+    podPhoto: text("pod_photo"),
+    podAt: timestamp("pod_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("delivery_orders_code_uq").on(t.code), index("delivery_orders_phone_idx").on(t.contactPhone)]
@@ -352,3 +357,58 @@ export type Booking = typeof bookings.$inferSelect;
 export type Branch = typeof branches.$inferSelect;
 export type PricingRuleRow = typeof pricingRules.$inferSelect;
 export type PromoCode = typeof promoCodes.$inferSelect;
+
+// ---------- B2B ----------
+export const companies = pgTable("companies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  taxNumber: text("tax_number"),
+  address: text("address"),
+  discountPct: integer("discount_pct").notNull().default(0),
+  billing: text("billing", { enum: ["cash", "monthly"] }).notNull().default("cash"),
+  creditLimit: integer("credit_limit").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const companyMembers = pgTable(
+  "company_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    phone: text("phone").notNull(),
+    name: text("name"),
+    role: text("role", { enum: ["owner", "member"] }).notNull().default("member"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("company_members_phone_uq").on(t.phone), index("company_members_company_idx").on(t.companyId)]
+);
+
+export const companyPayments = pgTable(
+  "company_payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    method: text("method", { enum: ["cash", "bank", "wallet"] }).notNull().default("bank"),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("company_payments_company_idx").on(t.companyId)]
+);
+
+export const savedAddresses = pgTable(
+  "saved_addresses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    owner: text("owner").notNull(),
+    label: text("label").notNull(),
+    address: text("address").notNull(),
+    details: text("details"),
+    lat: real("lat"),
+    lng: real("lng"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("saved_addresses_owner_idx").on(t.owner)]
+);

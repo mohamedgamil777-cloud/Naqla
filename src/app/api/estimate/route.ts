@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { estimateDelivery } from "@/services/delivery-service";
+import { getSession } from "@/services/session";
+import { companyContext } from "@/services/company-service";
 
 const Body = z.object({
   categoryId: z.string().uuid(),
@@ -18,7 +20,10 @@ export async function POST(req: NextRequest) {
   }
   const parsed = Body.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "BAD_REQUEST" }, { status: 400 });
-  const result = await estimateDelivery(parsed.data);
+  // company members always see their contract price
+  const session = await getSession();
+  const ctx = session ? await companyContext(session.phone) : null;
+  const result = await estimateDelivery({ ...parsed.data, companyId: ctx?.company.id ?? null });
   if (!result) return NextResponse.json({ error: "SIZE_NOT_FOUND" }, { status: 400 });
   return NextResponse.json(result);
 }

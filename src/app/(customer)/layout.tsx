@@ -7,7 +7,7 @@ import { Icon } from "@/components/Icons";
 export default function CustomerLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh max-w-lg mx-auto bg-ground flex flex-col">
-      <header className="sticky top-0 z-30 bg-bar text-on-bar shadow-[0_2px_12px_var(--color-bar-edge)]">
+      <header className="print:hidden sticky top-0 z-30 bg-bar text-on-bar shadow-[0_2px_12px_var(--color-bar-edge)]">
         <div className="flex items-center justify-between px-4 h-16">
           <div className="flex items-center gap-2">
             <HeaderBack />

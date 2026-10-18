@@ -1,5 +1,7 @@
 import { repo } from "@/data/repo";
-import { DeliveryEstimator } from "@/components/DeliveryEstimator";
+import { DeliveryEstimator, type AccountInfo } from "@/components/DeliveryEstimator";
+import { getSession } from "@/services/session";
+import { addressOwner, companyContext } from "@/services/company-service";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,17 @@ export default async function EstimatePage({ searchParams }: { searchParams: Pro
     repo.getBusiness(),
     repo.getAppContent(),
   ]);
+  const session = await getSession();
+  const ctx = session ? await companyContext(session.phone) : null;
+  const account: AccountInfo = {
+    loggedIn: !!session,
+    company: ctx ? { name: ctx.company.name, discountPct: ctx.company.discountPct, billing: ctx.company.billing } : null,
+    saved: session
+      ? (await repo.listSavedAddresses(addressOwner(session.phone, ctx))).map((a) => ({
+          id: a.id, label: a.label, address: a.address, details: a.details, lat: a.lat, lng: a.lng,
+        }))
+      : [],
+  };
   const sizes = cats
     .filter((c) => c.sizeCode && c.active)
     .map((c) => ({
@@ -34,7 +47,7 @@ export default async function EstimatePage({ searchParams }: { searchParams: Pro
           مفيش أحجام متاحة دلوقتي.
         </div>
       ) : (
-        <DeliveryEstimator sizes={sizes} initialSizeCode={size} loaderFee={content.order.loaderFee}
+        <DeliveryEstimator sizes={sizes} initialSizeCode={size} loaderFee={content.order.loaderFee} account={account}
           options={{
             hours: branch.working,
             advanceDays: business.advanceDays,

@@ -8,6 +8,13 @@
 import { withDefaults, type AppContent } from "./content";
 import type { PricingRule, PromoInput, Quote } from "@/engines/pricing";
 import type {
+  CompanyDTO,
+  CompanyInput,
+  CompanyMemberDTO,
+  CompanyPaymentDTO,
+  CompanyRole,
+  SavedAddressDTO,
+  SavedAddressInput,
   BlockDTO,
   BlockInput,
   BookingDTO,
@@ -105,6 +112,10 @@ interface MemState {
   appContent?: Partial<AppContent> | null;
   driverPayouts: DriverPayoutDTO[];
   expenses: ExpenseDTO[];
+  companies?: CompanyDTO[];
+  companyMembers?: CompanyMemberDTO[];
+  companyPayments?: CompanyPaymentDTO[];
+  savedAddresses?: SavedAddressDTO[];
   otps: OtpRec[];
   users: UserRec[];
 }
@@ -291,6 +302,7 @@ function seedState(): MemState {
         pickupAddress: "٦ أكتوبر — الحي الأول", dropoffAddress: "الشيخ زايد — بوابة ٢",
         pickupDetails: "الدور التالت، جنب صيدلية الحي", dropoffDetails: "كمبوند بيفرلي هيلز، بوابة 1",
         cargoType: "أثاث / أجهزة", notes: "يوجد مصعد في المبنى، اتصل قبل الوصول بـ 10 دقائق",
+        companyId: null, billing: "cash", podName: null, podPhoto: null, podAt: null,
         pickupLat: 29.9716, pickupLng: 30.9426, dropoffLat: 30.03, dropoffLng: 30.976,
         km: 9.5, loaders: 1, scheduledAt: cairoDateTime(today, 11),
         status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق", driverPhone: null, driverFee: 9000, rating: null, ratingComment: null,
@@ -310,6 +322,7 @@ function seedState(): MemState {
         sizeName: "سوزوكي فان", sizeCode: "S",
         pickupAddress: "فيصل — محطة المريوطية", dropoffAddress: "الهرم — شارع الطالبية",
         pickupDetails: null, dropoffDetails: null, cargoType: "صناديق / كراسي", notes: null,
+        companyId: null, billing: "cash", podName: null, podPhoto: null, podAt: null,
         pickupLat: 29.996, pickupLng: 31.153, dropoffLat: 29.987, dropoffLng: 31.17,
         km: 4.2, loaders: 0, scheduledAt: cairoDateTime(tomorrow, 15),
         status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق", driverPhone: null, driverFee: 5000, rating: null, ratingComment: null,
@@ -350,7 +363,16 @@ for (const o of state.deliveryOrders) {
   o.dropoffDetails ??= null;
   o.cargoType ??= null;
   o.notes ??= null;
+  o.companyId ??= null;
+  o.billing ??= "cash";
+  o.podName ??= null;
+  o.podPhoto ??= null;
+  o.podAt ??= null;
 }
+state.companies ??= [];
+state.companyMembers ??= [];
+state.companyPayments ??= [];
+state.savedAddresses ??= [];
 // Sample details on the seeded order so the driver screens show the full layout.
 {
   const demo = state.deliveryOrders.find((o) => o.code === "50001");
@@ -677,6 +699,11 @@ export const memRepo = {
       priceSnapshot: quote,
       contactName: input.contactName,
       contactPhone: input.contactPhone,
+      companyId: input.companyId ?? null,
+      billing: input.billing ?? "cash",
+      podName: null,
+      podPhoto: null,
+      podAt: null,
       createdAt: new Date(),
     });
     return { code };
@@ -716,6 +743,79 @@ export const memRepo = {
       .filter((o) => o.driverId === driverId)
       .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
       .map(withDriverPhone),
+
+  /** Proof of delivery (driver, at "تم التوصيل"). */
+  setDeliveryPod: async (code: string, name: string, photo: string): Promise<boolean> => {
+    const o = state.deliveryOrders.find((x) => x.code === code);
+    if (!o) return false;
+    Object.assign(o, { podName: name, podPhoto: photo, podAt: new Date() });
+    return true;
+  },
+
+  listDeliveryOrdersByCompany: async (companyId: string): Promise<DeliveryOrderDTO[]> =>
+    state.deliveryOrders
+      .filter((o) => o.companyId === companyId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map(withDriverPhone),
+
+  // ---------- B2B: companies ----------
+  listCompanies: async (): Promise<CompanyDTO[]> => state.companies!.slice().sort((a, b) => a.name.localeCompare(b.name, "ar")).map((c) => ({ ...c })),
+  getCompany: async (id: string): Promise<CompanyDTO | null> => {
+    const c = state.companies!.find((x) => x.id === id);
+    return c ? { ...c } : null;
+  },
+  createCompany: async (input: CompanyInput): Promise<{ id: string }> => {
+    const id = crypto.randomUUID();
+    state.companies!.push({ ...input, id, createdAt: new Date() });
+    return { id };
+  },
+  updateCompany: async (id: string, input: CompanyInput): Promise<boolean> => {
+    const c = state.companies!.find((x) => x.id === id);
+    if (!c) return false;
+    Object.assign(c, input);
+    return true;
+  },
+  listCompanyMembers: async (companyId: string): Promise<CompanyMemberDTO[]> =>
+    state.companyMembers!.filter((m) => m.companyId === companyId).map((m) => ({ ...m })),
+  /** The company a login phone belongs to (one company per phone). */
+  getCompanyMemberByPhone: async (phone: string): Promise<CompanyMemberDTO | null> => {
+    const m = state.companyMembers!.find((x) => x.phone === phone);
+    return m ? { ...m } : null;
+  },
+  addCompanyMember: async (companyId: string, phone: string, name: string | null, role: CompanyRole): Promise<{ ok: boolean; reason?: string }> => {
+    if (state.companyMembers!.some((m) => m.phone === phone)) return { ok: false, reason: "PHONE_TAKEN" };
+    state.companyMembers!.push({ id: crypto.randomUUID(), companyId, phone, name, role, createdAt: new Date() });
+    return { ok: true };
+  },
+  removeCompanyMember: async (id: string): Promise<boolean> => {
+    state.companyMembers = state.companyMembers!.filter((m) => m.id !== id);
+    return true;
+  },
+  listCompanyPayments: async (companyId: string): Promise<CompanyPaymentDTO[]> =>
+    state.companyPayments!.filter((p) => p.companyId === companyId).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map((p) => ({ ...p })),
+  addCompanyPayment: async (input: Omit<CompanyPaymentDTO, "id" | "createdAt">): Promise<{ id: string }> => {
+    const id = crypto.randomUUID();
+    state.companyPayments!.push({ ...input, id, createdAt: new Date() });
+    return { id };
+  },
+  deleteCompanyPayment: async (id: string): Promise<boolean> => {
+    state.companyPayments = state.companyPayments!.filter((p) => p.id !== id);
+    return true;
+  },
+
+  // ---------- saved addresses ----------
+  listSavedAddresses: async (owner: string): Promise<SavedAddressDTO[]> =>
+    state.savedAddresses!.filter((a) => a.owner === owner).sort((a, b) => a.label.localeCompare(b.label, "ar")).map((a) => ({ ...a })),
+  addSavedAddress: async (input: SavedAddressInput): Promise<{ id: string }> => {
+    const id = crypto.randomUUID();
+    state.savedAddresses!.push({ ...input, id, createdAt: new Date() });
+    return { id };
+  },
+  deleteSavedAddress: async (id: string, owner: string): Promise<boolean> => {
+    const before = state.savedAddresses!.length;
+    state.savedAddresses = state.savedAddresses!.filter((a) => !(a.id === id && a.owner === owner));
+    return state.savedAddresses.length < before;
+  },
 
   /** Admin changes the truck size of an order (price already recomputed by the service). */
   updateDeliveryOrderSize: async (code: string, p: { categoryId: string; sizeName: string; sizeCode: string | null; quote: Quote }): Promise<boolean> => {

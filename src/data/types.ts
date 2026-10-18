@@ -321,8 +321,18 @@ export interface DeliveryOrderDTO {
   priceSnapshot: Quote;
   contactName: string | null;
   contactPhone: string | null;
+  /** B2B: the company this order was placed for (null = personal order) */
+  companyId: string | null;
+  /** cash = pay per trip, account = goes on the company's monthly statement */
+  billing: OrderBilling;
+  /** proof of delivery, captured by the driver at "تم التوصيل" */
+  podName: string | null;
+  podPhoto: string | null;
+  podAt: Date | null;
   createdAt: Date;
 }
+
+export type OrderBilling = "cash" | "account";
 
 export interface DeliveryOrderInput {
   categoryId: string;
@@ -341,7 +351,60 @@ export interface DeliveryOrderInput {
   scheduledAt: Date;
   contactName: string;
   contactPhone: string;
+  companyId?: string | null;
+  billing?: OrderBilling;
 }
+
+// ---------- B2B: companies ----------
+export type CompanyBilling = "cash" | "monthly";
+export type CompanyRole = "owner" | "member";
+
+export interface CompanyDTO {
+  id: string;
+  name: string;
+  phone: string | null;
+  taxNumber: string | null;
+  address: string | null;
+  /** contract discount on every order, 0–100 */
+  discountPct: number;
+  billing: CompanyBilling;
+  /** max outstanding balance on account (piastres); 0 = no limit */
+  creditLimit: number;
+  active: boolean;
+  createdAt: Date;
+}
+export type CompanyInput = Omit<CompanyDTO, "id" | "createdAt">;
+
+export interface CompanyMemberDTO {
+  id: string;
+  companyId: string;
+  phone: string; // E.164 — the login phone
+  name: string | null;
+  role: CompanyRole;
+  createdAt: Date;
+}
+
+export interface CompanyPaymentDTO {
+  id: string;
+  companyId: string;
+  amount: number; // piastres
+  method: "cash" | "bank" | "wallet";
+  note: string | null;
+  createdAt: Date;
+}
+
+/** owner = "c:<companyId>" (shared by the company) or "p:<phone>" (personal) */
+export interface SavedAddressDTO {
+  id: string;
+  owner: string;
+  label: string;
+  address: string;
+  details: string | null;
+  lat: number | null;
+  lng: number | null;
+  createdAt: Date;
+}
+export type SavedAddressInput = Omit<SavedAddressDTO, "id" | "createdAt">;
 
 export type DocumentType = "national_id" | "license";
 

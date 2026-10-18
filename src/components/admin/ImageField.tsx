@@ -2,7 +2,7 @@
 import { useState } from "react";
 
 /** Downscale an uploaded image to a compact JPEG data URL (client-side). */
-function fileToDataUrl(file: File, maxW = 1100, quality = 0.8): Promise<string> {
+export function fileToDataUrl(file: File, maxW = 1100, quality = 0.8): Promise<string> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new window.Image();

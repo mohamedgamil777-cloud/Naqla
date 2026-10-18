@@ -5,6 +5,7 @@ import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { EmptyState, LinkButton } from "@/components/ui";
 import { RateOrder } from "@/components/RateOrder";
+import { PodView } from "@/components/PodView";
 import { Icon, type IconName } from "@/components/Icons";
 import type { BookingDTO, DeliveryOrderDTO, DeliveryOrderStatus } from "@/data/types";
 
@@ -298,6 +299,7 @@ function PastOrder({ o, ratingAbove = false }: { o: DeliveryOrderDTO; ratingAbov
       <OrderHead o={o} />
       <Route o={o} />
       <Meta o={o} />
+      {o.status === "completed" && <PodView o={o} />}
       {o.status === "completed" &&
         (o.rating != null ? (
           <div className="flex items-center gap-2 text-sm">

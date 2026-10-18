@@ -5,6 +5,7 @@
  */
 import type { PromoInput } from "@/engines/pricing";
 import { repo } from "@/data/repo";
+import { companyBalance } from "@/services/company-service";
 import { computeDeliveryQuote, type Quote } from "@/engines/pricing";
 import { fireNotify, deliveryCustomerMessage } from "@/services/notify";
 
@@ -21,6 +22,8 @@ export async function estimateDelivery(params: {
   promoCode?: string | null;
   /** use these exact promo terms instead of validating a code (admin re-pricing) */
   promoOverride?: PromoInput | null;
+  /** B2B: price with this company's contract discount (coupons don't stack) */
+  companyId?: string | null;
 }): Promise<DeliveryEstimate | null> {
   const [cats, business, content] = await Promise.all([repo.listCategories(), repo.getBusiness(), repo.getAppContent()]);
   const cat = cats.find((c) => c.id === params.categoryId);
@@ -39,6 +42,11 @@ export async function estimateDelivery(params: {
 
   let promo: PromoInput | null = params.promoOverride ?? null;
   let promoError = false;
+  if (!promo && params.companyId) {
+    const company = await repo.getCompany(params.companyId);
+    if (company?.active && company.discountPct > 0) promo = { code: "سعر الشركة", type: "pct", value: company.discountPct };
+    if (company?.active) params = { ...params, promoCode: null }; // contract price replaces coupons
+  }
   if (!promo && params.promoCode && params.promoCode.trim()) {
     promo = await repo.validatePromo(params.promoCode.trim(), preview.subtotal);
     if (!promo) promoError = true;
@@ -67,18 +75,29 @@ export async function createDeliveryOrder(input: {
   scheduledAt: Date;
   contactName: string;
   contactPhone: string;
+  /** B2B: order placed by a company member */
+  companyId?: string | null;
 }): Promise<{ ok: true; code: string } | { ok: false; reason: string }> {
   const cats = await repo.listCategories();
   const cat = cats.find((c) => c.id === input.categoryId);
   if (!cat || !cat.active) return { ok: false, reason: "size" };
 
+  const company = input.companyId ? await repo.getCompany(input.companyId) : null;
   const est = await estimateDelivery({
     categoryId: input.categoryId,
     km: input.km,
     loaders: input.loaders,
-    promoCode: input.promoCode,
+    promoCode: company ? null : input.promoCode,
+    companyId: company?.id ?? null,
   });
   if (!est) return { ok: false, reason: "size" };
+
+  // Monthly-billed companies order on account, within their credit limit.
+  const billing = company?.active && company.billing === "monthly" ? "account" : "cash";
+  if (billing === "account" && company!.creditLimit > 0) {
+    const bal = await companyBalance(company!.id);
+    if (bal.outstanding + bal.open + est.quote.total > company!.creditLimit) return { ok: false, reason: "CREDIT" };
+  }
 
   const { code } = await repo.createDeliveryOrder(
     {
@@ -98,12 +117,14 @@ export async function createDeliveryOrder(input: {
       scheduledAt: input.scheduledAt,
       contactName: input.contactName,
       contactPhone: input.contactPhone,
+      companyId: company?.id ?? null,
+      billing,
     },
     est.quote,
     cat.name,
     cat.sizeCode
   );
-  if (est.promoApplied && input.promoCode) await repo.redeemPromo(input.promoCode);
+  if (!company && est.promoApplied && input.promoCode) await repo.redeemPromo(input.promoCode);
   fireNotify(input.contactPhone, deliveryCustomerMessage("created", code));
   return { ok: true, code };
 }

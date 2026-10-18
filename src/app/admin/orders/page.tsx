@@ -5,6 +5,7 @@ import { setDeliveryOrderStatus, assignDeliveryDriver, setDriverFeeAction, chang
 import { piastresToEgp } from "@/lib/money";
 import type { DeliveryOrderStatus, StaffDTO } from "@/data/types";
 import { driverRatings } from "@/services/ratings";
+import { PodView } from "@/components/PodView";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,8 @@ const STATUS: Record<DeliveryOrderStatus, { label: string; cls: string }> = {
 };
 
 export default async function AdminOrdersPage() {
-  const [orders, drivers, cats] = await Promise.all([repo.listDeliveryOrders(), repo.listDrivers(), repo.listCategories()]);
+  const [orders, drivers, cats, companies] = await Promise.all([repo.listDeliveryOrders(), repo.listDrivers(), repo.listCategories(), repo.listCompanies()]);
+  const companyName = Object.fromEntries(companies.map((c) => [c.id, c.name]));
   const sizes = cats.filter((c) => c.sizeCode && c.active);
   const ratings = driverRatings(orders);
   const openCount = orders.filter((o) => o.status === "new").length;
@@ -47,6 +49,11 @@ export default async function AdminOrdersPage() {
                     <span className="font-extrabold text-lg">#{o.code}</span>
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${STATUS[o.status].cls}`}>{STATUS[o.status].label}</span>
                     <span className="rounded-full bg-ink/10 px-2 py-0.5 text-xs font-bold">{o.sizeName}{o.sizeCode ? ` · ${o.sizeCode}` : ""}</span>
+                    {o.companyId && (
+                      <a href={`/admin/companies/${o.companyId}`} className="rounded-full bg-primary-soft text-primary-ink px-2 py-0.5 text-xs font-bold">
+                        🏢 {companyName[o.companyId] ?? "شركة"} · {o.billing === "account" ? "على الحساب" : "كاش"}
+                      </a>
+                    )}
                   </div>
                   <span className="font-extrabold text-xl text-emph">{formatEgp(o.priceSnapshot.total)}</span>
                 </div>
@@ -63,6 +70,8 @@ export default async function AdminOrdersPage() {
                   {o.notes && <Row k="ملاحظات العميل" v={o.notes} />}
                   {o.rating != null && <Row k="تقييم العميل" v={`${"⭐".repeat(o.rating)}${o.ratingComment ? ` — ${o.ratingComment}` : ""}`} />}
                 </div>
+
+                {o.status === "completed" && <PodView o={o} />}
 
                 {/* Truck size (admin can switch it; price is recomputed) */}
                 {o.status !== "completed" && o.status !== "cancelled" && (

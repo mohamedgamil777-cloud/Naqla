@@ -4,6 +4,7 @@ import { createDeliveryOrder } from "@/services/delivery-service";
 import { getSession } from "@/services/session";
 import { cairoDateISO, cairoDateTime } from "@/lib/time";
 import { repo } from "@/data/repo";
+import { companyContext } from "@/services/company-service";
 
 const Body = z.object({
   categoryId: z.string().uuid(),
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
     scheduledAt,
     contactName: session.name ?? "عميل",
     contactPhone: session.phone,
+    companyId: (await companyContext(session.phone))?.company.id ?? null,
   });
 
   if (!result.ok) return NextResponse.json({ error: result.reason }, { status: 400 });

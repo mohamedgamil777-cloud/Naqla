@@ -21,6 +21,7 @@ const nav: { href: string; label: string; icon: string; roles: StaffRole[] }[] =
   { href: "/admin/board", label: "المواعيد", icon: "🗓️", roles: ["super_admin", "fleet_mgr", "agent"] },
   { href: "/admin/bookings", label: "الحجوزات", icon: "📋", roles: ["super_admin", "fleet_mgr", "agent"] },
   { href: "/admin/calculator", label: "حاسبة السعر", icon: "🧮", roles: ["super_admin", "agent"] },
+  { href: "/admin/companies", label: "الشركات", icon: "🏢", roles: ["super_admin", "finance"] },
   { href: "/admin/finance", label: "الحسابات", icon: "💰", roles: ["super_admin", "finance"] },
   { href: "/admin/settlements", label: "تسديدات السواقين", icon: "💵", roles: ["super_admin", "finance"] },
   { href: "/admin/expenses", label: "النثريات", icon: "🧾", roles: ["super_admin", "finance"] },
@@ -39,7 +40,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const items = nav.filter((n) => n.roles.includes(role));
   return (
     <div className="min-h-dvh md:flex bg-ground">
-      <aside className="md:w-60 md:min-h-dvh bg-bar-ink text-white/90 md:sticky md:top-0">
+      <aside className="md:w-60 md:min-h-dvh bg-bar-ink text-white/90 md:sticky md:top-0 print:hidden">
         <div className="px-5 py-4 flex items-center gap-2 font-extrabold text-xl border-b border-white/10">
           <Logo className="h-9" surface="dark" /> <span className="text-xs font-normal text-white/60 bg-white/10 rounded-full px-2 py-0.5">إدارة</span>
         </div>

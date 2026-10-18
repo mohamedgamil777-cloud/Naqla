@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getSession } from "@/services/session";
 import { repo } from "@/data/repo";
 import { waDigits } from "@/data/content";
+import { addressOwner, companyContext } from "@/services/company-service";
+import { deleteSavedAddressAction } from "@/app/(customer)/company/actions";
 import { toLocal } from "@/lib/phone";
 import { EmptyState, LinkButton } from "@/components/ui";
 import { LogoutButton } from "@/components/LogoutButton";
@@ -21,7 +23,12 @@ export default async function AccountPage() {
     );
   }
 
-  const [orders, content] = await Promise.all([repo.listDeliveryOrdersByPhone(session.phone), repo.getAppContent()]);
+  const ctx = await companyContext(session.phone);
+  const [orders, content, saved] = await Promise.all([
+    repo.listDeliveryOrdersByPhone(session.phone),
+    repo.getAppContent(),
+    ctx ? Promise.resolve([]) : repo.listSavedAddresses(addressOwner(session.phone, null)),
+  ]);
   const active = orders.filter((o) => o.status !== "completed" && o.status !== "cancelled").length;
   const done = orders.filter((o) => o.status === "completed").length;
   const wa = waDigits(content.whatsapp);
@@ -49,6 +56,37 @@ export default async function AccountPage() {
           <Stat value={done} label="توصيلات تمّت" />
         </div>
       </section>
+
+      {ctx && (
+        <Link href="/company" className="bg-primary-soft border border-primary/20 rounded-card p-4 flex items-center gap-3">
+          <span className="w-12 h-12 shrink-0 rounded-2xl bg-panel grid place-items-center text-2xl" aria-hidden>🏢</span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-xs text-muted">حساب شركة</span>
+            <span className="block font-extrabold text-lg truncate">{ctx.company.name}</span>
+            <span className="block text-sm text-ink-2">طلبات الشركة، كشف الحساب، العناوين والمستخدمين</span>
+          </span>
+          <Icon name="chevronLeft" className="w-5 h-5 text-primary shrink-0" />
+        </Link>
+      )}
+
+      {!ctx && saved.length > 0 && (
+        <section className="bg-panel border border-line rounded-card shadow-sm p-4 flex flex-col gap-2">
+          <h2 className="font-extrabold">عناويني المحفوظة</h2>
+          <div className="flex flex-col divide-y divide-line">
+            {saved.map((a) => (
+              <div key={a.id} className="py-2.5 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-bold">📍 {a.label}</div>
+                  <div className="text-sm text-muted truncate">{a.address}</div>
+                </div>
+                <form action={deleteSavedAddressAction}>
+                  <button name="id" value={a.id} className="text-booked text-sm font-bold">حذف</button>
+                </form>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Menu */}
       <nav className="bg-panel border border-line rounded-card shadow-sm divide-y divide-line overflow-hidden">

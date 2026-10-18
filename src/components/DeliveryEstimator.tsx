@@ -22,6 +22,20 @@ interface LatLng {
   lng: number;
 }
 
+export interface SavedAddr {
+  id: string;
+  label: string;
+  address: string;
+  details: string | null;
+  lat: number | null;
+  lng: number | null;
+}
+export interface AccountInfo {
+  loggedIn: boolean;
+  company: { name: string; discountPct: number; billing: "cash" | "monthly" } | null;
+  saved: SavedAddr[];
+}
+
 export interface OrderOptions {
   /** working hours from admin settings (whole hours, close is exclusive) */
   hours: { open: number; close: number };
@@ -160,6 +174,7 @@ export function DeliveryEstimator({
   initialSizeCode,
   loaderFee,
   options,
+  account,
 }: {
   sizes: SizeOpt[];
   center: LatLng;
@@ -167,6 +182,8 @@ export function DeliveryEstimator({
   /** per-person loader fee (piastres), shown under the counter */
   loaderFee?: number;
   options: OrderOptions;
+  /** logged-in customer: company (B2B) + saved addresses */
+  account?: AccountInfo;
 }) {
   const CARGO_HINTS = options.cargo;
   const typing = useTyping(); // keyboard up → hide the sticky order bar
@@ -227,6 +244,8 @@ export function DeliveryEstimator({
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [orderErr, setOrderErr] = useState<string | null>(null);
   const [addrError, setAddrError] = useState(false);
+  const [saved, setSaved] = useState<SavedAddr[]>(account?.saved ?? []);
+  const [savedMsg, setSavedMsg] = useState<{ kind: "a" | "b"; text: string } | null>(null);
   // once both addresses are filled, drop the "missing address" warning
   useEffect(() => {
     if (addrError && pickupAddr.trim() && dropoffAddr.trim()) {
@@ -364,6 +383,64 @@ export function DeliveryEstimator({
     );
   }
 
+  /** Fill pickup (a) or drop-off (b) from a saved address — also moves the pin so distance stays right. */
+  function applySaved(kind: "a" | "b", a: SavedAddr) {
+    if (kind === "a") { setPickupAddr(a.address); setPickupDetails(a.details ?? ""); }
+    else { setDropoffAddr(a.address); setDropoffDetails(a.details ?? ""); }
+    if (a.lat != null && a.lng != null) {
+      const ll = { lat: a.lat, lng: a.lng };
+      if (kind === "a") { setPickup(ll); markersRef.current.a?.setLatLng([ll.lat, ll.lng]); }
+      else { setDropoff(ll); markersRef.current.b?.setLatLng([ll.lat, ll.lng]); }
+    }
+  }
+
+  async function saveAddress(kind: "a" | "b") {
+    const address = (kind === "a" ? pickupAddr : dropoffAddr).trim();
+    if (!address) return;
+    const label = window.prompt("اسم العنوان (مثلاً: المخزن، الفرع، البيت)", kind === "a" ? "المخزن" : "")?.trim();
+    if (!label) return;
+    const ll = kind === "a" ? pickup : dropoff;
+    const details = (kind === "a" ? pickupDetails : dropoffDetails).trim() || null;
+    const r = await fetch("/api/addresses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label, address, details, lat: ll.lat, lng: ll.lng }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (j.id) {
+      setSaved((list) => [...list, { id: j.id, label, address, details, lat: ll.lat, lng: ll.lng }]);
+      setSavedMsg({ kind, text: `اتحفظ «${label}»` });
+    } else setSavedMsg({ kind, text: "مقدرناش نحفظه دلوقتي" });
+    setTimeout(() => setSavedMsg(null), 2500);
+  }
+
+  /** Saved-address chips + "⭐ احفظ" under an address. */
+  function savedRow(kind: "a" | "b") {
+    if (!account?.loggedIn) return null;
+    const value = (kind === "a" ? pickupAddr : dropoffAddr).trim();
+    const already = saved.some((a) => a.address === value);
+    return (
+      <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] -mx-1 px-1">
+        {saved.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            onClick={() => applySaved(kind, a)}
+            className="shrink-0 rounded-full border border-line-2 bg-panel px-3 py-1.5 text-sm font-bold text-ink-2 hover:border-primary hover:text-primary"
+          >
+            📍 {a.label}
+          </button>
+        ))}
+        {value && !already && (
+          <button type="button" onClick={() => saveAddress(kind)} className="shrink-0 rounded-full bg-primary-soft text-primary-ink px-3 py-1.5 text-sm font-bold">
+            ⭐ احفظ العنوان
+          </button>
+        )}
+        {savedMsg?.kind === kind && <span className="shrink-0 text-sm font-bold text-ok">{savedMsg.text}</span>}
+      </div>
+    );
+  }
+
   function goTo(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -414,6 +491,7 @@ export function DeliveryEstimator({
       if (j.code) setOrderCode(j.code);
       else if (j.error === "PAST") { setOrderErr("الميعاد ده قريب أوي — اختار ميعاد بعد كده عشان نلحق نجهّز العربية."); goTo("sec-time"); }
       else if (j.error === "HOURS") { setOrderErr("الميعاد ده بره مواعيد الشغل، اختار ساعة تانية."); goTo("sec-time"); }
+      else if (j.error === "CREDIT") setOrderErr("الطلب ده هيعدّي حد الائتمان المتفق عليه للشركة — كلّموا الإدارة.");
       else if (j.error === "TOO_FAR") { setOrderErr("الميعاد ده بعيد أوي، اختار يوم أقرب."); goTo("sec-time"); }
       else setOrderErr("حصلت مشكلة، حاول تاني.");
     } catch {
@@ -446,6 +524,19 @@ export function DeliveryEstimator({
 
   return (
     <div className="flex flex-col gap-4">
+      {account?.company && (
+        <div className="bg-primary-soft border border-primary/20 rounded-card px-4 py-3 flex items-start gap-3">
+          <span className="w-10 h-10 shrink-0 rounded-full bg-panel text-primary grid place-items-center text-xl" aria-hidden>🏢</span>
+          <div className="text-sm">
+            <div className="font-extrabold text-base">بتطلب باسم: {account.company.name}</div>
+            <div className="text-ink-2">
+              {account.company.discountPct > 0 ? `سعر خاص للشركة (خصم ${account.company.discountPct}%)` : "سعر الشركة"} ·{" "}
+              {account.company.billing === "monthly" ? "الدفع على حساب الشركة (كشف حساب شهري)" : "الدفع عند التوصيل"}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stepper */}
       <ol className="grid grid-cols-4 relative mb-1">
         <span className="absolute top-[18px] right-[12.5%] left-[12.5%] h-0.5 bg-line-2" aria-hidden />
@@ -502,6 +593,7 @@ export function DeliveryEstimator({
             aria-label="تفاصيل الاستلام"
             className={detailField}
           />
+          {savedRow("a")}
         </div>
 
         {/* swap */}
@@ -552,6 +644,7 @@ export function DeliveryEstimator({
             aria-label="تفاصيل التسليم"
             className={detailField}
           />
+          {savedRow("b")}
           {addrError && (!pickupAddr.trim() || !dropoffAddr.trim()) && (
             <p className="text-sm font-bold text-booked">اكتب عنوان الاستلام والتسليم عشان السواق يوصل للمكان بالظبط.</p>
           )}
@@ -746,7 +839,7 @@ export function DeliveryEstimator({
           </div>
         </div>
 
-        <div className="bg-panel border border-line rounded-card shadow-sm p-4 flex flex-col gap-2">
+        <div className={`bg-panel border border-line rounded-card shadow-sm p-4 flex flex-col gap-2 ${account?.company ? "hidden" : ""}`}>
           <span className="flex items-center gap-3 font-extrabold">
             <Icon name="ticket" className="w-7 h-7 text-ink-2 shrink-0" /> كود الخصم
           </span>

@@ -8,6 +8,15 @@ import { memRepo } from "./memory";
 import { withDefaults, type AppContent } from "./content";
 import type { PricingRule, PromoInput, Quote, Tier } from "@/engines/pricing";
 import type {
+  CompanyBilling,
+  CompanyDTO,
+  CompanyInput,
+  CompanyMemberDTO,
+  CompanyPaymentDTO,
+  CompanyRole,
+  OrderBilling,
+  SavedAddressDTO,
+  SavedAddressInput,
   BlockDTO,
   BlockInput,
   BookingDTO,
@@ -42,7 +51,7 @@ import type {
 import type { VehicleKind, VehicleStatus } from "@/lib/constants";
 import { BLOCKING_STATUSES, DEFAULTS, newBookingCode } from "@/lib/constants";
 
-const { vehicleCategories, vehicles, vehicleImages, branches, pricingRules, bookings, vehicleBlocks, promoCodes, otpCodes, users, settings, payments, documents, deliveryOrders, driverPayouts, expenses } =
+const { vehicleCategories, vehicles, vehicleImages, branches, pricingRules, bookings, vehicleBlocks, promoCodes, otpCodes, users, settings, payments, documents, deliveryOrders, driverPayouts, expenses, companies, companyMembers, companyPayments, savedAddresses } =
   schema;
 
 function pricingRuleToInput(rule: PricingRule): VehiclePricingInput {
@@ -111,6 +120,13 @@ function userToStaff(u: typeof users.$inferSelect): StaffDTO {
   };
 }
 
+function mapCompany(r: typeof companies.$inferSelect): CompanyDTO {
+  return {
+    id: r.id, name: r.name, phone: r.phone ?? null, taxNumber: r.taxNumber ?? null, address: r.address ?? null,
+    discountPct: r.discountPct, billing: r.billing as CompanyBilling, creditLimit: r.creditLimit, active: r.active, createdAt: r.createdAt,
+  };
+}
+
 function mapDeliveryOrder(r: typeof deliveryOrders.$inferSelect, driverName: string | null = null, driverPhone: string | null = null): DeliveryOrderDTO {
   return {
     code: r.code,
@@ -140,6 +156,11 @@ function mapDeliveryOrder(r: typeof deliveryOrders.$inferSelect, driverName: str
     priceSnapshot: r.priceSnapshot as Quote,
     contactName: r.contactName ?? null,
     contactPhone: r.contactPhone ?? null,
+    companyId: r.companyId ?? null,
+    billing: (r.billing ?? "cash") as OrderBilling,
+    podName: r.podName ?? null,
+    podPhoto: r.podPhoto ?? null,
+    podAt: r.podAt ?? null,
     createdAt: r.createdAt,
   };
 }
@@ -527,6 +548,8 @@ const pgRepo = {
       priceSnapshot: quote,
       contactName: input.contactName,
       contactPhone: input.contactPhone,
+      companyId: input.companyId ?? null,
+      billing: input.billing ?? "cash",
     });
     return { code };
   },
@@ -583,6 +606,87 @@ const pgRepo = {
       .returning({ id: deliveryOrders.id });
     return res.length > 0;
   },
+  /** Proof of delivery (driver, at "تم التوصيل"). */
+  setDeliveryPod: async (code: string, name: string, photo: string): Promise<boolean> => {
+    const res = await db!
+      .update(deliveryOrders)
+      .set({ podName: name, podPhoto: photo, podAt: new Date() })
+      .where(eq(deliveryOrders.code, code))
+      .returning({ id: deliveryOrders.id });
+    return res.length > 0;
+  },
+  listDeliveryOrdersByCompany: async (companyId: string): Promise<DeliveryOrderDTO[]> => {
+    const rows = await db!
+      .select({ o: deliveryOrders, driverName: users.name, driverPhone: users.phone })
+      .from(deliveryOrders)
+      .leftJoin(users, eq(deliveryOrders.driverId, users.id))
+      .where(eq(deliveryOrders.companyId, companyId))
+      .orderBy(desc(deliveryOrders.createdAt));
+    return rows.map((r) => mapDeliveryOrder(r.o, r.driverName ?? null, r.driverPhone ?? null));
+  },
+
+  // ---------- B2B: companies ----------
+  listCompanies: async (): Promise<CompanyDTO[]> => {
+    const rows = await db!.select().from(companies).orderBy(companies.name);
+    return rows.map(mapCompany);
+  },
+  getCompany: async (id: string): Promise<CompanyDTO | null> => {
+    const [r] = await db!.select().from(companies).where(eq(companies.id, id)).limit(1);
+    return r ? mapCompany(r) : null;
+  },
+  createCompany: async (input: CompanyInput): Promise<{ id: string }> => {
+    const [r] = await db!.insert(companies).values(input).returning({ id: companies.id });
+    return { id: r.id };
+  },
+  updateCompany: async (id: string, input: CompanyInput): Promise<boolean> => {
+    await db!.update(companies).set(input).where(eq(companies.id, id));
+    return true;
+  },
+  listCompanyMembers: async (companyId: string): Promise<CompanyMemberDTO[]> => {
+    const rows = await db!.select().from(companyMembers).where(eq(companyMembers.companyId, companyId)).orderBy(companyMembers.createdAt);
+    return rows.map((m) => ({ ...m, role: m.role as CompanyRole }));
+  },
+  /** The company a login phone belongs to (one company per phone). */
+  getCompanyMemberByPhone: async (phone: string): Promise<CompanyMemberDTO | null> => {
+    const [m] = await db!.select().from(companyMembers).where(eq(companyMembers.phone, phone)).limit(1);
+    return m ? { ...m, role: m.role as CompanyRole } : null;
+  },
+  addCompanyMember: async (companyId: string, phone: string, name: string | null, role: CompanyRole): Promise<{ ok: boolean; reason?: string }> => {
+    const [taken] = await db!.select({ id: companyMembers.id }).from(companyMembers).where(eq(companyMembers.phone, phone)).limit(1);
+    if (taken) return { ok: false, reason: "PHONE_TAKEN" };
+    await db!.insert(companyMembers).values({ companyId, phone, name, role });
+    return { ok: true };
+  },
+  removeCompanyMember: async (id: string): Promise<boolean> => {
+    await db!.delete(companyMembers).where(eq(companyMembers.id, id));
+    return true;
+  },
+  listCompanyPayments: async (companyId: string): Promise<CompanyPaymentDTO[]> => {
+    const rows = await db!.select().from(companyPayments).where(eq(companyPayments.companyId, companyId)).orderBy(desc(companyPayments.createdAt));
+    return rows.map((p) => ({ ...p, method: p.method as CompanyPaymentDTO["method"] }));
+  },
+  addCompanyPayment: async (input: Omit<CompanyPaymentDTO, "id" | "createdAt">): Promise<{ id: string }> => {
+    const [r] = await db!.insert(companyPayments).values(input).returning({ id: companyPayments.id });
+    return { id: r.id };
+  },
+  deleteCompanyPayment: async (id: string): Promise<boolean> => {
+    await db!.delete(companyPayments).where(eq(companyPayments.id, id));
+    return true;
+  },
+
+  // ---------- saved addresses ----------
+  listSavedAddresses: async (owner: string): Promise<SavedAddressDTO[]> => {
+    return db!.select().from(savedAddresses).where(eq(savedAddresses.owner, owner)).orderBy(savedAddresses.label);
+  },
+  addSavedAddress: async (input: SavedAddressInput): Promise<{ id: string }> => {
+    const [r] = await db!.insert(savedAddresses).values(input).returning({ id: savedAddresses.id });
+    return { id: r.id };
+  },
+  deleteSavedAddress: async (id: string, owner: string): Promise<boolean> => {
+    const res = await db!.delete(savedAddresses).where(and(eq(savedAddresses.id, id), eq(savedAddresses.owner, owner))).returning({ id: savedAddresses.id });
+    return res.length > 0;
+  },
+
   /** Admin changes the truck size of an order (price already recomputed by the service). */
   updateDeliveryOrderSize: async (code: string, p: { categoryId: string; sizeName: string; sizeCode: string | null; quote: Quote }): Promise<boolean> => {
     const res = await db!

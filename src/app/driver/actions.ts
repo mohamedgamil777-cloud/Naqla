@@ -72,6 +72,14 @@ export async function driverAdvanceOrder(
   if (order.status !== NEXT_STEP[to]) return { ok: false, error: "مش وقت الخطوة دي" };
 
   const status = to as "en_route" | "arrived" | "completed";
+  // Proof of delivery is required to finish: who received it + a photo.
+  if (status === "completed") {
+    const podName = String(fd.get("podName") ?? "").trim();
+    const podPhoto = String(fd.get("podPhoto") ?? "");
+    if (podName.length < 2) return { ok: false, error: "اكتب اسم اللي استلم" };
+    if (!podPhoto.startsWith("data:image/") || podPhoto.length > 3_000_000) return { ok: false, error: "صوّر الحاجة بعد التسليم" };
+    await repo.setDeliveryPod(code, podName.slice(0, 80), podPhoto);
+  }
   await repo.updateDeliveryOrderStatus(code, status);
   fireNotify(order.contactPhone, deliveryCustomerMessage(status, code, order.driverName));
   revalidatePath("/driver");

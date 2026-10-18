@@ -18,7 +18,7 @@ export function BottomNav() {
   return (
     <nav
       aria-hidden={typing || undefined}
-      className={`fixed bottom-0 inset-x-0 z-40 bg-panel border-t border-line pb-[env(safe-area-inset-bottom)] transition-transform duration-200 ${
+      className={`print:hidden fixed bottom-0 inset-x-0 z-40 bg-panel border-t border-line pb-[env(safe-area-inset-bottom)] transition-transform duration-200 ${
         typing ? "translate-y-full" : ""
       }`}
     >

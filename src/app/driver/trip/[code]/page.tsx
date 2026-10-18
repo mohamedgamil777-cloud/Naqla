@@ -4,6 +4,7 @@ import { getSession } from "@/services/session";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { Icon, type IconName } from "@/components/Icons";
 import { TripMap } from "@/components/driver/TripMap";
+import { PodView } from "@/components/PodView";
 import { OrderActions } from "@/components/driver/OrderActions";
 import { Card, ContactButtons, DriverNotice, RoutePoint, ScreenHead, StepBar, TripStats, pointUrl, routeUrl } from "@/components/driver/parts";
 import type { DeliveryOrderDTO } from "@/data/types";
@@ -215,6 +216,8 @@ function Delivered({ o }: { o: DeliveryOrderDTO }) {
           <InfoRow icon="map" k="المسافة" v={`${o.km} كم`} />
         </div>
       </Card>
+
+      <PodView o={o} />
 
       <Link href="/driver" className="tap rounded-2xl bg-primary text-white text-xl font-extrabold flex items-center justify-center gap-2">
         العودة إلى شغلي <Icon name="chevronLeft" className="w-6 h-6" strokeWidth={2.6} />
