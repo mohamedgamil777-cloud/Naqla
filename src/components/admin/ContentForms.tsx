@@ -10,7 +10,7 @@ import {
   moveFaqAction,
   type ContentState,
 } from "@/app/admin/content/actions";
-import { ImageField } from "@/components/admin/ImageField";
+import { HeroImagesField } from "@/components/admin/HeroImagesField";
 import { FAQ_TOPICS, type AppContent, type FaqItem } from "@/data/content";
 import { piastresToEgp } from "@/lib/money";
 
@@ -82,14 +82,7 @@ function HomeForm({ c }: { c: AppContent }) {
           <span className={lbl}>الجملة تحت العنوان (كل سطر في سطر لوحده)</span>
           <textarea className={`${inp} resize-none`} rows={2} name="subtitle" defaultValue={c.home.subtitle} />
         </label>
-        <ImageField
-          name="heroImage"
-          label="صورة الرئيسية (لو مفيش صورة بيظهر الرسم الافتراضي — الأفضل صورة عرضها أكبر من طولها)"
-          defaultValue={c.home.heroImage}
-          camera={false}
-          maxWidth={1600}
-          wide
-        />
+        <HeroImagesField defaultValue={c.home.heroImages} />
         <div>
           <span className={lbl}>المميزات (3 كروت)</span>
           <div className="grid sm:grid-cols-3 gap-2 mt-1">

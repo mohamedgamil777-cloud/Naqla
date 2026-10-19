@@ -27,7 +27,8 @@ export interface AppContent {
   home: {
     title: string;
     subtitle: string; // a line break splits it into two lines
-    heroImage: string | null; // uploaded photo (data URL); null = built-in illustration
+    /** carousel photos (data URLs); empty = built-in illustration */
+    heroImages: string[];
     trust: [string, string, string];
     steps: [string, string, string, string];
   };
@@ -54,7 +55,7 @@ export const DEFAULT_CONTENT: AppContent = {
   home: {
     title: "محتاج تنقل حاجة؟",
     subtitle: "أسرع وأسهل طريقة لنقل أغراضك\nمع سائق معتمد من نقلة",
-    heroImage: null,
+    heroImages: [],
     trust: ["سعر واضح من البداية", "في دقائق", "بدون وجع دماغ"],
     steps: ["حدد مكان النقل", "اختار حجم العربية", "اختار الميعاد", "اطلب واستنى التأكيد"],
   },
@@ -92,7 +93,13 @@ export function withDefaults(saved: Partial<AppContent> | null | undefined): App
   return {
     supportPhone: s.supportPhone || d.supportPhone,
     whatsapp: s.whatsapp || d.whatsapp,
-    home: { ...d.home, ...(s.home ?? {}) },
+    home: (() => {
+      const h = { ...d.home, ...(s.home ?? {}) } as AppContent["home"] & { heroImage?: string | null };
+      // older documents stored a single photo
+      if (!Array.isArray(h.heroImages)) h.heroImages = h.heroImage ? [h.heroImage] : [];
+      delete h.heroImage;
+      return h;
+    })(),
     faqs: Array.isArray(s.faqs) ? s.faqs : d.faqs,
     order: { ...d.order, ...(s.order ?? {}) },
   };
@@ -116,4 +123,11 @@ export function waDigits(phone: string): string {
 /** Fill FAQ placeholders from live settings. */
 export function fillFaq(text: string, vars: { cancelHours: number; loaderFee: string }): string {
   return text.split("{ساعات_الإلغاء}").join(String(vars.cancelHours)).split("{أجر_العامل}").join(vars.loaderFee);
+}
+
+/** Short stable fingerprint of a photo, for cache-busting its URL when it changes. */
+export function photoVersion(dataUrl: string): string {
+  let h = 0;
+  for (let i = 0; i < dataUrl.length; i += Math.max(1, Math.floor(dataUrl.length / 400))) h = (h * 31 + dataUrl.charCodeAt(i)) | 0;
+  return `${dataUrl.length.toString(36)}${(h >>> 0).toString(36)}`;
 }

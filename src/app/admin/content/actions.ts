@@ -44,7 +44,11 @@ export async function saveHomeAction(_p: ContentState, fd: FormData): Promise<Co
     if (!title) return "العنوان مطلوب.";
     c.home.title = title;
     c.home.subtitle = String(fd.get("subtitle") ?? "").trim();
-    c.home.heroImage = str(fd, "heroImage") || null;
+    c.home.heroImages = fd
+      .getAll("heroImages")
+      .map(String)
+      .filter((u) => u.startsWith("data:image/") || u.startsWith("/") || u.startsWith("https://"))
+      .slice(0, 8);
     c.home.trust = [0, 1, 2].map((i) => str(fd, `trust${i}`) || c.home.trust[i]) as AppContent["home"]["trust"];
     c.home.steps = [0, 1, 2, 3].map((i) => str(fd, `step${i}`) || c.home.steps[i]) as AppContent["home"]["steps"];
   });

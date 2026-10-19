@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { repo } from "@/data/repo";
 import { HeroScene } from "@/components/HeroScene";
+import { HeroCarousel } from "@/components/HeroCarousel";
+import { photoVersion } from "@/data/content";
 import { VehicleImage } from "@/components/VehicleImage";
 import { Icon, type IconName } from "@/components/Icons";
 
@@ -31,9 +33,8 @@ export default async function HomePage() {
           ))}
         </p>
         <div className="mt-4 overflow-hidden rounded-card border border-line shadow-[0_8px_24px_rgba(16,32,28,0.08)]">
-          {home.heroImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={home.heroImage} alt="نقلة" className="block w-full aspect-[36/19] object-cover" />
+          {home.heroImages.length ? (
+            <HeroCarousel slides={home.heroImages.map((src, i) => `/api/hero/${i}?v=${photoVersion(src)}`)} />
           ) : (
             <HeroScene className="block w-full h-auto" />
           )}
