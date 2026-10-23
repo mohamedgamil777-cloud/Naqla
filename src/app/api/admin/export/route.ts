@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFinance } from "@/services/finance-service";
 import { getDatasets } from "@/services/reporting-service";
-import { BOOKING_STATUS_LABEL } from "@/lib/constants";
+import { BOOKING_STATUS_LABEL, DELIVERY_STATUS_LABEL } from "@/lib/constants";
 import { cairoDateISO } from "@/lib/time";
 import { toCsv } from "@/lib/csv";
 import { getAdminRole } from "@/services/admin-auth";
 
 const egp = (piastres: number) => (piastres / 100).toFixed(2);
 
-const REPORTING_KEYS = ["bookings-full", "payments", "fleet", "customers", "staff", "categories", "blocks"];
+const REPORTING_KEYS = ["delivery-orders", "bookings-full", "payments", "fleet", "customers", "staff", "categories", "blocks"];
 
 function csvResponse(csv: string, name: string, from: string, to: string) {
   const suffix = from && to ? `-${from}_${to}` : "";
@@ -54,13 +54,38 @@ export async function GET(req: NextRequest) {
   let rows: (string | number)[][];
   let name: string;
 
-  if (report === "cashflow") {
+  if (report === "deliveries") {
+    name = "deliveries";
+    const d = fin.deliveries;
+    rows = [[
+      "رقم الطلب", "التاريخ", "الحجم", "العميل", "الموبايل", "الشركة", "المصدر", "السواق", "الحالة",
+      "الدفع", "الإيراد", "كاش اتسلّم", "لسه مع السواق", "على الحساب", "قيمة طلب لم يُنفّذ",
+    ]];
+    for (const r of d.rows) {
+      rows.push([
+        r.code, r.dateLabel, r.size, r.customer, r.phone, r.company ?? "",
+        r.source === "agent" ? `تليفون${r.agentName ? " - " + r.agentName : ""}` : "الموقع",
+        r.driver ?? "", DELIVERY_STATUS_LABEL[r.status], r.billing === "account" ? "على الحساب" : "كاش",
+        egp(r.total), egp(r.cashReceived), egp(r.cashPending), egp(r.onAccount), egp(r.open),
+      ]);
+    }
+    rows.push([]);
+    rows.push([
+      "الإجمالي", "", "", "", "", "", "", "", "", "",
+      egp(d.summary.earned), egp(d.summary.cashReceived), egp(d.summary.cashPending), egp(d.summary.onAccount), egp(d.summary.open),
+    ]);
+  } else if (report === "deliveries-by-driver") {
+    name = "deliveries-by-driver";
+    rows = [["السواق", "توصيلات مكتملة", "الإيراد", "كاش اتسلّم", "كاش لسه معاه"]];
+    for (const r of fin.deliveries.byDriver) rows.push([r.name, r.orders, egp(r.earned), egp(r.cashReceived), egp(r.cashPending)]);
+  } else if (report === "cashflow") {
     name = "cashflow";
-    rows = [["التاريخ", "تحصيل إيجار", "تأمين وارد", "تأمين مسترد", "صافي النقدية"]];
-    for (const c of fin.cashflow) rows.push([c.dateLabel, egp(c.rentIn), egp(c.depositIn), egp(c.depositOut), egp(c.net)]);
+    rows = [["التاريخ", "كاش توصيلات", "تحصيل إيجار", "تأمين وارد", "تأمين مسترد", "صافي النقدية"]];
+    for (const c of fin.cashflow) rows.push([c.dateLabel, egp(c.deliveryIn), egp(c.rentIn), egp(c.depositIn), egp(c.depositOut), egp(c.net)]);
     rows.push([]);
     rows.push([
       "الإجمالي",
+      egp(fin.cashflow.reduce((s, c) => s + c.deliveryIn, 0)),
       egp(fin.cashflow.reduce((s, c) => s + c.rentIn, 0)),
       egp(fin.cashflow.reduce((s, c) => s + c.depositIn, 0)),
       egp(fin.cashflow.reduce((s, c) => s + c.depositOut, 0)),

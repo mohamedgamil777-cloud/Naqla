@@ -329,10 +329,18 @@ export interface DeliveryOrderDTO {
   podName: string | null;
   podPhoto: string | null;
   podAt: Date | null;
+  /** customer = placed on the site · agent = taken by staff on the phone */
+  source: OrderSource;
+  agentName: string | null;
+  /** cash handed in by the driver for a cash order (piastres); null = not received yet */
+  cashReceived: number | null;
+  cashReceivedAt: Date | null;
+  cashReceivedBy: string | null;
   createdAt: Date;
 }
 
 export type OrderBilling = "cash" | "account";
+export type OrderSource = "customer" | "agent";
 
 export interface DeliveryOrderInput {
   categoryId: string;
@@ -353,6 +361,8 @@ export interface DeliveryOrderInput {
   contactPhone: string;
   companyId?: string | null;
   billing?: OrderBilling;
+  source?: OrderSource;
+  agentName?: string | null;
 }
 
 // ---------- B2B: companies ----------

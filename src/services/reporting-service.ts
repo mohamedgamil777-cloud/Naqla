@@ -3,7 +3,7 @@
  * flat rows ready for CSV/BI. Money is emitted in EGP. Read-only.
  */
 import { repo } from "@/data/repo";
-import { BOOKING_STATUS_LABEL, KIND_LABEL, VEHICLE_STATUS_LABEL } from "@/lib/constants";
+import { BOOKING_STATUS_LABEL, DELIVERY_STATUS_LABEL, KIND_LABEL, VEHICLE_STATUS_LABEL } from "@/lib/constants";
 import { labelDateArabic, labelTime } from "@/lib/time";
 
 export interface Dataset {
@@ -17,13 +17,57 @@ const egp = (p: number) => (p / 100).toFixed(2);
 const yn = (b: boolean) => (b ? "نعم" : "لا");
 
 export async function getDatasets(): Promise<Dataset[]> {
-  const [bookings, payments, vehicles, staff, categories] = await Promise.all([
+  const [bookings, payments, vehicles, staff, categories, orders, companies] = await Promise.all([
     repo.listAllBookings(),
     repo.listAllPaymentsFull(),
     repo.listVehicles(),
     repo.listStaff(),
     repo.listCategories(),
+    repo.listDeliveryOrders(),
+    repo.listCompanies(),
   ]);
+  const companyName = new Map(companies.map((c) => [c.id, c.name]));
+
+  // ---- delivery orders (the main business) ----
+  const ordersDs: Dataset = {
+    key: "delivery-orders",
+    title: "طلبات التوصيل",
+    headers: [
+      "رقم الطلب", "تاريخ الطلب", "الميعاد", "الساعة", "الحالة", "المصدر", "الموظف",
+      "العميل", "الموبايل", "الشركة", "الدفع", "الحجم", "من", "إلى", "المسافة (كم)", "عدد العمالة", "نوع الحمولة",
+      "السواق", "الإجمالي", "الخصم", "الضريبة", "كاش اتسلّم", "تاريخ استلام الكاش", "استلمه",
+      "أجر السواق", "التقييم", "المستلم",
+    ],
+    rows: orders.map((o) => [
+      o.code,
+      labelDateArabic(o.createdAt),
+      labelDateArabic(o.scheduledAt),
+      labelTime(o.scheduledAt),
+      DELIVERY_STATUS_LABEL[o.status],
+      o.source === "agent" ? "تليفون" : "الموقع",
+      o.agentName ?? "",
+      o.contactName ?? "",
+      o.contactPhone ?? "",
+      o.companyId ? companyName.get(o.companyId) ?? "" : "",
+      o.billing === "account" ? "على الحساب" : "كاش",
+      o.sizeName,
+      o.pickupAddress ?? "",
+      o.dropoffAddress ?? "",
+      o.km,
+      o.loaders,
+      o.cargoType ?? "",
+      o.driverName ?? "",
+      egp(o.status === "cancelled" ? 0 : o.priceSnapshot.total),
+      egp(o.priceSnapshot.discount ?? 0),
+      egp(o.priceSnapshot.vat ?? 0),
+      o.cashReceived != null ? egp(o.cashReceived) : "",
+      o.cashReceivedAt ? labelDateArabic(o.cashReceivedAt) : "",
+      o.cashReceivedBy ?? "",
+      egp(o.driverFee),
+      o.rating ?? "",
+      o.podName ?? "",
+    ]),
+  };
 
   // Payments indexed by booking.
   const paidByCode = new Map<string, number>();
@@ -36,7 +80,7 @@ export async function getDatasets(): Promise<Dataset[]> {
   // ---- bookings (full) ----
   const bookingsDs: Dataset = {
     key: "bookings-full",
-    title: "الحجوزات (تفصيلي)",
+    title: "الإيجار بالساعة — النظام القديم (تفصيلي)",
     headers: [
       "رقم الرحلة", "المصدر", "الموظف", "العربية", "العميل", "الموبايل",
       "تاريخ الاستلام", "ساعة الاستلام", "ساعة التسليم", "المدة (ساعة)", "الحالة",
@@ -118,12 +162,21 @@ export async function getDatasets(): Promise<Dataset[]> {
     if (!c.name && b.contactName) c.name = b.contactName;
     custMap.set(phone, c);
   }
+  for (const o of orders) {
+    const phone = o.contactPhone ?? "";
+    if (!phone || o.status === "cancelled") continue;
+    const c = custMap.get(phone) ?? { name: o.contactName ?? "", trips: 0, collected: 0 };
+    c.trips += 1;
+    c.collected += o.cashReceived ?? 0;
+    if (!c.name && o.contactName) c.name = o.contactName;
+    custMap.set(phone, c);
+  }
   const custEntries = [...custMap.entries()];
   const custDocs = await Promise.all(custEntries.map(([phone]) => repo.listDocuments(phone)));
   const customersDs: Dataset = {
     key: "customers",
     title: "العملاء",
-    headers: ["الاسم", "الموبايل", "عدد الرحلات", "إجمالي المدفوع", "عنده بطاقة", "عنده رخصة"],
+    headers: ["الاسم", "الموبايل", "عدد الرحلات والطلبات", "إجمالي المدفوع", "عنده بطاقة", "عنده رخصة"],
     rows: custEntries.map(([phone, c], i) => {
       const docs = custDocs[i];
       return [
@@ -177,5 +230,5 @@ export async function getDatasets(): Promise<Dataset[]> {
     rows: blockRows,
   };
 
-  return [bookingsDs, paymentsDs, fleetDs, customersDs, staffDs, categoriesDs, blocksDs];
+  return [ordersDs, bookingsDs, paymentsDs, fleetDs, customersDs, staffDs, categoriesDs, blocksDs];
 }

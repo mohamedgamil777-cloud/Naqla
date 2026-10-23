@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createDeliveryOrder } from "@/services/delivery-service";
+import { createDeliveryOrder, resolveOrderSchedule } from "@/services/delivery-service";
 import { getSession } from "@/services/session";
-import { cairoDateISO, cairoDateTime } from "@/lib/time";
-import { repo } from "@/data/repo";
 import { companyContext } from "@/services/company-service";
 
 const Body = z.object({
@@ -40,19 +38,9 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "BAD_REQUEST" }, { status: 400 });
   const d = parsed.data;
 
-  const [hour, minute] = d.time.split(":").map(Number);
-  const scheduledAt = cairoDateTime(d.date, hour, minute);
-  // Must match what the order screen offers: minimum notice, working hours, booking window.
-  const [branch, business] = await Promise.all([repo.defaultBranch(), repo.getBusiness()]);
-  if (scheduledAt.getTime() < Date.now() + business.nowLeadHours * 3600e3 - 60e3) {
-    return NextResponse.json({ error: "PAST" }, { status: 400 });
-  }
-  const mins = hour * 60 + minute;
-  if (mins < branch.working.open * 60 || mins >= branch.working.close * 60) {
-    return NextResponse.json({ error: "HOURS" }, { status: 400 });
-  }
-  const lastDay = cairoDateISO(new Date(Date.now() + business.advanceDays * 864e5));
-  if (d.date > lastDay) return NextResponse.json({ error: "TOO_FAR" }, { status: 400 });
+  const when = await resolveOrderSchedule(d.date, d.time);
+  if (!when.ok) return NextResponse.json({ error: when.reason }, { status: 400 });
+  const scheduledAt = when.scheduledAt;
 
   const result = await createDeliveryOrder({
     categoryId: d.categoryId,

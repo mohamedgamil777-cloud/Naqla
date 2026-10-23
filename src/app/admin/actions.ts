@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { repo } from "@/data/repo";
-import { requireAdminRole } from "@/services/admin-auth";
+import { requireAdminRole, getAdminName } from "@/services/admin-auth";
 import { createBooking, extendBooking } from "@/services/booking-service";
 import { changeDeliveryOrderSize } from "@/services/delivery-service";
 import { egpToPiastres } from "@/lib/money";
@@ -240,6 +240,23 @@ export async function setDriverFeeAction(fd: FormData): Promise<void> {
   const fee = egp(fd, "fee");
   if (code) await repo.setDriverFee(code, fee);
   revalidatePath("/admin/orders");
+}
+
+/** Record (or undo) the cash a driver handed in for a completed cash order. */
+export async function setOrderCashAction(fd: FormData): Promise<void> {
+  await requireAdminRole(["super_admin", "fleet_mgr", "agent", "finance"]);
+  const code = str(fd, "code");
+  const o = code ? await repo.getDeliveryOrder(code) : null;
+  if (o && o.status === "completed" && o.billing === "cash") {
+    if (str(fd, "undo") === "1") {
+      await repo.setDeliveryCash(code, null, null);
+    } else {
+      const amount = str(fd, "amount") === "" ? o.priceSnapshot.total : egp(fd, "amount");
+      await repo.setDeliveryCash(code, amount, await getAdminName());
+    }
+  }
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin/finance");
 }
 
 export async function addDriverPayoutAction(_prev: FormState, fd: FormData): Promise<FormState> {

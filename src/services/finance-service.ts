@@ -1,12 +1,50 @@
 /**
- * Finance service — computes the accountant's reports from bookings + payments.
- * Money is in piastres; format at the edge. Date basis:
- *  - per-trip report / summary / revenue-by-vehicle: bookings by TRIP date (startsAt)
- *  - cashflow / by-method: payments by COLLECTION date (createdAt)
+ * Finance service — computes the accountant's reports from delivery orders, (legacy hourly)
+ * bookings + payments. Money is in piastres; format at the edge. Date basis:
+ *  - per-order / per-trip reports, summaries, by-vehicle / by-driver: by TRIP date (scheduledAt / startsAt)
+ *  - cashflow / by-method: by COLLECTION date (payment createdAt, order cashReceivedAt)
  */
 import { repo } from "@/data/repo";
 import { cairoDateISO, labelDateArabic } from "@/lib/time";
 import type { BookingStatus } from "@/lib/constants";
+import type { DeliveryOrderStatus, OrderBilling, OrderSource } from "@/data/types";
+
+/** One delivery order. Revenue counts only once it's delivered (completed). */
+export interface DeliveryFinanceRow {
+  code: string;
+  dateISO: string;
+  dateLabel: string;
+  size: string;
+  customer: string;
+  phone: string;
+  company: string | null;
+  status: DeliveryOrderStatus;
+  billing: OrderBilling;
+  source: OrderSource;
+  agentName: string | null;
+  driver: string | null;
+  total: number; // earned (completed) — 0 otherwise
+  open: number; // value of orders not delivered yet (not cancelled)
+  cashReceived: number; // handed in by the driver
+  cashPending: number; // completed cash order, still with the driver (or short)
+  onAccount: number; // completed account order → company statement
+}
+
+export interface DeliveryFinance {
+  summary: {
+    completed: number;
+    cancelled: number;
+    earned: number;
+    open: number;
+    cashReceived: number;
+    cashPending: number;
+    onAccount: number;
+    avgOrder: number;
+  };
+  rows: DeliveryFinanceRow[];
+  byDriver: { name: string; orders: number; earned: number; cashReceived: number; cashPending: number }[];
+  bySize: { name: string; orders: number; earned: number }[];
+}
 
 export interface FinanceRow {
   code: string;
@@ -28,6 +66,7 @@ export interface FinanceRow {
 export interface CashflowRow {
   dateISO: string;
   dateLabel: string;
+  deliveryIn: number; // cash handed in for delivery orders
   rentIn: number;
   depositIn: number;
   depositOut: number;
@@ -37,6 +76,7 @@ export interface CashflowRow {
 export interface FinanceReport {
   from: string;
   to: string;
+  deliveries: DeliveryFinance;
   summary: {
     trips: number;
     totalDue: number;
@@ -55,7 +95,77 @@ export interface FinanceReport {
 const inRange = (d: string, from: string, to: string) => d >= from && d <= to;
 
 export async function getFinance(from: string, to: string): Promise<FinanceReport> {
-  const [bookings, payments] = await Promise.all([repo.listAllBookings(), repo.listAllPaymentsFull()]);
+  const [bookings, payments, orders, companies] = await Promise.all([
+    repo.listAllBookings(),
+    repo.listAllPaymentsFull(),
+    repo.listDeliveryOrders(),
+    repo.listCompanies(),
+  ]);
+  const companyName = new Map(companies.map((c) => [c.id, c.name]));
+
+  // ---- delivery orders (orders whose scheduled day is in range) ----
+  const dRows: DeliveryFinanceRow[] = [];
+  for (const o of orders) {
+    const dISO = cairoDateISO(o.scheduledAt);
+    if (!inRange(dISO, from, to)) continue;
+    const done = o.status === "completed";
+    const total = done ? o.priceSnapshot.total : 0;
+    const cashReceived = done && o.billing === "cash" ? o.cashReceived ?? 0 : 0;
+    dRows.push({
+      code: o.code,
+      dateISO: dISO,
+      dateLabel: labelDateArabic(o.scheduledAt),
+      size: o.sizeName,
+      customer: o.contactName ?? "-",
+      phone: o.contactPhone ?? "-",
+      company: o.companyId ? companyName.get(o.companyId) ?? "شركة" : null,
+      status: o.status,
+      billing: o.billing,
+      source: o.source,
+      agentName: o.agentName,
+      driver: o.driverName,
+      total,
+      open: !done && o.status !== "cancelled" ? o.priceSnapshot.total : 0,
+      cashReceived,
+      cashPending: done && o.billing === "cash" ? Math.max(0, total - cashReceived) : 0,
+      onAccount: done && o.billing === "account" ? total : 0,
+    });
+  }
+  dRows.sort((a, b) => (a.dateISO < b.dateISO ? -1 : a.dateISO > b.dateISO ? 1 : 0));
+  const sum = (k: "total" | "open" | "cashReceived" | "cashPending" | "onAccount") => dRows.reduce((s, r) => s + r[k], 0);
+  const completed = dRows.filter((r) => r.status === "completed").length;
+
+  const drvMap = new Map<string, { orders: number; earned: number; cashReceived: number; cashPending: number }>();
+  const sizeMap = new Map<string, { orders: number; earned: number }>();
+  for (const r of dRows) {
+    if (r.status !== "completed") continue;
+    const dk = r.driver ?? "بدون سائق";
+    const d = drvMap.get(dk) ?? { orders: 0, earned: 0, cashReceived: 0, cashPending: 0 };
+    d.orders += 1;
+    d.earned += r.total;
+    d.cashReceived += r.cashReceived;
+    d.cashPending += r.cashPending;
+    drvMap.set(dk, d);
+    const sz = sizeMap.get(r.size) ?? { orders: 0, earned: 0 };
+    sz.orders += 1;
+    sz.earned += r.total;
+    sizeMap.set(r.size, sz);
+  }
+  const deliveries: DeliveryFinance = {
+    summary: {
+      completed,
+      cancelled: dRows.filter((r) => r.status === "cancelled").length,
+      earned: sum("total"),
+      open: sum("open"),
+      cashReceived: sum("cashReceived"),
+      cashPending: sum("cashPending"),
+      onAccount: sum("onAccount"),
+      avgOrder: completed ? Math.round(sum("total") / completed) : 0,
+    },
+    rows: dRows,
+    byDriver: [...drvMap.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.earned - a.earned),
+    bySize: [...sizeMap.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.earned - a.earned),
+  };
 
   // Index payments by booking code.
   const byCode = new Map<string, typeof payments>();
@@ -116,13 +226,24 @@ export async function getFinance(from: string, to: string): Promise<FinanceRepor
     .map(([name, v]) => ({ name, ...v }))
     .sort((a, b) => b.collected - a.collected);
 
-  // ---- cashflow + by-method (payments collected in range) ----
+  // ---- cashflow + by-method (money collected in range) ----
   const cashMap = new Map<string, CashflowRow>();
   const byMethod = { cash: 0, card: 0, online: 0 };
+  const dayRow = (d: Date): CashflowRow => {
+    const dISO = cairoDateISO(d);
+    return cashMap.get(dISO) ?? { dateISO: dISO, dateLabel: labelDateArabic(d), deliveryIn: 0, rentIn: 0, depositIn: 0, depositOut: 0, net: 0 };
+  };
+  for (const o of orders) {
+    if (o.cashReceived == null || !o.cashReceivedAt || !inRange(cairoDateISO(o.cashReceivedAt), from, to)) continue;
+    const row = dayRow(o.cashReceivedAt);
+    row.deliveryIn += o.cashReceived;
+    row.net = row.deliveryIn + row.rentIn + row.depositIn - row.depositOut;
+    cashMap.set(row.dateISO, row);
+  }
   for (const p of payments) {
     const dISO = cairoDateISO(p.createdAt);
     if (!inRange(dISO, from, to)) continue;
-    const row = cashMap.get(dISO) ?? { dateISO: dISO, dateLabel: labelDateArabic(p.createdAt), rentIn: 0, depositIn: 0, depositOut: 0, net: 0 };
+    const row = dayRow(p.createdAt);
     if (p.kind === "rent" && p.status === "paid") {
       row.rentIn += p.amount;
       byMethod[p.method] += p.amount;
@@ -131,10 +252,10 @@ export async function getFinance(from: string, to: string): Promise<FinanceRepor
     } else if (p.kind === "deposit" && p.status === "refunded") {
       row.depositOut += p.amount;
     }
-    row.net = row.rentIn + row.depositIn - row.depositOut;
+    row.net = row.deliveryIn + row.rentIn + row.depositIn - row.depositOut;
     cashMap.set(dISO, row);
   }
   const cashflow = [...cashMap.values()].sort((a, b) => (a.dateISO < b.dateISO ? -1 : 1));
 
-  return { from, to, summary, rows, cashflow, byVehicle, byMethod };
+  return { from, to, deliveries, summary, rows, cashflow, byVehicle, byMethod };
 }

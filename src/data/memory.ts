@@ -303,6 +303,7 @@ function seedState(): MemState {
         pickupDetails: "الدور التالت، جنب صيدلية الحي", dropoffDetails: "كمبوند بيفرلي هيلز، بوابة 1",
         cargoType: "أثاث / أجهزة", notes: "يوجد مصعد في المبنى، اتصل قبل الوصول بـ 10 دقائق",
         companyId: null, billing: "cash", podName: null, podPhoto: null, podAt: null,
+        source: "customer", agentName: null, cashReceived: null, cashReceivedAt: null, cashReceivedBy: null,
         pickupLat: 29.9716, pickupLng: 30.9426, dropoffLat: 30.03, dropoffLng: 30.976,
         km: 9.5, loaders: 1, scheduledAt: cairoDateTime(today, 11),
         status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق", driverPhone: null, driverFee: 9000, rating: null, ratingComment: null,
@@ -323,6 +324,7 @@ function seedState(): MemState {
         pickupAddress: "فيصل — محطة المريوطية", dropoffAddress: "الهرم — شارع الطالبية",
         pickupDetails: null, dropoffDetails: null, cargoType: "صناديق / كراسي", notes: null,
         companyId: null, billing: "cash", podName: null, podPhoto: null, podAt: null,
+        source: "customer", agentName: null, cashReceived: null, cashReceivedAt: null, cashReceivedBy: null,
         pickupLat: 29.996, pickupLng: 31.153, dropoffLat: 29.987, dropoffLng: 31.17,
         km: 4.2, loaders: 0, scheduledAt: cairoDateTime(tomorrow, 15),
         status: "assigned", driverId: DRIVER_ID, driverName: "سعيد السائق", driverPhone: null, driverFee: 5000, rating: null, ratingComment: null,
@@ -368,6 +370,11 @@ for (const o of state.deliveryOrders) {
   o.podName ??= null;
   o.podPhoto ??= null;
   o.podAt ??= null;
+  o.source ??= "customer";
+  o.agentName ??= null;
+  o.cashReceived ??= null;
+  o.cashReceivedAt ??= null;
+  o.cashReceivedBy ??= null;
 }
 state.companies ??= [];
 state.companyMembers ??= [];
@@ -704,6 +711,11 @@ export const memRepo = {
       podName: null,
       podPhoto: null,
       podAt: null,
+      source: input.source ?? "customer",
+      agentName: input.agentName ?? null,
+      cashReceived: null,
+      cashReceivedAt: null,
+      cashReceivedBy: null,
       createdAt: new Date(),
     });
     return { code };
@@ -749,6 +761,15 @@ export const memRepo = {
     const o = state.deliveryOrders.find((x) => x.code === code);
     if (!o) return false;
     Object.assign(o, { podName: name, podPhoto: photo, podAt: new Date() });
+    return true;
+  },
+
+  setDeliveryCash: async (code: string, amount: number | null, by: string | null): Promise<boolean> => {
+    const o = state.deliveryOrders.find((x) => x.code === code);
+    if (!o) return false;
+    Object.assign(o, amount == null
+      ? { cashReceived: null, cashReceivedAt: null, cashReceivedBy: null }
+      : { cashReceived: amount, cashReceivedAt: new Date(), cashReceivedBy: by });
     return true;
   },
 

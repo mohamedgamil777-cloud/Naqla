@@ -8,6 +8,23 @@ import { repo } from "@/data/repo";
 import { companyBalance } from "@/services/company-service";
 import { computeDeliveryQuote, type Quote } from "@/engines/pricing";
 import { fireNotify, deliveryCustomerMessage } from "@/services/notify";
+import { cairoDateISO, cairoDateTime } from "@/lib/time";
+
+/**
+ * Turn the picked day + time into the order's start, enforcing what the order screen offers:
+ * minimum notice, working hours, booking window. Shared by the customer API and staff phone orders.
+ */
+export async function resolveOrderSchedule(date: string, time: string): Promise<{ ok: true; scheduledAt: Date } | { ok: false; reason: "PAST" | "HOURS" | "TOO_FAR" }> {
+  const [hour, minute] = time.split(":").map(Number);
+  const scheduledAt = cairoDateTime(date, hour, minute);
+  const [branch, business] = await Promise.all([repo.defaultBranch(), repo.getBusiness()]);
+  if (scheduledAt.getTime() < Date.now() + business.nowLeadHours * 3600e3 - 60e3) return { ok: false, reason: "PAST" };
+  const mins = hour * 60 + minute;
+  if (mins < branch.working.open * 60 || mins >= branch.working.close * 60) return { ok: false, reason: "HOURS" };
+  const lastDay = cairoDateISO(new Date(Date.now() + business.advanceDays * 864e5));
+  if (date > lastDay) return { ok: false, reason: "TOO_FAR" };
+  return { ok: true, scheduledAt };
+}
 
 export interface DeliveryEstimate {
   quote: Quote;
@@ -77,6 +94,8 @@ export async function createDeliveryOrder(input: {
   contactPhone: string;
   /** B2B: order placed by a company member */
   companyId?: string | null;
+  /** taken by staff on the phone — starts confirmed (the agent already spoke to the customer) */
+  agentName?: string | null;
 }): Promise<{ ok: true; code: string } | { ok: false; reason: string }> {
   const cats = await repo.listCategories();
   const cat = cats.find((c) => c.id === input.categoryId);
@@ -119,13 +138,20 @@ export async function createDeliveryOrder(input: {
       contactPhone: input.contactPhone,
       companyId: company?.id ?? null,
       billing,
+      source: input.agentName !== undefined ? "agent" : "customer",
+      agentName: input.agentName ?? null,
     },
     est.quote,
     cat.name,
     cat.sizeCode
   );
   if (!company && est.promoApplied && input.promoCode) await repo.redeemPromo(input.promoCode);
-  fireNotify(input.contactPhone, deliveryCustomerMessage("created", code));
+  if (input.agentName !== undefined) {
+    await repo.updateDeliveryOrderStatus(code, "confirmed");
+    fireNotify(input.contactPhone, deliveryCustomerMessage("confirmed", code));
+  } else {
+    fireNotify(input.contactPhone, deliveryCustomerMessage("created", code));
+  }
   return { ok: true, code };
 }
 

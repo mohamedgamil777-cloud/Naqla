@@ -17,6 +17,7 @@ const ROLE_LABEL: Record<StaffRole, string> = {
 const nav: { href: string; label: string; icon: string; roles: StaffRole[] }[] = [
   { href: "/admin", label: "لوحة التحكم", icon: "📊", roles: ["super_admin", "fleet_mgr", "agent", "finance"] },
   { href: "/admin/orders", label: "طلبات التوصيل", icon: "📦", roles: ["super_admin", "fleet_mgr", "agent"] },
+  { href: "/admin/new-order", label: "طلب بالتليفون", icon: "☎️", roles: ["super_admin", "agent"] },
   { href: "/admin/new-booking", label: "حجز جديد", icon: "➕", roles: ["super_admin", "agent"] },
   { href: "/admin/board", label: "المواعيد", icon: "🗓️", roles: ["super_admin", "fleet_mgr", "agent"] },
   { href: "/admin/bookings", label: "الحجوزات", icon: "📋", roles: ["super_admin", "fleet_mgr", "agent"] },

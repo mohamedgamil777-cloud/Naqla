@@ -75,6 +75,13 @@ export async function getAdminRole(): Promise<StaffRole | null> {
   return null;
 }
 
+/** Who is acting in the admin, for records like "taken by" / "received by". */
+export async function getAdminName(): Promise<string> {
+  const session = await getSession();
+  const staff = session ? await repo.getStaffByPhone(session.phone) : null;
+  return staff && ADMIN_ROLES.includes(staff.role) ? staff.name : "المدير";
+}
+
 export async function isAdminAuthed(): Promise<boolean> {
   return (await getAdminRole()) !== null;
 }

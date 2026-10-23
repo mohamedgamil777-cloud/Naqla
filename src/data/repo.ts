@@ -15,6 +15,7 @@ import type {
   CompanyPaymentDTO,
   CompanyRole,
   OrderBilling,
+  OrderSource,
   SavedAddressDTO,
   SavedAddressInput,
   BlockDTO,
@@ -161,6 +162,11 @@ function mapDeliveryOrder(r: typeof deliveryOrders.$inferSelect, driverName: str
     podName: r.podName ?? null,
     podPhoto: r.podPhoto ?? null,
     podAt: r.podAt ?? null,
+    source: (r.source ?? "customer") as OrderSource,
+    agentName: r.agentName ?? null,
+    cashReceived: r.cashReceived ?? null,
+    cashReceivedAt: r.cashReceivedAt ?? null,
+    cashReceivedBy: r.cashReceivedBy ?? null,
     createdAt: r.createdAt,
   };
 }
@@ -550,6 +556,8 @@ const pgRepo = {
       contactPhone: input.contactPhone,
       companyId: input.companyId ?? null,
       billing: input.billing ?? "cash",
+      source: input.source ?? "customer",
+      agentName: input.agentName ?? null,
     });
     return { code };
   },
@@ -611,6 +619,15 @@ const pgRepo = {
     const res = await db!
       .update(deliveryOrders)
       .set({ podName: name, podPhoto: photo, podAt: new Date() })
+      .where(eq(deliveryOrders.code, code))
+      .returning({ id: deliveryOrders.id });
+    return res.length > 0;
+  },
+  /** Cash handed in by the driver for this order (null amount = undo). */
+  setDeliveryCash: async (code: string, amount: number | null, by: string | null): Promise<boolean> => {
+    const res = await db!
+      .update(deliveryOrders)
+      .set(amount == null ? { cashReceived: null, cashReceivedAt: null, cashReceivedBy: null } : { cashReceived: amount, cashReceivedAt: new Date(), cashReceivedBy: by })
       .where(eq(deliveryOrders.code, code))
       .returning({ id: deliveryOrders.id });
     return res.length > 0;

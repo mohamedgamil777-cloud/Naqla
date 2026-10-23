@@ -308,6 +308,11 @@ export const deliveryOrders = pgTable(
     podName: text("pod_name"),
     podPhoto: text("pod_photo"),
     podAt: timestamp("pod_at", { withTimezone: true }),
+    source: text("source", { enum: ["customer", "agent"] }).notNull().default("customer"),
+    agentName: text("agent_name"),
+    cashReceived: integer("cash_received"),
+    cashReceivedAt: timestamp("cash_received_at", { withTimezone: true }),
+    cashReceivedBy: text("cash_received_by"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("delivery_orders_code_uq").on(t.code), index("delivery_orders_phone_idx").on(t.contactPhone)]

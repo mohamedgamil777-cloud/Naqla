@@ -2,6 +2,7 @@
  * Business defaults. Everything here is overridable per-branch or in the
  * `settings` table — these are the seeded starting values (see architecture §14).
  */
+import type { DeliveryOrderStatus } from "@/data/types";
 
 export const VEHICLE_KINDS = ["pickup", "van"] as const;
 export type VehicleKind = (typeof VEHICLE_KINDS)[number];
@@ -62,6 +63,17 @@ export const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
   ready: "جاهز للاستلام",
   active: "جاري الإيجار",
   completed: "تم التسليم",
+  cancelled: "ملغي",
+};
+
+/** Short Arabic labels for delivery-order statuses (reports / exports). */
+export const DELIVERY_STATUS_LABEL: Record<DeliveryOrderStatus, string> = {
+  new: "جديد",
+  confirmed: "مؤكد",
+  assigned: "متعيّن سواق",
+  en_route: "في الطريق",
+  arrived: "وصل",
+  completed: "تم التوصيل",
   cancelled: "ملغي",
 };
 

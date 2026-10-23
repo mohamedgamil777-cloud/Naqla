@@ -11,3 +11,7 @@ coverage
 next-env.d.ts
 *.tsbuildinfo
 design-review/
+
+# business documents (repo is public)
+*.docx
+~$*

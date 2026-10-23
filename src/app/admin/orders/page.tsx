@@ -1,7 +1,7 @@
 import { repo } from "@/data/repo";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
-import { setDeliveryOrderStatus, assignDeliveryDriver, setDriverFeeAction, changeOrderSizeAction } from "@/app/admin/actions";
+import { setDeliveryOrderStatus, assignDeliveryDriver, setDriverFeeAction, changeOrderSizeAction, setOrderCashAction } from "@/app/admin/actions";
 import { piastresToEgp } from "@/lib/money";
 import type { DeliveryOrderStatus, StaffDTO } from "@/data/types";
 import { driverRatings } from "@/services/ratings";
@@ -26,12 +26,40 @@ export default async function AdminOrdersPage() {
   const ratings = driverRatings(orders);
   const openCount = orders.filter((o) => o.status === "new").length;
 
+  // Cash still with the drivers: completed cash orders nobody recorded as handed in.
+  const cashPending = orders.filter((o) => o.status === "completed" && o.billing === "cash" && o.cashReceived == null);
+  const pendingByDriver = new Map<string, { name: string; count: number; amount: number }>();
+  for (const o of cashPending) {
+    const k = o.driverId ?? "none";
+    const row = pendingByDriver.get(k) ?? { name: o.driverName ?? "بدون سائق", count: 0, amount: 0 };
+    row.count += 1;
+    row.amount += o.priceSnapshot.total;
+    pendingByDriver.set(k, row);
+  }
+
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-2xl font-extrabold">طلبات التوصيل (A→B)</h1>
-        <p className="text-muted">طلبات العملاء من «اطلب توصيلة». {openCount > 0 && <span className="font-bold text-rented">عندك {openCount} طلب جديد.</span>}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold">طلبات التوصيل (A→B)</h1>
+          <p className="text-muted">طلبات العملاء من الموقع والتليفون. {openCount > 0 && <span className="font-bold text-rented">عندك {openCount} طلب جديد.</span>}</p>
+        </div>
+        <a href="/admin/new-order" className="rounded-xl bg-primary text-white px-4 py-2 font-bold tap">☎️ طلب جديد بالتليفون</a>
       </div>
+
+      {cashPending.length > 0 && (
+        <div className="bg-reserved-soft border border-line rounded-card p-4 flex flex-col gap-2">
+          <div className="font-extrabold">
+            💵 كاش لسه مع السواقين: {formatEgp(cashPending.reduce((s, o) => s + o.priceSnapshot.total, 0))} في {cashPending.length} طلب
+          </div>
+          <div className="flex flex-wrap gap-2 text-sm">
+            {[...pendingByDriver.values()].map((d) => (
+              <span key={d.name} className="rounded-full bg-panel px-3 py-1 font-bold">{d.name}: {formatEgp(d.amount)} ({d.count})</span>
+            ))}
+          </div>
+          <span className="text-xs text-muted">لما السواق يسلّمك الفلوس، دوس «استلمت الكاش» على كل طلب تحت.</span>
+        </div>
+      )}
 
       {orders.length === 0 ? (
         <div className="bg-panel border border-line rounded-card p-8 text-center text-muted">لسه مفيش طلبات توصيل.</div>
@@ -54,6 +82,9 @@ export default async function AdminOrdersPage() {
                         🏢 {companyName[o.companyId] ?? "شركة"} · {o.billing === "account" ? "على الحساب" : "كاش"}
                       </a>
                     )}
+                    {o.source === "agent" && (
+                      <span className="rounded-full bg-accent-soft text-accent-ink px-2 py-0.5 text-xs font-bold">☎️ بالتليفون{o.agentName ? ` · ${o.agentName}` : ""}</span>
+                    )}
                   </div>
                   <span className="font-extrabold text-xl text-emph">{formatEgp(o.priceSnapshot.total)}</span>
                 </div>
@@ -72,6 +103,33 @@ export default async function AdminOrdersPage() {
                 </div>
 
                 {o.status === "completed" && <PodView o={o} />}
+
+                {/* Cash handed in by the driver (cash orders only — account orders go on the company statement) */}
+                {o.status === "completed" && o.billing === "cash" && (
+                  o.cashReceived == null ? (
+                    <form action={setOrderCashAction} className="bg-reserved-soft rounded-xl p-3 flex flex-wrap gap-2 items-center">
+                      <input type="hidden" name="code" value={o.code} />
+                      <span className="font-bold text-sm">💵 الكاش لسه مع السواق — المطلوب {formatEgp(o.priceSnapshot.total)}</span>
+                      <input name="amount" type="number" min="0" step="0.5" placeholder={String(piastresToEgp(o.priceSnapshot.total))} className="w-28 rounded-xl border border-line-2 bg-panel px-3 py-1.5" />
+                      <button className="rounded-xl bg-ok text-white px-4 py-1.5 font-bold tap">استلمت الكاش</button>
+                      <span className="text-xs text-muted w-full">سيب الخانة فاضية لو استلمت المبلغ كامل، أو اكتب اللي استلمته فعلاً.</span>
+                    </form>
+                  ) : (
+                    <form action={setOrderCashAction} className="bg-ok-soft rounded-xl p-3 flex flex-wrap gap-2 items-center">
+                      <input type="hidden" name="code" value={o.code} />
+                      <input type="hidden" name="undo" value="1" />
+                      <span className="font-bold text-sm text-ok">
+                        ✅ اتسلّم {formatEgp(o.cashReceived)}
+                        {o.cashReceivedAt ? ` — ${labelDateArabic(o.cashReceivedAt)} ${labelTime(o.cashReceivedAt)}` : ""}
+                        {o.cashReceivedBy ? ` — ${o.cashReceivedBy}` : ""}
+                      </span>
+                      {o.cashReceived !== o.priceSnapshot.total && (
+                        <span className="text-sm font-bold text-booked">فرق {formatEgp(o.priceSnapshot.total - o.cashReceived)} عن المطلوب</span>
+                      )}
+                      <button className="rounded-xl text-booked border border-booked-soft px-3 py-1 text-sm font-bold tap">تراجع</button>
+                    </form>
+                  )
+                )}
 
                 {/* Truck size (admin can switch it; price is recomputed) */}
                 {o.status !== "completed" && o.status !== "cancelled" && (
