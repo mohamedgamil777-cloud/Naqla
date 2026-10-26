@@ -1,0 +1,25 @@
+{
+  "appId": "com.naqla.driver",
+  "appName": "نقلة سواق",
+  "webDir": "www",
+  "backgroundColor": "#f7f4ec",
+  "appendUserAgent": "NaqlaApp",
+  "server": {
+    "url": "https://naqla-sandy.vercel.app/driver",
+    "errorPath": "offline.html",
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "ios": {
+    "contentInset": "never"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1000,
+      "backgroundColor": "#f7f4ec",
+      "showSpinner": false
+    }
+  }
+}
