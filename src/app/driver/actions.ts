@@ -11,7 +11,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { repo } from "@/data/repo";
 import { getSession } from "@/services/session";
-import { fireNotify, deliveryCustomerMessage } from "@/services/notify";
+import { advanceDeliveryOrder, driverByPhone } from "@/services/driver-service";
 
 export interface DriverActionState {
   ok: boolean;
@@ -20,9 +20,7 @@ export interface DriverActionState {
 
 async function currentDriver() {
   const session = await getSession();
-  if (!session) return null;
-  const staff = await repo.getStaffByPhone(session.phone);
-  return staff && staff.role === "driver" ? staff : null;
+  return session ? driverByPhone(session.phone) : null;
 }
 
 export async function driverAdvanceTrip(
@@ -51,10 +49,7 @@ export async function driverAdvanceTrip(
   return { ok: true };
 }
 
-/** Driver advances their own delivery order, one step at a time:
- *  assigned → en_route ("ابدأ الرحلة") → arrived ("تم الوصول لموقع الاستلام") → completed ("تم التوصيل"). */
-const NEXT_STEP: Record<string, string> = { en_route: "assigned", arrived: "en_route", completed: "arrived" };
-
+/** Driver advances their own delivery order, one step at a time (rules in driver-service). */
 export async function driverAdvanceOrder(
   _prev: DriverActionState,
   fd: FormData
@@ -63,25 +58,11 @@ export async function driverAdvanceOrder(
   if (!driver) return { ok: false, error: "مش مسجّل كسائق" };
 
   const code = String(fd.get("code") ?? "");
-  const to = String(fd.get("to") ?? "");
-  if (!(to in NEXT_STEP)) return { ok: false, error: "أمر غير معروف" };
-
-  const order = await repo.getDeliveryOrder(code);
-  if (!order) return { ok: false, error: "الطلب مش موجود" };
-  if (order.driverId !== driver.id) return { ok: false, error: "الطلب ده مش ليك" };
-  if (order.status !== NEXT_STEP[to]) return { ok: false, error: "مش وقت الخطوة دي" };
-
-  const status = to as "en_route" | "arrived" | "completed";
-  // Proof of delivery is required to finish: who received it + a photo.
-  if (status === "completed") {
-    const podName = String(fd.get("podName") ?? "").trim();
-    const podPhoto = String(fd.get("podPhoto") ?? "");
-    if (podName.length < 2) return { ok: false, error: "اكتب اسم اللي استلم" };
-    if (!podPhoto.startsWith("data:image/") || podPhoto.length > 3_000_000) return { ok: false, error: "صوّر الحاجة بعد التسليم" };
-    await repo.setDeliveryPod(code, podName.slice(0, 80), podPhoto);
-  }
-  await repo.updateDeliveryOrderStatus(code, status);
-  fireNotify(order.contactPhone, deliveryCustomerMessage(status, code, order.driverName));
+  const r = await advanceDeliveryOrder(driver, code, String(fd.get("to") ?? ""), {
+    name: String(fd.get("podName") ?? ""),
+    photo: String(fd.get("podPhoto") ?? ""),
+  });
+  if (!r.ok) return r;
   revalidatePath("/driver");
   revalidatePath(`/driver/trip/${code}`);
   // Starting from the list jumps straight into the trip screen.

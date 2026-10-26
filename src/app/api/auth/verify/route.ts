@@ -20,8 +20,9 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "BAD_REQUEST" }, { status: 400 });
   try {
     const { phone } = await verifyOtp(parsed.data.phone, parsed.data.code);
-    await setSession({ phone, name: parsed.data.name });
-    return NextResponse.json({ ok: true });
+    const token = await setSession({ phone, name: parsed.data.name });
+    // the mobile app stores `token` and sends it as "Authorization: Bearer <token>"
+    return NextResponse.json({ ok: true, phone, token });
   } catch (e) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.code }, { status: 400 });
     throw e;
