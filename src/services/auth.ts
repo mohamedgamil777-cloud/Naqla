@@ -46,7 +46,7 @@ export async function sendOtp(rawPhone: string): Promise<{ phone: string; devCod
   const code = String(randomInt(1000, 10000)); // 4-digit
   const expiresAt = new Date(Date.now() + OTP_TTL_MS);
   await repo.saveOtp(phone, hashCode(phone, code), expiresAt);
-  await getSms().send(phone, `كود الدخول لـ نقلة: ${code}`);
+  await getSms().send(phone, `كود الدخول لـ انقلي: ${code}`);
   // Demo mode shows the code on screen — but never for admin staff numbers, or anyone
   // could open the admin dashboard by typing a staff phone. Staff use the passcode
   // until a real SMS provider is connected.

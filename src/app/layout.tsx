@@ -10,7 +10,7 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "نقلة — أجّر بيك أب أو فان بسهولة",
+  title: "انقلي — أجّر بيك أب أو فان بسهولة",
   description: "أجّر بيك أب أو فان في مصر بالساعة أو باليوم — بخطوات بسيطة.",
   manifest: "/manifest.webmanifest",
   icons: {

@@ -67,7 +67,7 @@ export default function LoginPage() {
       <header className="flex flex-col items-center text-center gap-3">
         <Logo className="h-20" full />
         <div>
-          <h1 className="text-2xl font-extrabold">{sent ? "اكتب كود التأكيد" : "أهلاً بيك في نقلة"}</h1>
+          <h1 className="text-2xl font-extrabold">{sent ? "اكتب كود التأكيد" : "أهلاً بيك في انقلي"}</h1>
           <p className="text-muted mt-1">
             {sent ? (
               <>

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
  * Home carousel: swipeable (CSS scroll-snap), auto-advances every 5s, pauses while touched,
  * dots to jump. The scroller is LTR so the math is simple; the page around it stays RTL.
  */
-export function HeroCarousel({ slides, alt = "نقلة" }: { slides: string[]; alt?: string }) {
+export function HeroCarousel({ slides, alt = "انقلي" }: { slides: string[]; alt?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const paused = useRef(false);

@@ -52,7 +52,7 @@ export function deliveryCustomerMessage(
     case "arrived":
       return `السواق وصل لمكان الاستلام 📍\nرقم الطلب: ${code}${driverName ? `\nالسواق: ${driverName}` : ""}`;
     case "completed":
-      return `تم توصيل طلبك 🎉\nرقم الطلب: ${code}\nيا ريت تقيّم الخدمة من التطبيق. شكراً لاستخدامك نقلة!`;
+      return `تم توصيل طلبك 🎉\nرقم الطلب: ${code}\nيا ريت تقيّم الخدمة من التطبيق. شكراً لاستخدامك انقلي!`;
   }
 }
 

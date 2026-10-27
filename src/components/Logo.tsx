@@ -1,12 +1,12 @@
-/** Official Naqla logo (v2) — cut from the brand board (public/brand/*.png).
- *  `logo.png` = truck + نقلة + NAQLA, `logo-full.png` = + "PICKUP & VAN RENTAL" line,
- *  `logo-white.png` = for dark surfaces, `mark.png` = the truck on its own. */
+/** Official logo «انقلي / enqelly» (v3) — cut from the brand image (public/brand/*.png).
+ *  `logo.png` / `logo-full.png` = box + pin + انقلي + enqelly,
+ *  `logo-white.png` = for dark surfaces, `mark.png` = the box + pin on its own. */
 
-const LOGO_W = 628;
-const LOGO_H = 184;
-const FULL_H = 230;
-const MARK_W = 334;
-const MARK_H = 182;
+const LOGO_W = 1125;
+const LOGO_H = 448;
+const FULL_H = 448;
+const MARK_W = 530;
+const MARK_H = 448;
 
 export function Logo({
   className = "h-10",
@@ -23,7 +23,7 @@ export function Logo({
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={surface === "dark" ? "/brand/logo-white.png" : full ? "/brand/logo-full.png" : "/brand/logo.png"}
-      alt="نقلة"
+      alt="انقلي"
       width={LOGO_W}
       height={full && surface !== "dark" ? FULL_H : LOGO_H}
       className={`w-auto select-none ${className}`}

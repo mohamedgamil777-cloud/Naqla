@@ -40,7 +40,7 @@ export default async function EstimatePage({ searchParams }: { searchParams: Pro
     <div className="p-4 flex flex-col gap-4">
       <div>
         <h1 className="text-[1.7rem] font-extrabold leading-tight">اطلب توصيلة</h1>
-        <p className="text-muted mt-1">أسرع وأسهل طريقة لنقل أغراضك مع سائق معتمد من نقلة</p>
+        <p className="text-muted mt-1">أسرع وأسهل طريقة لنقل أغراضك مع سائق معتمد من انقلي</p>
       </div>
       {sizes.length === 0 ? (
         <div className="bg-panel border border-line rounded-card p-8 text-center text-muted">

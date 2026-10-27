@@ -11,7 +11,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
         <div className="flex items-center justify-between px-4 h-16">
           <div className="flex items-center gap-2">
             <HeaderBack />
-            <Link href="/" aria-label="نقلة — الرئيسية" className="flex items-center">
+            <Link href="/" aria-label="انقلي — الرئيسية" className="flex items-center">
               <Logo className="h-11" surface="bar" />
             </Link>
           </div>

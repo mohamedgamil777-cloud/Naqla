@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { DriverNav } from "@/components/driver/DriverTabs";
 
-export const metadata = { title: "شغلي — نقلة" };
+export const metadata = { title: "شغلي — انقلي" };
 
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
   return (

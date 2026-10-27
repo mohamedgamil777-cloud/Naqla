@@ -16,7 +16,7 @@ export default async function AccountPage() {
   if (!session) {
     return (
       <EmptyState
-        title="أهلاً بيك في نقلة"
+        title="أهلاً بيك في انقلي"
         subtitle="سجّل دخولك برقم موبايلك عشان تتابع طلباتك"
         action={<LinkButton href="/login?next=/account">دخول برقم الموبايل</LinkButton>}
       />
@@ -44,7 +44,7 @@ export default async function AccountPage() {
             <Icon name="user" className="w-8 h-8" />
           </span>
           <div className="min-w-0">
-            <div className="font-extrabold text-xl truncate">{session.name ?? "عميل نقلة"}</div>
+            <div className="font-extrabold text-xl truncate">{session.name ?? "عميل انقلي"}</div>
             <div className="text-muted flex items-center gap-1.5">
               <Icon name="phone" className="w-4 h-4" />
               <span dir="ltr">{toLocal(session.phone) ?? session.phone}</span>
