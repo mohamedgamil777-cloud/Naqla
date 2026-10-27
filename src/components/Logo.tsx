@@ -22,7 +22,7 @@ export function Logo({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={surface === "dark" ? "/brand/logo-white.png" : full ? "/brand/logo-full.png" : "/brand/logo.png"}
+      src={surface === "dark" ? "/brand/logo-white.png?v=3" : full ? "/brand/logo-full.png?v=3" : "/brand/logo.png?v=3"}
       alt="انقلي"
       width={LOGO_W}
       height={full && surface !== "dark" ? FULL_H : LOGO_H}
@@ -35,10 +35,10 @@ export function Logo({
 /** The truck mark alone. Pass x/y/width to place it inside another <svg>. */
 export function LogoMark({ className = "h-8", x, y, width }: { className?: string; x?: number; y?: number; width?: number }) {
   if (width != null) {
-    return <image href="/brand/mark.png" x={x} y={y} width={width} height={(width * MARK_H) / MARK_W} />;
+    return <image href="/brand/mark.png?v=3" x={x} y={y} width={width} height={(width * MARK_H) / MARK_W} />;
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src="/brand/mark.png" alt="" aria-hidden="true" width={MARK_W} height={MARK_H} className={`h-auto select-none ${className}`} draggable={false} />
+    <img src="/brand/mark.png?v=3" alt="" aria-hidden="true" width={MARK_W} height={MARK_H} className={`h-auto select-none ${className}`} draggable={false} />
   );
 }
