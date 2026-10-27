@@ -64,7 +64,7 @@ export default async function BookingsPage() {
       <EmptyState
         title="لسه مفيش طلبات"
         subtitle="اطلب أول توصيلة وهتلاقيها هنا تتابعها خطوة بخطوة"
-        action={<LinkButton href="/estimate" variant="accent">اطلب توصيلة</LinkButton>}
+        action={<LinkButton href="/estimate" variant="accent">انقللي</LinkButton>}
       />
     );
   }

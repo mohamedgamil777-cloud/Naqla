@@ -43,7 +43,7 @@ export default async function HomePage() {
           href="/estimate"
           className="tap mt-4 bg-accent text-on-accent hover:brightness-105 shadow-[0_6px_16px_rgba(242,165,65,0.35)] rounded-2xl py-4 px-5 font-extrabold text-xl flex items-center justify-center gap-3"
         >
-          اطلب توصيلة
+          انقللي
           <Icon name="chevronLeft" className="w-6 h-6" strokeWidth={2.6} />
         </Link>
       </section>
