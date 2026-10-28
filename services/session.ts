@@ -1,11 +1,11 @@
 /** Signed session cookie (JWT/HS256 via jose). Holds the authenticated phone. */
 import { cookies, headers } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
+import { authSecret } from "@/lib/env";
 
 const COOKIE = "naqla_session";
-const secret = new TextEncoder().encode(
-  process.env.AUTH_SECRET ?? "dev-only-insecure-secret-change-me-please-32b"
-);
+// Read lazily: the secret is validated by lib/env (production refuses a missing/weak one).
+const key = () => new TextEncoder().encode(authSecret());
 
 export interface Session {
   phone: string;
@@ -17,7 +17,7 @@ export async function createSessionToken(s: Session): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
-    .sign(secret);
+    .sign(key());
 }
 
 /** Sets the website cookie and returns the token (the mobile app keeps it as a Bearer token). */
@@ -40,7 +40,7 @@ export async function getSession(): Promise<Session | null> {
   const token = bearer ?? (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, key());
     return { phone: payload.phone as string, name: payload.name as string | undefined };
   } catch {
     return null;

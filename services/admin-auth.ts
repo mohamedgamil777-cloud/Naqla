@@ -4,30 +4,24 @@
  * What each role may DO is decided by lib/permissions.ts and enforced by lib/authz.ts.
  */
 import { cookies } from "next/headers";
+import { timingSafeEqual } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
+import { adminPasscode, authSecret } from "@/lib/env";
 import { getSession } from "./session";
 import { repo } from "@/db/repo";
 import type { StaffRole } from "@/types";
 import { isAdminRole } from "@/lib/permissions";
 
 const COOKIE = "naqla_admin";
-const secret = new TextEncoder().encode(
-  process.env.AUTH_SECRET ?? "dev-only-insecure-secret-change-me-please-32b"
-);
+const key = () => new TextEncoder().encode(authSecret());
 
-
-/** The passcode required to enter the admin panel. */
-export function adminPasscode(): string {
-  return process.env.ADMIN_PASSCODE ?? "naqla2026";
-}
-
+/** Passcode login to the admin. Refused when the passcode is missing/weak in production (lib/env). */
 export function checkPasscode(input: string): boolean {
   const expected = adminPasscode();
-  // Constant-ish comparison; inputs are short so this is fine.
-  if (input.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < expected.length; i++) diff |= input.charCodeAt(i) ^ expected.charCodeAt(i);
-  return diff === 0;
+  if (!expected) return false;
+  const a = Buffer.from(input);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 export async function setAdminSession(): Promise<void> {
@@ -35,7 +29,7 @@ export async function setAdminSession(): Promise<void> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(secret);
+    .sign(key());
   const jar = await cookies();
   jar.set(COOKIE, token, {
     httpOnly: true,
@@ -59,7 +53,7 @@ export async function getAdminRole(): Promise<StaffRole | null> {
   const token = jar.get(COOKIE)?.value;
   if (token) {
     try {
-      const { payload } = await jwtVerify(token, secret);
+      const { payload } = await jwtVerify(token, key());
       const role = typeof payload.role === "string" ? payload.role : null;
       if (payload.admin === true && isAdminRole(role)) return role;
     } catch {

@@ -4,15 +4,15 @@ import { repo } from "@/db/repo";
 import { getSms } from "./sms";
 import { toE164 } from "@/lib/phone";
 import { isAdminRole } from "@/lib/permissions";
+import { authSecret, getEnv } from "@/lib/env";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const RESEND_COOLDOWN_MS = 30 * 1000;
 /** Staff who can enter admin by phone. They must NEVER get an on-screen demo code. */
-const secret = process.env.AUTH_SECRET ?? "dev-only-insecure-secret-change-me-please-32b";
 
 function hashCode(phone: string, code: string): string {
-  return createHmac("sha256", secret).update(`${phone}:${code}`).digest("hex");
+  return createHmac("sha256", authSecret()).update(`${phone}:${code}`).digest("hex");
 }
 
 export class AuthError extends Error {
@@ -23,7 +23,7 @@ export class AuthError extends Error {
 
 /** True only when no real SMS gateway is configured (dev/demo). */
 export function isDevSms(): boolean {
-  return (process.env.SMS_PROVIDER ?? "console") === "console";
+  return getEnv().SMS_PROVIDER === "console";
 }
 
 /**

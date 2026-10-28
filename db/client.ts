@@ -1,10 +1,11 @@
-/** Postgres/Drizzle client. Null when DATABASE_URL is not configured (dev
- * fallback to the in-memory store then kicks in). */
+/** Postgres/Drizzle client. Null when DATABASE_URL is not configured — allowed only outside
+ * production (lib/env refuses to start production without it), where the in-memory store is used. */
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
+import { getEnv } from "@/lib/env";
 
-const url = process.env.DATABASE_URL;
+const url = getEnv().DATABASE_URL;
 
 let _sql: ReturnType<typeof postgres> | null = null;
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
