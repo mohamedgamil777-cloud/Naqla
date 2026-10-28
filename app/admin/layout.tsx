@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminRole } from "@/services/admin-auth";
+import { can, type Permission } from "@/lib/permissions";
 import { adminLogout } from "@/app/admin-login/actions";
 import type { StaffRole } from "@/types";
 import { Logo } from "@/components/Logo";
@@ -13,32 +14,33 @@ const ROLE_LABEL: Record<StaffRole, string> = {
   driver: "سائق",
 };
 
-// Which roles may see each nav item (super_admin sees everything).
-const nav: { href: string; label: string; icon: string; roles: StaffRole[] }[] = [
-  { href: "/admin", label: "لوحة التحكم", icon: "📊", roles: ["super_admin", "fleet_mgr", "agent", "finance"] },
-  { href: "/admin/orders", label: "طلبات التوصيل", icon: "📦", roles: ["super_admin", "fleet_mgr", "agent"] },
-  { href: "/admin/new-order", label: "طلب بالتليفون", icon: "☎️", roles: ["super_admin", "agent"] },
-  { href: "/admin/new-booking", label: "حجز جديد", icon: "➕", roles: ["super_admin", "agent"] },
-  { href: "/admin/board", label: "المواعيد", icon: "🗓️", roles: ["super_admin", "fleet_mgr", "agent"] },
-  { href: "/admin/bookings", label: "الحجوزات", icon: "📋", roles: ["super_admin", "fleet_mgr", "agent"] },
-  { href: "/admin/calculator", label: "حاسبة السعر", icon: "🧮", roles: ["super_admin", "agent"] },
-  { href: "/admin/companies", label: "الشركات", icon: "🏢", roles: ["super_admin", "finance"] },
-  { href: "/admin/finance", label: "الحسابات", icon: "💰", roles: ["super_admin", "finance"] },
-  { href: "/admin/settlements", label: "تسديدات السواقين", icon: "💵", roles: ["super_admin", "finance"] },
-  { href: "/admin/expenses", label: "النثريات", icon: "🧾", roles: ["super_admin", "finance"] },
-  { href: "/admin/reports", label: "تقارير الشركة", icon: "📈", roles: ["super_admin", "finance"] },
-  { href: "/admin/fleet", label: "العربيات", icon: "🚙", roles: ["super_admin", "fleet_mgr"] },
-  { href: "/admin/categories", label: "الأنواع", icon: "🏷️", roles: ["super_admin", "fleet_mgr"] },
-  { href: "/admin/coupons", label: "كوبونات الخصم", icon: "🎟️", roles: ["super_admin", "agent"] },
-  { href: "/admin/content", label: "محتوى التطبيق", icon: "🖼️", roles: ["super_admin"] },
-  { href: "/admin/staff", label: "الموظفين", icon: "👥", roles: ["super_admin"] },
-  { href: "/admin/settings", label: "الإعدادات", icon: "⚙️", roles: ["super_admin"] },
+// Each menu item shows only for roles holding its permission (lib/permissions.ts).
+// Hiding is feedback only: every page also checks its permission on the server.
+const nav: { href: string; label: string; icon: string; permission: Permission }[] = [
+  { href: "/admin", label: "لوحة التحكم", icon: "📊", permission: "dashboard:read" },
+  { href: "/admin/orders", label: "طلبات التوصيل", icon: "📦", permission: "delivery:read" },
+  { href: "/admin/new-order", label: "طلب بالتليفون", icon: "☎️", permission: "delivery:create" },
+  { href: "/admin/new-booking", label: "حجز جديد", icon: "➕", permission: "booking:create" },
+  { href: "/admin/board", label: "المواعيد", icon: "🗓️", permission: "booking:read" },
+  { href: "/admin/bookings", label: "الحجوزات", icon: "📋", permission: "booking:read" },
+  { href: "/admin/calculator", label: "حاسبة السعر", icon: "🧮", permission: "pricing:calculate" },
+  { href: "/admin/companies", label: "الشركات", icon: "🏢", permission: "company:manage" },
+  { href: "/admin/finance", label: "الحسابات", icon: "💰", permission: "finance:read" },
+  { href: "/admin/settlements", label: "تسديدات السواقين", icon: "💵", permission: "payout:manage" },
+  { href: "/admin/expenses", label: "النثريات", icon: "🧾", permission: "expense:manage" },
+  { href: "/admin/reports", label: "تقارير الشركة", icon: "📈", permission: "report:read" },
+  { href: "/admin/fleet", label: "العربيات", icon: "🚙", permission: "fleet:manage" },
+  { href: "/admin/categories", label: "الأنواع", icon: "🏷️", permission: "category:manage" },
+  { href: "/admin/coupons", label: "كوبونات الخصم", icon: "🎟️", permission: "coupon:manage" },
+  { href: "/admin/content", label: "محتوى التطبيق", icon: "🖼️", permission: "content:manage" },
+  { href: "/admin/staff", label: "الموظفين", icon: "👥", permission: "staff:manage" },
+  { href: "/admin/settings", label: "الإعدادات", icon: "⚙️", permission: "settings:manage" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const role = await getAdminRole();
   if (!role) redirect("/admin-login");
-  const items = nav.filter((n) => n.roles.includes(role));
+  const items = nav.filter((n) => can(role, n.permission));
   return (
     <div className="min-h-dvh md:flex bg-ground">
       <aside className="md:w-60 md:min-h-dvh bg-bar-ink text-white/90 md:sticky md:top-0 print:hidden">

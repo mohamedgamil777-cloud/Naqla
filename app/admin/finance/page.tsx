@@ -2,8 +2,8 @@ import { getFinance } from "@/services/finance-service";
 import { formatEgp } from "@/lib/money";
 import { cairoDateISO, labelDateArabic } from "@/lib/time";
 import { BookingStatusBadge } from "@/components/ui";
-import { requireAdminRole } from "@/services/admin-auth";
 import { DELIVERY_STATUS_LABEL } from "@/lib/constants";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -13,7 +13,7 @@ export default async function FinancePage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  await requireAdminRole(["super_admin", "finance"]);
+  await requirePermission("finance:read");
   const sp = await searchParams;
   const todayISO = cairoDateISO(new Date());
   const monthStart = todayISO.slice(0, 8) + "01";

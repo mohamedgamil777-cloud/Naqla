@@ -1,22 +1,20 @@
 /**
- * Minimal admin gate: a single shared passcode protects the whole /admin area.
- * This is a lightweight guard (not full per-user RBAC) so the panel isn't open
- * to anyone with the link. Set ADMIN_PASSCODE in production; a dev default keeps
- * local use frictionless.
+ * Admin identity: who is signed in to the admin and with which role.
+ * Entry is the shared passcode (→ super_admin) or a staff phone session with an admin role.
+ * What each role may DO is decided by lib/permissions.ts and enforced by lib/authz.ts.
  */
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import { getSession } from "./session";
 import { repo } from "@/db/repo";
 import type { StaffRole } from "@/types";
+import { isAdminRole } from "@/lib/permissions";
 
 const COOKIE = "naqla_admin";
 const secret = new TextEncoder().encode(
   process.env.AUTH_SECRET ?? "dev-only-insecure-secret-change-me-please-32b"
 );
 
-/** Staff roles that may enter the admin area at all. */
-export const ADMIN_ROLES: StaffRole[] = ["super_admin", "fleet_mgr", "agent", "finance"];
 
 /** The passcode required to enter the admin panel. */
 export function adminPasscode(): string {
@@ -62,7 +60,8 @@ export async function getAdminRole(): Promise<StaffRole | null> {
   if (token) {
     try {
       const { payload } = await jwtVerify(token, secret);
-      if (payload.admin === true) return ((payload.role as StaffRole) ?? "super_admin");
+      const role = typeof payload.role === "string" ? payload.role : null;
+      if (payload.admin === true && isAdminRole(role)) return role;
     } catch {
       /* fall through */
     }
@@ -70,7 +69,7 @@ export async function getAdminRole(): Promise<StaffRole | null> {
   const session = await getSession();
   if (session) {
     const staff = await repo.getStaffByPhone(session.phone);
-    if (staff && ADMIN_ROLES.includes(staff.role)) return staff.role;
+    if (staff && isAdminRole(staff.role)) return staff.role;
   }
   return null;
 }
@@ -79,18 +78,9 @@ export async function getAdminRole(): Promise<StaffRole | null> {
 export async function getAdminName(): Promise<string> {
   const session = await getSession();
   const staff = session ? await repo.getStaffByPhone(session.phone) : null;
-  return staff && ADMIN_ROLES.includes(staff.role) ? staff.name : "المدير";
+  return staff && isAdminRole(staff.role) ? staff.name : "المدير";
 }
 
 export async function isAdminAuthed(): Promise<boolean> {
   return (await getAdminRole()) !== null;
-}
-
-/** Guard a page to specific admin roles. Redirects away if not allowed. */
-export async function requireAdminRole(allowed: StaffRole[]): Promise<StaffRole> {
-  const { redirect } = await import("next/navigation");
-  const role = await getAdminRole();
-  if (!role) redirect("/admin-login");
-  if (!allowed.includes(role!)) redirect("/admin");
-  return role!;
 }

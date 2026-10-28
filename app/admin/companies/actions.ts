@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { repo } from "@/db/repo";
-import { requireAdminRole } from "@/services/admin-auth";
+import { requirePermission } from "@/lib/authz";
 import { toE164, isValidEgyptianMobile } from "@/lib/phone";
 import type { CompanyBilling, CompanyInput, CompanyRole } from "@/types";
 
@@ -12,7 +12,6 @@ export interface CompanyFormState {
   error?: string;
 }
 
-const ROLES = ["super_admin", "finance"] as const;
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const egp = (fd: FormData, k: string) => {
   const n = Number(str(fd, k));
@@ -24,7 +23,7 @@ const refresh = (id?: string) => {
 };
 
 export async function saveCompanyAction(_p: CompanyFormState, fd: FormData): Promise<CompanyFormState> {
-  await requireAdminRole([...ROLES]);
+  await requirePermission("company:manage");
   const id = str(fd, "id");
   const name = str(fd, "name");
   if (!name) return { ok: false, error: "اكتب اسم الشركة." };
@@ -52,7 +51,7 @@ export async function saveCompanyAction(_p: CompanyFormState, fd: FormData): Pro
 }
 
 export async function addMemberAction(_p: CompanyFormState, fd: FormData): Promise<CompanyFormState> {
-  await requireAdminRole([...ROLES]);
+  await requirePermission("company:manage");
   const companyId = str(fd, "companyId");
   const phone = str(fd, "phone");
   if (!isValidEgyptianMobile(phone)) return { ok: false, error: "رقم موبايل مش صحيح (01xxxxxxxxx)." };
@@ -64,7 +63,7 @@ export async function addMemberAction(_p: CompanyFormState, fd: FormData): Promi
 }
 
 export async function removeMemberAction(fd: FormData): Promise<void> {
-  await requireAdminRole([...ROLES]);
+  await requirePermission("company:manage");
   const companyId = str(fd, "companyId");
   const member = (await repo.listCompanyMembers(companyId)).find((m) => m.id === str(fd, "id"));
   if (member) await repo.removeCompanyMember(member.id);
@@ -72,7 +71,7 @@ export async function removeMemberAction(fd: FormData): Promise<void> {
 }
 
 export async function addCompanyPaymentAction(_p: CompanyFormState, fd: FormData): Promise<CompanyFormState> {
-  await requireAdminRole([...ROLES]);
+  await requirePermission("company:manage");
   const companyId = str(fd, "companyId");
   const amount = egp(fd, "amount");
   if (!amount) return { ok: false, error: "اكتب المبلغ." };
@@ -88,7 +87,7 @@ export async function addCompanyPaymentAction(_p: CompanyFormState, fd: FormData
 }
 
 export async function deleteCompanyPaymentAction(fd: FormData): Promise<void> {
-  await requireAdminRole([...ROLES]);
+  await requirePermission("company:manage");
   const companyId = str(fd, "companyId");
   const p = (await repo.listCompanyPayments(companyId)).find((x) => x.id === str(fd, "id"));
   if (p) await repo.deleteCompanyPayment(p.id);

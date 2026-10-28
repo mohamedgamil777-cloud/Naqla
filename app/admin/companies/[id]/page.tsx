@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { repo } from "@/db/repo";
-import { requireAdminRole } from "@/services/admin-auth";
 import { companyBalance, currentMonth, monthLabel } from "@/services/company-service";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { toLocal } from "@/lib/phone";
 import { CompanyForm, MemberForm, PaymentForm } from "@/components/admin/CompanyForms";
 import { removeMemberAction, deleteCompanyPaymentAction } from "@/app/admin/companies/actions";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ const STATUS: Record<string, string> = {
 };
 
 export default async function AdminCompany({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdminRole(["super_admin", "finance"]);
+  await requirePermission("company:manage");
   const { id } = await params;
   const company = await repo.getCompany(id);
   if (!company) notFound();

@@ -5,7 +5,7 @@
  */
 import { revalidatePath } from "next/cache";
 import { repo } from "@/db/repo";
-import { requireAdminRole } from "@/services/admin-auth";
+import { requirePermission } from "@/lib/authz";
 import type { AppContent, CargoIcon, FaqTopic } from "@/lib/content";
 
 export interface ContentState {
@@ -18,7 +18,7 @@ const ICONS: CargoIcon[] = ["file", "box", "sofa", "home", "truck"];
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
 async function update(mutate: (c: AppContent) => string | void): Promise<ContentState> {
-  await requireAdminRole(["super_admin"]);
+  await requirePermission("content:manage");
   const content = await repo.getAppContent();
   const error = mutate(content);
   if (error) return { ok: false, error };

@@ -4,10 +4,12 @@ import { repo } from "@/db/repo";
 import { formatEgp } from "@/lib/money";
 import { KIND_LABEL } from "@/lib/constants";
 import { QuickStatus } from "@/components/admin/QuickStatus";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminFleet() {
+  await requirePermission("fleet:manage");
   const vehicles = await repo.listVehicles();
 
   return (

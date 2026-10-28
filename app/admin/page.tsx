@@ -1,17 +1,19 @@
 import Link from "next/link";
 import { getDashboard } from "@/services/admin-service";
 import { repo } from "@/db/repo";
-import { getAdminRole } from "@/services/admin-auth";
+import { requirePermission } from "@/lib/authz";
+import { can } from "@/lib/permissions";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { BookingStatusBadge } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboard() {
+export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
+  const { role } = await requirePermission("dashboard:read");
+  const { denied } = await searchParams;
   const d = await getDashboard();
-  const role = await getAdminRole();
-  const showFinance = role === "super_admin" || role === "finance";
+  const showFinance = can(role, "finance:read");
 
   let fin = { owed: 0, paid: 0, expenses: 0 };
   if (showFinance) {
@@ -34,6 +36,11 @@ export default async function AdminDashboard() {
 
   return (
     <div className="flex flex-col gap-6">
+      {denied ? (
+        <div role="alert" className="bg-booked-soft text-booked rounded-xl px-4 py-3 font-bold">
+          مش عندك صلاحية تفتح الصفحة دي. لو محتاجها كلّم المدير العام.
+        </div>
+      ) : null}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold">لوحة التحكم</h1>
         <span className="text-muted text-sm">{labelDateArabic(new Date())}</span>

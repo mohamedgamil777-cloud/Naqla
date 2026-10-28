@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { repo } from "@/db/repo";
 import { VehicleForm } from "@/components/admin/VehicleForm";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewVehiclePage() {
+  await requirePermission("fleet:manage");
   const [categories, defaultPricing] = await Promise.all([
     repo.listCategories(),
     repo.defaultPricingInput(),

@@ -1,9 +1,11 @@
 import { repo } from "@/db/repo";
 import { CategoryManager, type CategoryUsage } from "@/components/admin/CategoryManager";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminCategories() {
+  await requirePermission("category:manage");
   const [categories, vehicles, orders] = await Promise.all([repo.listCategories(), repo.listVehicles(), repo.listDeliveryOrders()]);
   // how many vehicles / orders use each type → used types can be hidden, not deleted
   const usage: Record<string, CategoryUsage> = {};

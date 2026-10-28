@@ -8,10 +8,12 @@ import { BookingStatusBadge, PriceBreakdown } from "@/components/ui";
 import { BookingManage } from "@/components/admin/BookingManage";
 import { PaymentsPanel } from "@/components/admin/PaymentsPanel";
 import { ExtendTrip } from "@/components/admin/ExtendTrip";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminBookingDetail({ params }: { params: Promise<{ code: string }> }) {
+  await requirePermission("booking:read");
   const { code } = await params;
   const b = await repo.getBooking(code);
   if (!b) notFound();

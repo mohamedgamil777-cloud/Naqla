@@ -3,12 +3,12 @@ import { createHmac, randomInt } from "node:crypto";
 import { repo } from "@/db/repo";
 import { getSms } from "./sms";
 import { toE164 } from "@/lib/phone";
+import { isAdminRole } from "@/lib/permissions";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const RESEND_COOLDOWN_MS = 30 * 1000;
 /** Staff who can enter admin by phone. They must NEVER get an on-screen demo code. */
-const ADMIN_STAFF_ROLES = ["super_admin", "fleet_mgr", "agent", "finance"];
 const secret = process.env.AUTH_SECRET ?? "dev-only-insecure-secret-change-me-please-32b";
 
 function hashCode(phone: string, code: string): string {
@@ -52,7 +52,7 @@ export async function sendOtp(rawPhone: string): Promise<{ phone: string; devCod
   // until a real SMS provider is connected.
   if (isDevSms()) {
     const staff = await repo.getStaffByPhone(phone);
-    if (staff && ADMIN_STAFF_ROLES.includes(staff.role)) return { phone, staffUsePasscode: true };
+    if (staff && isAdminRole(staff.role)) return { phone, staffUsePasscode: true };
     return { phone, devCode: code };
   }
   return { phone };

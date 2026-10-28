@@ -1,12 +1,12 @@
 import { repo } from "@/db/repo";
 import { StaffManager } from "@/components/admin/StaffManager";
-import { requireAdminRole } from "@/services/admin-auth";
 import { driverRatings } from "@/services/ratings";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminStaff() {
-  await requireAdminRole(["super_admin"]);
+  await requirePermission("staff:manage");
   const [staff, orders] = await Promise.all([repo.listStaff(), repo.listDeliveryOrders()]);
   const ratings = driverRatings(orders);
   return (

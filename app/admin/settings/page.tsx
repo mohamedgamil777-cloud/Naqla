@@ -1,11 +1,11 @@
 import { repo } from "@/db/repo";
 import { SettingsForms } from "@/components/admin/SettingsForms";
-import { requireAdminRole } from "@/services/admin-auth";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettings() {
-  await requireAdminRole(["super_admin"]);
+  await requirePermission("settings:manage");
   const [branch, business] = await Promise.all([repo.defaultBranch(), repo.getBusiness()]);
   return (
     <div className="flex flex-col gap-5">

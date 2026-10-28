@@ -1,9 +1,11 @@
 import { repo } from "@/db/repo";
 import { Calculator } from "@/components/admin/Calculator";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function CalculatorPage() {
+  await requirePermission("pricing:calculate");
   const vehicles = await repo.listVehicles();
   return (
     <div className="flex flex-col gap-5">

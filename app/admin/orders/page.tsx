@@ -6,6 +6,7 @@ import { piastresToEgp } from "@/lib/money";
 import type { DeliveryOrderStatus, StaffDTO } from "@/types";
 import { driverRatings } from "@/services/ratings";
 import { PodView } from "@/components/PodView";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ const STATUS: Record<DeliveryOrderStatus, { label: string; cls: string }> = {
 };
 
 export default async function AdminOrdersPage() {
+  await requirePermission("delivery:read");
   const [orders, drivers, cats, companies] = await Promise.all([repo.listDeliveryOrders(), repo.listDrivers(), repo.listCategories(), repo.listCompanies()]);
   const companyName = Object.fromEntries(companies.map((c) => [c.id, c.name]));
   const sizes = cats.filter((c) => c.sizeCode && c.active);

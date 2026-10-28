@@ -5,10 +5,12 @@ import { VehicleForm } from "@/components/admin/VehicleForm";
 import { VehicleBlocks, type BlockRow } from "@/components/admin/VehicleBlocks";
 import { deleteVehicle } from "@/app/admin/actions";
 import { labelDateArabic, labelTime } from "@/lib/time";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditVehiclePage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermission("fleet:manage");
   const { id } = await params;
   const [vehicle, categories, blocks] = await Promise.all([
     repo.getVehicleForEdit(id),

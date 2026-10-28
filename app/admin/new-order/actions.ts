@@ -1,10 +1,10 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireAdminRole, getAdminName } from "@/services/admin-auth";
+import { getAdminName } from "@/services/admin-auth";
+import { requirePermission } from "@/lib/authz";
 import { createDeliveryOrder, estimateDelivery, resolveOrderSchedule, type DeliveryEstimate } from "@/services/delivery-service";
 import { toE164 } from "@/lib/phone";
 
-const ROLES = ["super_admin", "agent"] as const;
 
 export interface PhoneOrderState {
   ok: boolean;
@@ -20,7 +20,7 @@ export async function quotePhoneOrder(input: {
   promoCode: string;
   companyId: string;
 }): Promise<DeliveryEstimate | null> {
-  await requireAdminRole([...ROLES]);
+  await requirePermission("delivery:create");
   if (!input.categoryId || !(input.km > 0)) return null;
   return estimateDelivery({
     categoryId: input.categoryId,
@@ -38,7 +38,7 @@ const SCHEDULE_ERROR: Record<string, string> = {
 };
 
 export async function createPhoneOrder(_prev: PhoneOrderState, fd: FormData): Promise<PhoneOrderState> {
-  await requireAdminRole([...ROLES]);
+  await requirePermission("delivery:create");
   const s = (k: string) => String(fd.get(k) ?? "").trim();
 
   const contactName = s("contactName");

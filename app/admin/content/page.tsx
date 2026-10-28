@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { repo } from "@/db/repo";
-import { requireAdminRole } from "@/services/admin-auth";
 import { ContentForms } from "@/components/admin/ContentForms";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminContentPage() {
-  await requireAdminRole(["super_admin"]);
+  await requirePermission("content:manage");
   const [content, cats] = await Promise.all([repo.getAppContent(), repo.listCategories()]);
   const sizeCodes = cats
     .filter((c) => c.sizeCode)

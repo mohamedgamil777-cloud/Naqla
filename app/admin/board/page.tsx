@@ -5,6 +5,7 @@ import { fullDateLabel, hourLabel } from "@/lib/client-time";
 import { VEHICLE_STATUS_LABEL } from "@/lib/constants";
 import { BoardDatePicker } from "@/components/admin/BoardDatePicker";
 import type { SlotStatus } from "@/engines/availability";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ const cellColor: Record<SlotStatus, string> = {
 };
 
 export default async function BoardPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
+  await requirePermission("booking:read");
   const sp = await searchParams;
   const todayISO = cairoDateISO(new Date());
   const tomorrowISO = shiftISO(todayISO, 1);

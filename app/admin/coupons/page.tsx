@@ -1,9 +1,11 @@
 import { repo } from "@/db/repo";
 import { CouponManager } from "@/components/admin/CouponManager";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminCouponsPage() {
+  await requirePermission("coupon:manage");
   const coupons = await repo.listCoupons();
   return (
     <div className="flex flex-col gap-5">

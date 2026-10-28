@@ -4,6 +4,7 @@ import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime, cairoDateISO } from "@/lib/time";
 import { durationLabel } from "@/lib/client-time";
 import { BookingStatusBadge } from "@/components/ui";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export default async function AdminBookings({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
+  await requirePermission("booking:read");
   const sp = await searchParams;
   const todayISO = cairoDateISO(new Date());
   const in30 = cairoDateISO(new Date(Date.now() + 30 * 86400000));

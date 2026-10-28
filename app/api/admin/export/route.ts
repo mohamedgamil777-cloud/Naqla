@@ -4,7 +4,7 @@ import { getDatasets } from "@/services/reporting-service";
 import { BOOKING_STATUS_LABEL, DELIVERY_STATUS_LABEL } from "@/lib/constants";
 import { cairoDateISO } from "@/lib/time";
 import { toCsv } from "@/lib/csv";
-import { getAdminRole } from "@/services/admin-auth";
+import { authorizeRequest } from "@/lib/authz";
 
 const egp = (piastres: number) => (piastres / 100).toFixed(2);
 
@@ -20,17 +20,30 @@ function csvResponse(csv: string, name: string, from: string, to: string) {
   });
 }
 
+const FINANCE_KEYS = ["bookings", "deliveries", "deliveries-by-driver", "cashflow", "revenue-by-vehicle"];
+const ALL_KEYS = new Set(["all-data", ...REPORTING_KEYS, ...FINANCE_KEYS]);
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_RANGE_DAYS = 366;
+
+const bad = (error: string) => NextResponse.json({ error }, { status: 400 });
+
 export async function GET(req: NextRequest) {
-  // Company data (customers, phones, money) — admins with finance access only.
-  const role = await getAdminRole();
-  if (role !== "super_admin" && role !== "finance") {
-    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
-  }
+  // Company data (customers, phones, money): 401 when not signed in, 403 without export permission.
+  const auth = await authorizeRequest("export:read");
+  if (!auth.ok) return auth.response;
+
   const q = req.nextUrl.searchParams;
   const report = q.get("report") ?? "bookings";
+  if (!ALL_KEYS.has(report)) return bad("UNKNOWN_REPORT");
+
   const today = cairoDateISO(new Date());
-  const from = /^\d{4}-\d{2}-\d{2}$/.test(q.get("from") ?? "") ? q.get("from")! : today;
-  const to = /^\d{4}-\d{2}-\d{2}$/.test(q.get("to") ?? "") ? q.get("to")! : today;
+  const rawFrom = q.get("from");
+  const rawTo = q.get("to");
+  if ((rawFrom && !ISO_DATE.test(rawFrom)) || (rawTo && !ISO_DATE.test(rawTo))) return bad("INVALID_DATE");
+  const from = rawFrom || today;
+  const to = rawTo || today;
+  if (from > to) return bad("INVALID_RANGE");
+  if ((Date.parse(to) - Date.parse(from)) / 864e5 > MAX_RANGE_DAYS) return bad("RANGE_TOO_LARGE");
 
   // ---- Company-wide reporting datasets (full dumps, no date filter) ----
   if (report === "all-data" || REPORTING_KEYS.includes(report)) {

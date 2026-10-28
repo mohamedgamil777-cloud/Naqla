@@ -1,14 +1,14 @@
 import { repo } from "@/db/repo";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic } from "@/lib/time";
-import { requireAdminRole } from "@/services/admin-auth";
 import { ExpenseForm } from "@/components/admin/ExpenseForm";
 import { deleteExpenseAction } from "@/app/admin/actions";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function ExpensesPage() {
-  await requireAdminRole(["super_admin", "finance"]);
+  await requirePermission("expense:manage");
   const expenses = await repo.listExpenses();
   const total = expenses.reduce((s, e) => s + e.amount, 0);
 

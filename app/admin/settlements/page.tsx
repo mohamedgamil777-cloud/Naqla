@@ -1,16 +1,16 @@
 import { repo } from "@/db/repo";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic } from "@/lib/time";
-import { requireAdminRole } from "@/services/admin-auth";
 import { PayoutForm } from "@/components/admin/PayoutForm";
 import { deletePayoutAction } from "@/app/admin/actions";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 const METHOD: Record<string, string> = { cash: "كاش", bank: "تحويل بنكي", wallet: "محفظة" };
 
 export default async function SettlementsPage() {
-  await requireAdminRole(["super_admin", "finance"]);
+  await requirePermission("payout:manage");
   const [drivers, orders, payouts] = await Promise.all([
     repo.listDrivers(),
     repo.listDeliveryOrders(),

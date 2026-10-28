@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { repo } from "@/db/repo";
-import { requireAdminRole } from "@/services/admin-auth";
 import { companyBalance } from "@/services/company-service";
 import { formatEgp } from "@/lib/money";
 import { CompanyForm } from "@/components/admin/CompanyForms";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminCompanies() {
-  await requireAdminRole(["super_admin", "finance"]);
+  await requirePermission("company:manage");
   const companies = await repo.listCompanies();
   const rows = await Promise.all(
     companies.map(async (c) => ({ c, members: (await repo.listCompanyMembers(c.id)).length, bal: await companyBalance(c.id) }))

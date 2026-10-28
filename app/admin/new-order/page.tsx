@@ -1,12 +1,12 @@
 import { repo } from "@/db/repo";
-import { requireAdminRole } from "@/services/admin-auth";
 import { cairoDateISO } from "@/lib/time";
 import { PhoneOrderForm } from "@/components/admin/PhoneOrderForm";
+import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewPhoneOrderPage() {
-  await requireAdminRole(["super_admin", "agent"]);
+  await requirePermission("delivery:create");
   const [cats, companies, content, business, branch] = await Promise.all([
     repo.listCategories(),
     repo.listCompanies(),

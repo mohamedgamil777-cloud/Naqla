@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { canViewBooking } from "@/lib/authz";
 import { repo } from "@/db/repo";
 import { waDigits } from "@/lib/content";
 import { formatEgp } from "@/lib/money";
@@ -11,7 +12,9 @@ export const dynamic = "force-dynamic";
 export default async function ConfirmPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const b = await repo.getBooking(code);
-  if (!b) notFound();
+  // A booking code alone is not authorization: only its customer (by session phone)
+  // or staff allowed to read bookings may see it. Others get the same 404 as a wrong code.
+  if (!b || !(await canViewBooking(b.contactPhone))) notFound();
 
   const wa = waDigits((await repo.getAppContent()).whatsapp);
   const waMsg = encodeURIComponent(`مرحباً، بخصوص حجز رقم ${b.code} (${b.vehicleName})`);
