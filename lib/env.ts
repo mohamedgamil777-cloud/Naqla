@@ -1,10 +1,11 @@
 /**
  * Server environment, validated once with Zod. Production fails closed:
  *  - DATABASE_URL is required (the seeded in-memory store is for local development / tests only)
- *  - AUTH_SECRET must be a strong, non-default secret (it signs every login session)
  *  - SMS_PROVIDER must be a registered adapter (OTP login is off for now; it returns later as 2FA)
- * A missing/weak ADMIN_PASSCODE does not take the whole site down: passcode login to the admin is
- * refused instead (see adminPasscode()).
+ * Secrets fail closed only where they are used, so one bad secret never takes the whole site down
+ * (that 500'd every page on 2026-11-01):
+ *  - a missing/weak AUTH_SECRET refuses sign-in and sessions (authSecret() throws), pages still load
+ *  - a missing/weak ADMIN_PASSCODE refuses passcode login to the admin (see adminPasscode()).
  * During `next build` checks are relaxed so CI can build without production secrets; they are
  * enforced when the server starts (instrumentation.ts) and on first use.
  */
@@ -24,7 +25,10 @@ const optional = z
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  DATABASE_URL: optional.pipe(z.string().url("DATABASE_URL must be a postgres connection URL").optional()),
+  // Scheme check only: real connection strings can carry characters a strict URL parser rejects.
+  DATABASE_URL: optional.pipe(
+    z.string().regex(/^postgres(ql)?:\/\//, "DATABASE_URL must be a postgres:// connection string").optional(),
+  ),
   AUTH_SECRET: optional,
   ADMIN_PASSCODE: optional,
   SMS_PROVIDER: optional.pipe(z.enum(SMS_PROVIDERS).optional()).transform((v) => v ?? "console"),
@@ -54,10 +58,10 @@ export function getEnv(): ServerEnv {
   const env = parsed.data;
   const building = process.env.NEXT_PHASE === "phase-production-build";
   if (env.NODE_ENV === "production" && !building) {
-    const problems: string[] = [];
-    if (!env.DATABASE_URL) problems.push("DATABASE_URL is required in production");
-    if (weakSecret(env.AUTH_SECRET)) problems.push("AUTH_SECRET must be set to a random string of 32+ characters");
-    if (problems.length) throw new EnvError(`Refusing to start: ${problems.join("; ")}`);
+    if (!env.DATABASE_URL) throw new EnvError("Refusing to start: DATABASE_URL is required in production");
+    if (weakSecret(env.AUTH_SECRET)) {
+      console.error("[env] AUTH_SECRET is missing, shorter than 32 characters or the public default — sign-in is disabled.");
+    }
   }
   cached = env;
   return env;
