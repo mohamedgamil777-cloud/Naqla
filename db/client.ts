@@ -1,5 +1,5 @@
-/** Postgres/Drizzle client. Null when DATABASE_URL is not configured — allowed only outside
- * production (lib/env refuses to start production without it), where the in-memory store is used. */
+/** Postgres/Drizzle client. Null when DATABASE_URL is not configured: the in-memory store is used
+ * (fine for development/tests; in production lib/env logs it as an error at startup). */
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";

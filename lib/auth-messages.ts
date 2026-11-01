@@ -19,6 +19,8 @@ export function authErrorText(body: { error?: string; message?: string; retryAft
       return body.message ?? "كلمة السر ضعيفة، اختار حاجة أطول.";
     case "INVALID_NAME":
       return "اكتب اسمك (حرفين على الأقل).";
+    case "AUTH_UNAVAILABLE":
+      return "تسجيل الدخول واقف مؤقتًا للصيانة — جرّب كمان شوية أو كلّم خدمة العملاء.";
     default:
       return "حصلت مشكلة، جرّب تاني.";
   }
