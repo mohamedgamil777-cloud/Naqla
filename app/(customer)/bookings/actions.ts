@@ -1,0 +1,24 @@
+"use server";
+import { repo } from "@/db/repo";
+import { getSession } from "@/services/session";
+
+export interface RateState {
+  ok: boolean;
+  error?: string;
+}
+
+export async function rateOrderAction(_prev: RateState, fd: FormData): Promise<RateState> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "سجّل دخولك الأول" };
+  const code = String(fd.get("code") ?? "");
+  const rating = Number(fd.get("rating") ?? 0);
+  const comment = String(fd.get("comment") ?? "").trim() || null;
+  if (!code || !Number.isFinite(rating) || rating < 1 || rating > 5) {
+    return { ok: false, error: "اختار تقييم من 1 لـ 5" };
+  }
+  const done = await repo.rateDeliveryOrder(code, session.phone, rating, comment);
+  if (!done) return { ok: false, error: "مش قادرين نسجّل التقييم دلوقتي" };
+  // No revalidatePath here (any revalidate re-renders the current page, which would drop the
+  // rating card before the "thanks" shows). Admin pages are dynamic and read fresh data anyway.
+  return { ok: true };
+}
