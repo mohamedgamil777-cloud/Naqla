@@ -5,6 +5,7 @@ import { adminPasscode } from "@/lib/env";
 import { AuthError, loginWithPassword } from "@/services/auth";
 import { setSession, clearSession } from "@/services/session";
 import { isAdminRole } from "@/lib/permissions";
+import { bootstrapAdminOnce } from "@/services/bootstrap";
 
 export interface LoginState {
   error?: string;
@@ -21,6 +22,7 @@ export async function staffLogin(_prev: LoginState, fd: FormData): Promise<Login
   const phone = String(fd.get("phone") ?? "").trim();
   const password = String(fd.get("password") ?? "");
   if (!phone || !password) return { error: "اكتب رقم الموبايل وكلمة السر." };
+  await bootstrapAdminOnce(); // the SEED_ADMIN_* super-admin always exists before anyone signs in
   try {
     const user = await loginWithPassword(phone, password);
     if (!isAdminRole(user.role)) return { error: "الحساب ده مش له صلاحية دخول الإدارة." };

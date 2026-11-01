@@ -11,7 +11,9 @@ let _sql: ReturnType<typeof postgres> | null = null;
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
 if (url) {
-  _sql = postgres(url, { max: 5, prepare: false });
+  // Serverless: an instance can be frozen while holding a socket, which then dies silently. Without
+  // these timeouts the next request reuses the dead connection and hangs (seen live 2026-11-01).
+  _sql = postgres(url, { max: 5, prepare: false, idle_timeout: 20, connect_timeout: 10, max_lifetime: 60 * 5 });
   _db = drizzle(_sql, { schema });
 }
 

@@ -1,7 +1,7 @@
 /**
  * Bootstrap admin: guarantees a super-admin exists after deploys, so the team is never locked out.
  * Reads SEED_ADMIN_PHONE / SEED_ADMIN_PASSWORD (/ SEED_ADMIN_NAME) from the server environment —
- * credentials never live in the repository. Runs at server start (instrumentation.ts) and from
+ * credentials never live in the repository. Runs before the first staff login on each instance and from
  * `npm run db:seed:admin`. Idempotent and conservative:
  *  - no account for that phone → create it as super_admin with that password
  *  - account exists WITHOUT a password → set the password and make it super_admin
@@ -52,7 +52,15 @@ export async function ensureBootstrapAdmin(): Promise<BootstrapResult> {
   return { status: "password-set" };
 }
 
-/** Startup wrapper: logs the outcome (never the phone/password), never crashes the server. */
+let once: Promise<void> | null = null;
+
+/** Runs the bootstrap at most once per server instance (called before staff login). */
+export function bootstrapAdminOnce(): Promise<void> {
+  once ??= runBootstrapAdmin();
+  return once;
+}
+
+/** Logs the outcome (never the phone/password), never throws. */
 export async function runBootstrapAdmin(): Promise<void> {
   try {
     const r = await ensureBootstrapAdmin();
