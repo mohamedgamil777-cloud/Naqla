@@ -1,10 +1,8 @@
 import type { Config } from "drizzle-kit";
 
 export default {
-  schema: "./db/schema/index.ts",
-  // Generated SQL is for REVIEW only: copy reviewed statements into the next numbered
-  // file in db/migrations/ (the single tracked history). Never `push` to a real database.
-  out: "./db/generated",
+  schema: "./src/db/schema.ts",
+  out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
     url: process.env.DATABASE_URL ?? "",

@@ -2,7 +2,7 @@
 -- Run this whole file once on a fresh project (schema + sample data).
 
 -- Naqla — initial schema.
--- Authoritative DDL. Keep in sync with db/schema/index.ts.
+-- Authoritative DDL. Keep in sync with src/db/schema.ts.
 -- Money = integer piastres. Timestamps = timestamptz (stored UTC, shown Africa/Cairo).
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";   -- gen_random_uuid()
