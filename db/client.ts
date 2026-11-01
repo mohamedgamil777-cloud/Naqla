@@ -13,7 +13,10 @@ let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 if (url) {
   // Serverless: an instance can be frozen while holding a socket, which then dies silently. Without
   // these timeouts the next request reuses the dead connection and hangs (seen live 2026-11-01).
-  _sql = postgres(url, { max: 5, prepare: false, idle_timeout: 20, connect_timeout: 10, max_lifetime: 60 * 5 });
+  // Use the Supabase pooler in SESSION mode (port 5432): transaction mode (6543) garbles postgres-js
+  // pipelined queries ("invalid frontend message type"). Session mode holds a server slot per
+  // connection, so keep the per-instance pool small.
+  _sql = postgres(url, { max: 3, prepare: false, idle_timeout: 20, connect_timeout: 10, max_lifetime: 60 * 5 });
   _db = drizzle(_sql, { schema });
 }
 
