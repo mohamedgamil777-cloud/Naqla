@@ -21,11 +21,21 @@ describe("production fails closed", () => {
     expect(() => getEnv()).toThrow(/DATABASE_URL is required/);
   });
 
-  it("refuses a missing, short or default AUTH_SECRET", () => {
+  it("refuses sign-in with a missing, short or default AUTH_SECRET, without taking the site down", () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
     for (const secret of ["", "short", "dev-only-insecure-secret-change-me-please-32b"]) {
       withEnv({ NODE_ENV: "production", DATABASE_URL: DB, AUTH_SECRET: secret });
-      expect(() => getEnv()).toThrow(/AUTH_SECRET/);
+      expect(() => getEnv()).not.toThrow();
+      expect(() => authSecret()).toThrow(/AUTH_SECRET/);
     }
+    err.mockRestore();
+  });
+
+  it("accepts postgres connection strings a strict URL parser would reject", () => {
+    withEnv({ NODE_ENV: "production", DATABASE_URL: "postgresql://u:p#ss@word@db.example.com:6543/postgres", AUTH_SECRET: STRONG });
+    expect(getEnv().DATABASE_URL).toMatch(/^postgresql:/);
+    withEnv({ NODE_ENV: "production", DATABASE_URL: "mysql://u:p@h/db", AUTH_SECRET: STRONG });
+    expect(() => getEnv()).toThrow(/DATABASE_URL/);
   });
 
   it("rejects an unknown SMS provider instead of falling back to console", () => {
