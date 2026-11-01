@@ -22,7 +22,7 @@ const providers: Record<(typeof SMS_PROVIDERS)[number], SmsProvider> = {
   console: consoleProvider,
 };
 
-/** The configured adapter. Unknown names never reach here: lib/env rejects them (no silent console fallback). */
+/** The configured adapter. lib/env maps an unknown name to console and logs it. */
 export function getSms(): SmsProvider {
   const name = getEnv().SMS_PROVIDER;
   const provider = providers[name];

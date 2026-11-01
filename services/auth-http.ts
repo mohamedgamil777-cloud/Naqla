@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { AuthError, type AuthResult } from "@/services/auth";
 import { setSession } from "@/services/session";
+import { EnvError } from "@/lib/env";
 
 const STATUS: Record<AuthError["code"], number> = {
   INVALID_PHONE: 400,
@@ -22,6 +23,8 @@ export async function signedIn(r: AuthResult) {
 }
 
 export function authFailure(e: unknown) {
+  // Server misconfigured (AUTH_SECRET missing/weak): a clear 503, not a crash.
+  if (e instanceof EnvError) return NextResponse.json({ error: "AUTH_UNAVAILABLE" }, { status: 503 });
   if (!(e instanceof AuthError)) throw e;
   const body: Record<string, string> = { error: e.code };
   if (e.code === "ACCOUNT_LOCKED" && e.detail) body.retryAfterMinutes = e.detail;

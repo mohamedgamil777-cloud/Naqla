@@ -1,7 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { checkPasscode, setAdminSession, clearAdminSession } from "@/services/admin-auth";
-import { adminPasscode } from "@/lib/env";
+import { adminPasscode, EnvError } from "@/lib/env";
 import { AuthError, loginWithPassword } from "@/services/auth";
 import { setSession, clearSession } from "@/services/session";
 import { isAdminRole } from "@/lib/permissions";
@@ -17,6 +17,8 @@ const AUTH_MESSAGES: Partial<Record<AuthError["code"], string>> = {
   PASSWORD_NOT_SET: "الحساب ده لسه ملوش كلمة سر — اطلبها من المدير العام.",
 };
 
+const SIGN_IN_OFF = "تسجيل الدخول مقفول لحد ما يتضبط AUTH_SECRET على السيرفر (32 حرف على الأقل).";
+
 /** Staff sign-in: phone + password, admin roles only. */
 export async function staffLogin(_prev: LoginState, fd: FormData): Promise<LoginState> {
   const phone = String(fd.get("phone") ?? "").trim();
@@ -28,6 +30,7 @@ export async function staffLogin(_prev: LoginState, fd: FormData): Promise<Login
     if (!isAdminRole(user.role)) return { error: "الحساب ده مش له صلاحية دخول الإدارة." };
     await setSession({ phone: user.phone, name: user.name ?? undefined });
   } catch (e) {
+    if (e instanceof EnvError) return { error: SIGN_IN_OFF };
     if (!(e instanceof AuthError)) throw e;
     if (e.code === "ACCOUNT_LOCKED") return { error: `محاولات غلط كتير — جرّب تاني بعد ${e.detail ?? 15} دقيقة.` };
     return { error: AUTH_MESSAGES[e.code] ?? "مش قادرين ندخلك دلوقتي." };
@@ -41,7 +44,12 @@ export async function adminLogin(_prev: LoginState, fd: FormData): Promise<Login
   if (!code) return { error: "اكتب كلمة السر." };
   if (!adminPasscode()) return { error: "الدخول بكلمة سر الإدارة مقفول لحد ما تتضبط كلمة سر قوية على السيرفر (ADMIN_PASSCODE)." };
   if (!checkPasscode(code)) return { error: "كلمة السر غلط." };
-  await setAdminSession();
+  try {
+    await setAdminSession();
+  } catch (e) {
+    if (e instanceof EnvError) return { error: SIGN_IN_OFF };
+    throw e;
+  }
   redirect("/admin");
 }
 

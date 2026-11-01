@@ -38,9 +38,12 @@ describe("production fails closed", () => {
     expect(() => getEnv()).toThrow(/DATABASE_URL/);
   });
 
-  it("rejects an unknown SMS provider instead of falling back to console", () => {
+  it("falls back to console for an unknown SMS provider instead of taking the site down", () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
     withEnv({ NODE_ENV: "production", DATABASE_URL: DB, AUTH_SECRET: STRONG, SMS_PROVIDER: "nope" });
-    expect(() => getEnv()).toThrow(/SMS_PROVIDER/);
+    expect(getEnv().SMS_PROVIDER).toBe("console");
+    expect(err.mock.calls.join()).toMatch(/SMS_PROVIDER/);
+    err.mockRestore();
   });
 
   it("starts with a database and a strong secret; console SMS is allowed (no provider yet)", () => {

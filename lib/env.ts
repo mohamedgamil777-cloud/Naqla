@@ -1,7 +1,7 @@
 /**
  * Server environment, validated once with Zod. Production fails closed:
  *  - DATABASE_URL is required (the seeded in-memory store is for local development / tests only)
- *  - SMS_PROVIDER must be a registered adapter (OTP login is off for now; it returns later as 2FA)
+ *  - an unknown SMS_PROVIDER falls back to the console adapter and is logged
  * Secrets fail closed only where they are used, so one bad secret never takes the whole site down
  * (that 500'd every page on 2026-11-01):
  *  - a missing/weak AUTH_SECRET refuses sign-in and sessions (authSecret() throws), pages still load
@@ -31,7 +31,13 @@ const schema = z.object({
   ),
   AUTH_SECRET: optional,
   ADMIN_PASSCODE: optional,
-  SMS_PROVIDER: optional.pipe(z.enum(SMS_PROVIDERS).optional()).transform((v) => v ?? "console"),
+  // Unknown names fall back to console (logged): a typo here must not 500 every page.
+  SMS_PROVIDER: optional.transform((v): (typeof SMS_PROVIDERS)[number] => {
+    if (!v) return "console";
+    if ((SMS_PROVIDERS as readonly string[]).includes(v)) return v as (typeof SMS_PROVIDERS)[number];
+    console.error(`[env] SMS_PROVIDER "${v}" is not a registered adapter (${SMS_PROVIDERS.join(", ")}) — using console.`);
+    return "console";
+  }),
   // First super-admin, created at startup if missing (services/bootstrap.ts). Never overwrites a password.
   SEED_ADMIN_PHONE: optional,
   SEED_ADMIN_PASSWORD: optional,
