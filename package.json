@@ -16,7 +16,8 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx db/migrate.ts",
-    "db:seed": "tsx db/seeds/seed.ts"
+    "db:seed": "tsx db/seeds/seed.ts",
+    "db:seed:admin": "tsx --conditions=react-server --tsconfig tsconfig.json db/seeds/seed-admin.ts"
   },
   "dependencies": {
     "date-fns": "^4.1.0",

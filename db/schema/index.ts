@@ -44,6 +44,13 @@ export const users = pgTable(
     drivingLicense: text("driving_license"),
     vehicleLicense: text("vehicle_license"),
     available: boolean("available").notNull().default(true),
+    // phone + password login (0015). OTP comes back later as a second factor.
+    passwordHash: text("password_hash"),
+    passwordSetAt: timestamp("password_set_at", { withTimezone: true }),
+    failedLoginCount: integer("failed_login_count").notNull().default(0),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    /** set when an agent has confirmed the number by phone (staff: when an admin added them) */
+    phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
     ...timestamps,
   },
   (t) => [uniqueIndex("users_phone_uq").on(t.phone)]

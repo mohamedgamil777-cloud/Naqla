@@ -30,6 +30,7 @@ export const PERMISSIONS = [
   "fleet:manage", // vehicles + maintenance/blocks
   "category:manage", // car types / sizes
   "coupon:manage",
+  "customer:manage", // verify customer phone numbers, reset customer passwords
   "content:manage", // app texts, photos, phone numbers, FAQs
   "staff:manage",
   "settings:manage", // business settings + branch
@@ -64,6 +65,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly Permission[]> = {
     "payment:manage",
     "pricing:calculate",
     "coupon:manage",
+    "customer:manage",
   ],
   finance: [
     "dashboard:read",

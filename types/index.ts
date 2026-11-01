@@ -200,6 +200,7 @@ export interface StaffDTO {
   drivingLicense: string | null; // driver only (image)
   vehicleLicense: string | null; // driver only (image)
   available: boolean; // driver's "متاح للعمل" toggle
+  hasPassword?: boolean; // can sign in (password set by an admin)
 }
 
 export interface StaffInput {
@@ -439,4 +440,34 @@ export interface VehicleEditData extends VehicleDetail {
   plate: string;
   categoryId: string;
   pricing: VehiclePricingInput;
+}
+
+/** Everything the password login needs about one account (customers, drivers and staff share `users`). */
+export interface LoginAccount {
+  id: string;
+  phone: string;
+  name: string | null;
+  role: StaffRole | "customer";
+  passwordHash: string | null;
+  failedLoginCount: number;
+  lockedUntil: Date | null;
+  phoneVerifiedAt: Date | null;
+}
+
+/** A customer as agents see it in admin → العملاء. */
+export interface CustomerAccountDTO {
+  id: string;
+  phone: string;
+  name: string | null;
+  hasPassword: boolean;
+  phoneVerifiedAt: Date | null;
+  createdAt: Date;
+}
+
+export interface Page<T> {
+  rows: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
 }

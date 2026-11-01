@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { isAdminAuthed } from "@/services/admin-auth";
-import { isDevSms } from "@/services/auth";
+import { adminPasscode } from "@/lib/env";
 import { AdminLoginForm } from "./AdminLoginForm";
 import { Logo } from "@/components/Logo";
 
@@ -14,15 +14,9 @@ export default async function AdminLoginPage() {
         <div className="text-center">
           <Logo className="h-20 mx-auto" full />
           <h1 className="text-2xl font-extrabold mt-4">🔒 دخول الإدارة</h1>
-          <p className="text-muted text-sm mt-1">اكتب كلمة السر عشان تدخل لوحة التحكم.</p>
+          <p className="text-muted text-sm mt-1">ادخل برقم موبايلك وكلمة السر بتاعتك.</p>
         </div>
-        <AdminLoginForm />
-        {/* Phone login for staff only once real SMS is on (demo codes are never shown to staff). */}
-        {!isDevSms() && (
-          <p className="text-center text-sm text-muted">
-            موظف؟ <a href="/login?next=/admin" className="text-primary font-bold">ادخل برقم موبايلك</a>
-          </p>
-        )}
+        <AdminLoginForm passcodeEnabled={!!adminPasscode()} />
       </div>
     </div>
   );

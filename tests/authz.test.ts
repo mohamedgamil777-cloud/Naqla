@@ -84,6 +84,14 @@ describe("authorizeRequest (route handlers)", () => {
     if (!r.ok) expect(r.response.status).toBe(401);
   });
 
+  it("403 for a signed-in customer (known identity, no admin access)", async () => {
+    adminRole.mockResolvedValue(null);
+    session.mockResolvedValue({ phone: "+201000000009" });
+    const r = await authorizeRequest("export:read");
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.response.status).toBe(403);
+  });
+
   it("403 when signed in without the permission", async () => {
     adminRole.mockResolvedValue("agent");
     const r = await authorizeRequest("export:read");

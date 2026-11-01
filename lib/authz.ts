@@ -2,7 +2,7 @@
  * Server-side authorization for the admin. Who the actor is comes ONLY from server state
  * (signed admin cookie or the staff record behind the session phone) — never from the client.
  * - requirePermission(): pages and server actions (redirects to login / back to the dashboard)
- * - authorizeRequest():  route handlers (401 when not signed in, 403 when signed in without access)
+ * - authorizeRequest():  route handlers (401 not signed in, 403 signed in without access — incl. customers)
  */
 import "server-only";
 import { redirect } from "next/navigation";
@@ -33,7 +33,11 @@ export type RequestAuth = { ok: true; actor: StaffActor } | { ok: false; respons
 /** Route handlers: consistent 401 / 403 JSON errors. */
 export async function authorizeRequest(permission: Permission): Promise<RequestAuth> {
   const actor = await getStaffActor();
-  if (!actor) return { ok: false, response: NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 }) };
+  if (!actor) {
+    // signed in as a customer/driver = known identity without admin access → 403, not 401
+    const status = (await getSession()) ? 403 : 401;
+    return { ok: false, response: NextResponse.json({ error: status === 401 ? "UNAUTHENTICATED" : "FORBIDDEN" }, { status }) };
+  }
   if (!can(actor.role, permission)) return { ok: false, response: NextResponse.json({ error: "FORBIDDEN" }, { status: 403 }) };
   return { ok: true, actor };
 }

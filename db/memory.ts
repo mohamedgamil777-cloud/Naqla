@@ -45,10 +45,14 @@ import type {
   VehicleInput,
   VehicleListItem,
   VehiclePricingInput,
+  LoginAccount,
+  CustomerAccountDTO,
+  Page,
 } from "@/types";
 import type { VehicleKind, VehicleStatus } from "@/lib/constants";
 import { BLOCKING_STATUSES, DEFAULTS, newBookingCode } from "@/lib/constants";
 import { cairoDateISO, cairoDateTime } from "@/lib/time";
+import { hashPassword } from "@/lib/password";
 
 interface MemVehicle {
   id: string;
@@ -91,9 +95,19 @@ interface MemPayment { id: string; bookingCode: string; method: "cash" | "card" 
 interface MemDocument { id: string; phone: string; type: "national_id" | "license"; url: string; expiry: string | null; createdAt: Date }
 
 interface OtpRec { phone: string; codeHash: string; expiresAt: Date; attempts: number; consumed: boolean; createdAt: Date }
-interface UserRec { id: string; phone: string; name: string | null }
+/** Login fields shared by customers (UserRec) and staff (StaffRec) in the in-memory store. */
+interface CredFields {
+  passwordHash?: string | null;
+  /** local development only: hashed on first use (the memory store never runs in production) */
+  devPassword?: string;
+  failedLoginCount?: number;
+  lockedUntil?: Date | null;
+  phoneVerifiedAt?: Date | null;
+  createdAt?: Date;
+}
+interface UserRec extends CredFields { id: string; phone: string; name: string | null }
 interface MemBlock { id: string; vehicleId: string; startsAt: Date; endsAt: Date; reason: "maintenance" | "block"; note: string | null }
-interface StaffRec { id: string; name: string; phone: string; role: string; nationalId?: string | null; photo?: string | null; drivingLicense?: string | null; vehicleLicense?: string | null; available?: boolean }
+interface StaffRec extends CredFields { id: string; name: string; phone: string; role: string; nationalId?: string | null; photo?: string | null; drivingLicense?: string | null; vehicleLicense?: string | null; available?: boolean }
 
 interface MemState {
   branch: BranchDTO;
@@ -347,6 +361,11 @@ function seedState(): MemState {
 }
 
 const g = globalThis as unknown as { __naqla?: MemState };
+
+/** A customer or staff record by id (they live in separate lists in memory). */
+function memAccount(id: string): (UserRec | StaffRec) | undefined {
+  return state.staff.find((x) => x.id === id) ?? state.users.find((x) => x.id === id);
+}
 if (!g.__naqla) g.__naqla = seedState();
 const state = g.__naqla;
 // Backfill collections added in later versions — dev hot-reload keeps the old
@@ -400,6 +419,16 @@ state.staff ??= [
 // Ensure a sample driver exists even if `staff` predates the driver seed.
 if (!state.staff.some((s) => s.role === "driver")) {
   state.staff.push({ id: "aaaa1111-0000-0000-0000-000000000003", name: "سعيد السائق", phone: "+201000000003", role: "driver" });
+}
+// Local development logins for the sample staff (in-memory store only — never used in production).
+const DEV_PASSWORDS: Record<string, string> = {
+  "aaaa1111-0000-0000-0000-000000000001": "dev-admin-1234",
+  "aaaa1111-0000-0000-0000-000000000002": "dev-agent-1234",
+  "aaaa1111-0000-0000-0000-000000000003": "dev-driver-1234",
+};
+for (const s of state.staff) {
+  if (!s.passwordHash && !s.devPassword && DEV_PASSWORDS[s.id]) s.devPassword = DEV_PASSWORDS[s.id];
+  s.phoneVerifiedAt ??= new Date(0);
 }
 
 function ruleFor(vehicleId: string): PricingRule {
@@ -491,6 +520,7 @@ function toStaffDTO(s: StaffRec): StaffDTO {
     drivingLicense: s.drivingLicense ?? null,
     vehicleLicense: s.vehicleLicense ?? null,
     available: s.available ?? true,
+    hasPassword: !!(s.passwordHash || s.devPassword),
   };
 }
 
@@ -926,6 +956,102 @@ export const memRepo = {
       state.users.push(u);
     } else if (name) u.name = name;
     return u;
+  },
+
+  // ---------- password login (0015) ----------
+  getLoginAccount: async (phone: string): Promise<LoginAccount | null> => {
+    const staff = state.staff.find((x) => x.phone === phone);
+    const rec: (StaffRec | UserRec) | undefined = staff ?? state.users.find((x) => x.phone === phone);
+    if (!rec) return null;
+    if (!rec.passwordHash && rec.devPassword) {
+      rec.passwordHash = await hashPassword(rec.devPassword); // local development accounts
+      delete rec.devPassword;
+    }
+    return {
+      id: rec.id, phone: rec.phone, name: rec.name ?? null,
+      role: (staff ? staff.role : "customer") as LoginAccount["role"],
+      passwordHash: rec.passwordHash ?? null, failedLoginCount: rec.failedLoginCount ?? 0,
+      lockedUntil: rec.lockedUntil ?? null, phoneVerifiedAt: rec.phoneVerifiedAt ?? null,
+    };
+  },
+  getAccountById: async (id: string): Promise<LoginAccount | null> => {
+    const rec = memAccount(id);
+    return rec ? memRepo.getLoginAccount(rec.phone) : null;
+  },
+  setPassword: async (userId: string, passwordHash: string): Promise<boolean> => {
+    const rec = memAccount(userId);
+    if (!rec) return false;
+    Object.assign(rec, { passwordHash, failedLoginCount: 0, lockedUntil: null });
+    delete rec.devPassword;
+    return true;
+  },
+  claimAccount: async (userId: string, passwordHash: string, name: string | null): Promise<boolean> => {
+    const rec = state.users.find((x) => x.id === userId);
+    if (!rec || rec.passwordHash) return false;
+    Object.assign(rec, { passwordHash, failedLoginCount: 0, lockedUntil: null, phoneVerifiedAt: null });
+    if (name) rec.name = name;
+    return true;
+  },
+  recordLoginFailure: async (userId: string, max: number, lockMs: number): Promise<{ lockedUntil: Date | null }> => {
+    const rec = memAccount(userId);
+    if (!rec) return { lockedUntil: null };
+    const n = (rec.failedLoginCount ?? 0) + 1;
+    if (n >= max) {
+      rec.failedLoginCount = 0;
+      rec.lockedUntil = new Date(Date.now() + lockMs);
+    } else rec.failedLoginCount = n;
+    return { lockedUntil: rec.lockedUntil ?? null };
+  },
+  clearLoginFailures: async (userId: string): Promise<void> => {
+    const rec = memAccount(userId);
+    if (rec) Object.assign(rec, { failedLoginCount: 0, lockedUntil: null });
+  },
+  createUserWithPassword: async (input: {
+    phone: string; name: string | null; role: LoginAccount["role"]; passwordHash: string; verified: boolean;
+  }): Promise<{ created: true; id: string } | { created: false }> => {
+    if (state.staff.some((x) => x.phone === input.phone) || state.users.some((x) => x.phone === input.phone)) {
+      return { created: false };
+    }
+    const id = crypto.randomUUID();
+    const cred = { passwordHash: input.passwordHash, phoneVerifiedAt: input.verified ? new Date() : null, createdAt: new Date() };
+    if (input.role === "customer") state.users.push({ id, phone: input.phone, name: input.name, ...cred });
+    else state.staff.push({ id, phone: input.phone, name: input.name ?? "", role: input.role, ...cred });
+    return { created: true, id };
+  },
+  setAccountRole: async (userId: string, role: StaffRole): Promise<boolean> => {
+    const staff = state.staff.find((x) => x.id === userId);
+    if (staff) {
+      staff.role = role;
+      return true;
+    }
+    const i = state.users.findIndex((x) => x.id === userId);
+    if (i < 0) return false;
+    const [u] = state.users.splice(i, 1); // customers and staff live in separate lists in memory
+    state.staff.push({ ...u, name: u.name ?? "", role });
+    return true;
+  },
+  setPhoneVerified: async (userId: string, verified: boolean): Promise<boolean> => {
+    const rec = memAccount(userId);
+    if (!rec) return false;
+    rec.phoneVerifiedAt = verified ? new Date() : null;
+    return true;
+  },
+  searchCustomers: async (q: string, page: number, pageSize: number): Promise<Page<CustomerAccountDTO>> => {
+    const term = q.trim().toLowerCase();
+    const all = state.users
+      .filter((u) => !term || u.phone.toLowerCase().includes(term) || (u.name ?? "").toLowerCase().includes(term))
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0) || a.id.localeCompare(b.id));
+    const rows = all.slice((page - 1) * pageSize, page * pageSize).map((u) => ({
+      id: u.id, phone: u.phone, name: u.name, hasPassword: !!u.passwordHash,
+      phoneVerifiedAt: u.phoneVerifiedAt ?? null, createdAt: u.createdAt ?? new Date(0),
+    }));
+    return { rows, page, pageSize, total: all.length, totalPages: Math.max(1, Math.ceil(all.length / pageSize)) };
+  },
+  verifiedPhones: async (phones: string[]): Promise<Set<string>> => {
+    const want = new Set(phones);
+    const out = new Set<string>();
+    for (const r of [...state.users, ...state.staff]) if (want.has(r.phone) && r.phoneVerifiedAt) out.add(r.phone);
+    return out;
   },
 
   // ---------- ADMIN writes ----------

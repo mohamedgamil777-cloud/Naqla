@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { repo } from "@/db/repo";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
@@ -7,6 +8,7 @@ import type { DeliveryOrderStatus, StaffDTO } from "@/types";
 import { driverRatings } from "@/services/ratings";
 import { PodView } from "@/components/PodView";
 import { requirePermission } from "@/lib/authz";
+import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +23,11 @@ const STATUS: Record<DeliveryOrderStatus, { label: string; cls: string }> = {
 };
 
 export default async function AdminOrdersPage() {
-  await requirePermission("delivery:read");
+  const { role } = await requirePermission("delivery:read");
   const [orders, drivers, cats, companies] = await Promise.all([repo.listDeliveryOrders(), repo.listDrivers(), repo.listCategories(), repo.listCompanies()]);
+  // agents confirm customer numbers by phone (no OTP for now) — flag orders from unconfirmed numbers
+  const verified = await repo.verifiedPhones(orders.map((o) => o.contactPhone ?? ""));
+  const canVerify = can(role, "customer:manage");
   const companyName = Object.fromEntries(companies.map((c) => [c.id, c.name]));
   const sizes = cats.filter((c) => c.sizeCode && c.active);
   const ratings = driverRatings(orders);
@@ -100,6 +105,16 @@ export default async function AdminOrdersPage() {
                   {o.loaders > 0 && <Row k="العمالة" v={`${o.loaders} أفراد`} />}
                   <Row k="العميل" v={o.contactName ?? "-"} />
                   <Row k="الموبايل" v={o.contactPhone ?? "-"} ltr />
+                  {o.contactPhone && o.source !== "agent" && !verified.has(o.contactPhone) && (
+                    <div className="flex items-center justify-between gap-2 bg-reserved-soft text-reserved rounded-xl px-3 py-2 text-sm font-bold">
+                      <span>رقم غير مؤكد — اتصل بالعميل وأكّده قبل تعيين السواق</span>
+                      {canVerify && (
+                        <Link href={`/admin/customers?q=${encodeURIComponent(o.contactPhone)}`} className="underline whitespace-nowrap">
+                          أكّد الرقم
+                        </Link>
+                      )}
+                    </div>
+                  )}
                   {o.notes && <Row k="ملاحظات العميل" v={o.notes} />}
                   {o.rating != null && <Row k="تقييم العميل" v={`${"⭐".repeat(o.rating)}${o.ratingComment ? ` — ${o.ratingComment}` : ""}`} />}
                 </div>

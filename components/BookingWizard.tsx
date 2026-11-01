@@ -9,6 +9,7 @@ import { formatEgp } from "@/lib/money";
 import { KIND_LABEL, type VehicleKind } from "@/lib/constants";
 import type { VehicleListItem } from "@/types";
 import type { Quote } from "@/engines/pricing";
+import { authErrorText } from "@/lib/auth-messages";
 
 type Step = "kind" | "vehicle" | "when" | "time" | "duration" | "place" | "review";
 type SlotDTO = { hour24: number; startISO: string; status: "available" | "booked" | "unavailable" };
@@ -64,9 +65,7 @@ export function BookingWizard({
   const [authed, setAuthed] = useState(isAuthed);
   const [name, setName] = useState(initialName);
   const [phone, setPhone] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [devHint, setDevHint] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
 
   const selected = useMemo(() => vehicles.find((v) => v.id === vehicleId), [vehicles, vehicleId]);
   const filtered = useMemo(() => vehicles.filter((v) => (kind ? v.kind === kind : true)), [vehicles, kind]);
@@ -169,37 +168,19 @@ export function BookingWizard({
     await loadQuote();
   }
 
-  async function sendOtp() {
+  /** Phone + password sign-in right inside the booking (new customers create an account on /login). */
+  async function signIn() {
     setErr(null);
-    const r = await fetch("/api/auth/otp", {
+    const r = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify({ phone, password }),
     });
-    const j = await r.json();
-    if (j.ok) {
-      setOtpSent(true);
-      if (j.devCode) {
-        setOtp(j.devCode);
-        setDevHint(`وضع تجربة: كودك هو ${j.devCode} — دوسّ «تأكيد».`);
-      } else {
-        setDevHint("تم إرسال كود على موبايلك.");
-      }
-    } else {
-      setErr(j.error === "INVALID_PHONE" ? "رقم الموبايل مش صحيح." : "مشكلة في الإرسال.");
-    }
-  }
-
-  async function verifyOtp() {
-    setErr(null);
-    const r = await fetch("/api/auth/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, code: otp, name }),
-    });
-    const j = await r.json();
-    if (j.ok) setAuthed(true);
-    else setErr("الكود مش صحيح، حاول تاني.");
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.ok) {
+      setAuthed(true);
+      if (!name.trim() && j.name) setName(j.name);
+    } else setErr(authErrorText(j));
   }
 
   async function submit() {
@@ -469,17 +450,14 @@ export function BookingWizard({
                 <input className={inputClass} placeholder="اسمك" value={name} onChange={(e) => setName(e.target.value)} />
                 {!authed && (
                   <>
+                    <input className={inputClass} inputMode="tel" placeholder="رقم الموبايل" dir="ltr" autoComplete="username" value={phone} onChange={(e) => setPhone(e.target.value)} />
                     <div className="flex gap-2">
-                      <input className={inputClass} inputMode="tel" placeholder="رقم الموبايل" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                      <Button variant="secondary" onClick={sendOtp} className="!px-4 whitespace-nowrap">إرسال الكود</Button>
+                      <input className={inputClass} type="password" placeholder="كلمة السر" dir="ltr" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                      <Button variant="secondary" onClick={signIn} className="!px-4 whitespace-nowrap">دخول</Button>
                     </div>
-                    {otpSent && (
-                      <div className="flex gap-2">
-                        <input className={inputClass} inputMode="numeric" placeholder="الكود" value={otp} onChange={(e) => setOtp(e.target.value)} />
-                        <Button variant="secondary" onClick={verifyOtp} className="!px-4">تأكيد</Button>
-                      </div>
-                    )}
-                    {devHint && <p className="text-sm text-muted">{devHint}</p>}
+                    <p className="text-sm text-muted">
+                      معندكش حساب؟ <a href={`/login?next=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/book")}`} className="text-primary font-bold">اعمل حساب جديد</a>
+                    </p>
                   </>
                 )}
               </div>

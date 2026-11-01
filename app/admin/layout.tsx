@@ -31,6 +31,7 @@ const nav: { href: string; label: string; icon: string; permission: Permission }
   { href: "/admin/reports", label: "تقارير الشركة", icon: "📈", permission: "report:read" },
   { href: "/admin/fleet", label: "العربيات", icon: "🚙", permission: "fleet:manage" },
   { href: "/admin/categories", label: "الأنواع", icon: "🏷️", permission: "category:manage" },
+  { href: "/admin/customers", label: "العملاء", icon: "👤", permission: "customer:manage" },
   { href: "/admin/coupons", label: "كوبونات الخصم", icon: "🎟️", permission: "coupon:manage" },
   { href: "/admin/content", label: "محتوى التطبيق", icon: "🖼️", permission: "content:manage" },
   { href: "/admin/staff", label: "الموظفين", icon: "👥", permission: "staff:manage" },

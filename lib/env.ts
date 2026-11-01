@@ -2,8 +2,7 @@
  * Server environment, validated once with Zod. Production fails closed:
  *  - DATABASE_URL is required (the seeded in-memory store is for local development / tests only)
  *  - AUTH_SECRET must be a strong, non-default secret (it signs every login session)
- *  - SMS_PROVIDER must be a registered adapter ("console" = codes shown on screen, kept on purpose
- *    until a real SMS provider is chosen)
+ *  - SMS_PROVIDER must be a registered adapter (OTP login is off for now; it returns later as 2FA)
  * A missing/weak ADMIN_PASSCODE does not take the whole site down: passcode login to the admin is
  * refused instead (see adminPasscode()).
  * During `next build` checks are relaxed so CI can build without production secrets; they are
@@ -29,6 +28,10 @@ const schema = z.object({
   AUTH_SECRET: optional,
   ADMIN_PASSCODE: optional,
   SMS_PROVIDER: optional.pipe(z.enum(SMS_PROVIDERS).optional()).transform((v) => v ?? "console"),
+  // First super-admin, created at startup if missing (services/bootstrap.ts). Never overwrites a password.
+  SEED_ADMIN_PHONE: optional,
+  SEED_ADMIN_PASSWORD: optional,
+  SEED_ADMIN_NAME: optional,
 });
 
 export type ServerEnv = z.infer<typeof schema>;
@@ -55,10 +58,6 @@ export function getEnv(): ServerEnv {
     if (!env.DATABASE_URL) problems.push("DATABASE_URL is required in production");
     if (weakSecret(env.AUTH_SECRET)) problems.push("AUTH_SECRET must be set to a random string of 32+ characters");
     if (problems.length) throw new EnvError(`Refusing to start: ${problems.join("; ")}`);
-    if (env.SMS_PROVIDER === "console") {
-      // Deliberate for now (no SMS provider yet): login codes are returned to the screen.
-      console.warn("[env] SMS_PROVIDER=console in production — OTP codes are shown on screen (demo mode).");
-    }
   }
   cached = env;
   return env;

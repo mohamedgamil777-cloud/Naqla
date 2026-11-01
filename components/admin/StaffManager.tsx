@@ -3,6 +3,8 @@ import { ratingLabel, type RatingStat } from "@/services/ratings";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { saveStaff, deleteStaff, type FormState } from "@/app/admin/actions";
+import { setStaffPasswordAction, type AccountActionState } from "@/app/admin/accounts/actions";
+import { minPasswordFor } from "@/lib/password-policy";
 import { ImageField } from "@/components/admin/ImageField";
 import type { StaffDTO, StaffRole } from "@/types";
 
@@ -23,10 +25,16 @@ export function StaffManager({ staff, ratings = {} }: { staff: StaffDTO[]; ratin
     <div className="flex flex-col gap-5">
       <StaffForm />
       <div className="flex flex-col gap-3">
-        {staff.map((s) => <StaffForm key={s.id} staff={s} rating={ratings[s.id]} />)}
+        {staff.map((s) => (
+          <div key={s.id} className="flex flex-col gap-0">
+            <StaffForm staff={s} rating={ratings[s.id]} />
+            <PasswordForm staff={s} />
+          </div>
+        ))}
         {staff.length === 0 && <p className="text-muted p-4">مفيش موظفين مضافين.</p>}
       </div>
       <p className="text-muted text-sm">بيانات السائق (الرخص والصور) بتظهر له في صفحته، وبتساعد الإدارة وقت التوصيل.</p>
+      <p className="text-muted text-sm">بعد ما تضيف موظف أو سواق، اعمل له كلمة سر من تحت الكارت بتاعه وابعتهاله — بيدخل برقم موبايله وكلمة السر دي.</p>
     </div>
   );
 }
@@ -87,6 +95,38 @@ function StaffForm({ staff, rating }: { staff?: StaffDTO; rating?: RatingStat })
         )}
       </div>
     </form>
+  );
+}
+
+/** Separate form (forms can't nest): set or reset this person's password. */
+function PasswordForm({ staff }: { staff: StaffDTO }) {
+  const [state, action] = useActionState<AccountActionState, FormData>(setStaffPasswordAction, { ok: false });
+  const min = minPasswordFor(staff.role);
+  return (
+    <form action={action} className="bg-panel-2 border border-line border-t-0 rounded-b-card -mt-3 pt-5 px-4 pb-3 flex flex-col gap-2">
+      <input type="hidden" name="id" value={staff.id} />
+      <div className="flex items-center gap-2 text-sm font-bold">
+        🔑 كلمة السر
+        <span className={`rounded-full px-2 py-0.5 text-xs ${staff.hasPassword ? "bg-ok-soft text-ok" : "bg-booked-soft text-booked"}`}>
+          {staff.hasPassword ? "متعملة — يقدر يدخل" : "مش متعملة — مش هيقدر يدخل"}
+        </span>
+      </div>
+      {state.error && <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">{state.error}</div>}
+      {state.ok && <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">اتحفظت كلمة السر ✅ ابعتها له.</div>}
+      <div className="flex gap-2">
+        <input className={inp} type="password" name="password" minLength={min} placeholder={`${min} حروف أو أرقام على الأقل`} autoComplete="new-password" dir="ltr" required />
+        <PasswordBtn hasPassword={!!staff.hasPassword} />
+      </div>
+    </form>
+  );
+}
+
+function PasswordBtn({ hasPassword }: { hasPassword: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button disabled={pending} className="rounded-xl px-4 py-2.5 font-bold border-2 border-primary text-primary whitespace-nowrap disabled:opacity-50">
+      {pending ? "…" : hasPassword ? "تغيير" : "حفظ"}
+    </button>
   );
 }
 

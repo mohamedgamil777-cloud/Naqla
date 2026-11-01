@@ -1,82 +1,109 @@
-/** OTP auth: send a code, verify it, upsert the user. Provider-agnostic SMS. */
-import { createHmac, randomInt } from "node:crypto";
+/**
+ * Phone + password login for every user (customers, drivers, staff).
+ * OTP is switched off for now; the otp_codes table, repo functions and services/sms.ts stay so it can
+ * return later as a second factor or a one-time login code.
+ *
+ * Rules:
+ *  - 5 wrong passwords lock the account for 15 minutes (counted atomically in the database)
+ *  - unknown phone and wrong password look the same to the caller and take the same time
+ *  - a customer who has no password yet (accounts from the OTP era) creates one by registering;
+ *    the number then shows as unverified until an agent confirms it by phone
+ *  - drivers and staff get their password from an admin (or the bootstrap admin from env)
+ */
 import { repo } from "@/db/repo";
-import { getSms } from "./sms";
 import { toE164 } from "@/lib/phone";
-import { isAdminRole } from "@/lib/permissions";
-import { authSecret, getEnv } from "@/lib/env";
+import { dummyHash, hashPassword, verifyPassword } from "@/lib/password";
+import { passwordProblem } from "@/lib/password-policy";
 
-const OTP_TTL_MS = 5 * 60 * 1000;
-const MAX_ATTEMPTS = 5;
-const RESEND_COOLDOWN_MS = 30 * 1000;
-/** Staff who can enter admin by phone. They must NEVER get an on-screen demo code. */
-
-function hashCode(phone: string, code: string): string {
-  return createHmac("sha256", authSecret()).update(`${phone}:${code}`).digest("hex");
-}
+export const MAX_FAILED_LOGINS = 5;
+export const LOCK_MS = 15 * 60 * 1000;
 
 export class AuthError extends Error {
-  constructor(public code: string) {
+  constructor(
+    public code:
+      | "INVALID_PHONE"
+      | "INVALID_CREDENTIALS"
+      | "ACCOUNT_LOCKED"
+      | "PASSWORD_NOT_SET"
+      | "PHONE_TAKEN"
+      | "STAFF_ACCOUNT"
+      | "WEAK_PASSWORD"
+      | "INVALID_NAME"
+      | "OTP_DISABLED",
+    public detail?: string,
+  ) {
     super(code);
   }
 }
 
-/** True only when no real SMS gateway is configured (dev/demo). */
-export function isDevSms(): boolean {
-  return getEnv().SMS_PROVIDER === "console";
-}
-
-/**
- * Send an OTP to an Egyptian mobile. Returns the E.164 phone. In demo mode
- * (console SMS provider only) it also returns the code so the UI can show it —
- * this NEVER happens once a real SMS provider is configured.
- */
-export async function sendOtp(rawPhone: string): Promise<{ phone: string; devCode?: string; staffUsePasscode?: boolean }> {
-  let phone: string;
+export function normalizePhone(raw: string): string {
   try {
-    phone = toE164(rawPhone);
+    return toE164(raw);
   } catch {
     throw new AuthError("INVALID_PHONE");
   }
-  // Slow down code guessing / SMS abuse: one new code per number every 30s.
-  const last = await repo.latestOtp(phone);
-  if (last && Date.now() - new Date(last.createdAt).getTime() < RESEND_COOLDOWN_MS) {
-    throw new AuthError("TOO_SOON");
-  }
-  const code = String(randomInt(1000, 10000)); // 4-digit
-  const expiresAt = new Date(Date.now() + OTP_TTL_MS);
-  await repo.saveOtp(phone, hashCode(phone, code), expiresAt);
-  await getSms().send(phone, `كود الدخول لـ انقلي: ${code}`);
-  // Demo mode shows the code on screen — but never for admin staff numbers, or anyone
-  // could open the admin dashboard by typing a staff phone. Staff use the passcode
-  // until a real SMS provider is connected.
-  if (isDevSms()) {
-    const staff = await repo.getStaffByPhone(phone);
-    if (staff && isAdminRole(staff.role)) return { phone, staffUsePasscode: true };
-    return { phone, devCode: code };
-  }
-  return { phone };
 }
 
-/** Verify an OTP. On success, upserts the user and returns the phone. */
-export async function verifyOtp(rawPhone: string, code: string): Promise<{ phone: string }> {
-  let phone: string;
-  try {
-    phone = toE164(rawPhone);
-  } catch {
-    throw new AuthError("INVALID_PHONE");
-  }
-  const rec = await repo.latestOtp(phone);
-  if (!rec) throw new AuthError("NO_CODE");
-  if (rec.consumed) throw new AuthError("NO_CODE");
-  if (new Date() > rec.expiresAt) throw new AuthError("EXPIRED");
-  if (rec.attempts >= MAX_ATTEMPTS) throw new AuthError("TOO_MANY_ATTEMPTS");
+export interface AuthResult {
+  phone: string;
+  name: string | null;
+  role: string;
+}
 
-  if (rec.codeHash !== hashCode(phone, code.trim())) {
-    await repo.bumpOtpAttempt(phone);
-    throw new AuthError("WRONG_CODE");
+export async function loginWithPassword(rawPhone: string, password: string): Promise<AuthResult> {
+  const phone = normalizePhone(rawPhone);
+  const acct = await repo.getLoginAccount(phone);
+  if (!acct) {
+    await verifyPassword(password, await dummyHash()); // same cost as a real check
+    throw new AuthError("INVALID_CREDENTIALS");
   }
-  await repo.consumeOtp(phone);
-  await repo.upsertUser(phone);
-  return { phone };
+  if (acct.lockedUntil && acct.lockedUntil.getTime() > Date.now()) {
+    throw new AuthError("ACCOUNT_LOCKED", minutesLeft(acct.lockedUntil));
+  }
+  if (!acct.passwordHash) {
+    await verifyPassword(password, await dummyHash());
+    throw new AuthError("PASSWORD_NOT_SET", acct.role === "customer" ? "customer" : "staff");
+  }
+  if (!(await verifyPassword(password, acct.passwordHash))) {
+    const { lockedUntil } = await repo.recordLoginFailure(acct.id, MAX_FAILED_LOGINS, LOCK_MS);
+    if (lockedUntil && lockedUntil.getTime() > Date.now()) throw new AuthError("ACCOUNT_LOCKED", minutesLeft(lockedUntil));
+    throw new AuthError("INVALID_CREDENTIALS");
+  }
+  if (acct.failedLoginCount > 0 || acct.lockedUntil) await repo.clearLoginFailures(acct.id);
+  return { phone, name: acct.name, role: acct.role };
+}
+
+/** Customer self-registration, or first password for a customer account that has none yet. */
+export async function registerCustomer(rawPhone: string, rawName: string, password: string): Promise<AuthResult> {
+  const phone = normalizePhone(rawPhone);
+  const name = rawName.trim().replace(/\s+/g, " ");
+  if (name.length < 2 || name.length > 80) throw new AuthError("INVALID_NAME");
+  const problem = passwordProblem(password, "customer");
+  if (problem) throw new AuthError("WEAK_PASSWORD", problem);
+
+  const existing = await repo.getLoginAccount(phone);
+  if (existing) {
+    if (existing.role !== "customer") throw new AuthError("STAFF_ACCOUNT");
+    if (existing.passwordHash) throw new AuthError("PHONE_TAKEN");
+    // claimed atomically: only while the account still has no password
+    if (!(await repo.claimAccount(existing.id, await hashPassword(password), name))) throw new AuthError("PHONE_TAKEN");
+    return { phone, name, role: "customer" };
+  }
+  const res = await repo.createUserWithPassword({
+    phone, name, role: "customer", passwordHash: await hashPassword(password), verified: false,
+  });
+  if (!res.created) throw new AuthError("PHONE_TAKEN"); // lost a race for the same number
+  return { phone, name, role: "customer" };
+}
+
+/** Admin sets a password for any account (staff manager / customers page / bootstrap). */
+export async function adminSetPassword(userId: string, role: string, password: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const problem = passwordProblem(password, role);
+  if (problem) return { ok: false, error: problem };
+  const done = await repo.setPassword(userId, await hashPassword(password));
+  return done ? { ok: true } : { ok: false, error: "الحساب مش موجود." };
+}
+
+function minutesLeft(until: Date): string {
+  return String(Math.max(1, Math.ceil((until.getTime() - Date.now()) / 60000)));
 }

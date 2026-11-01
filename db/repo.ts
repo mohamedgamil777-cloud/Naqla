@@ -48,6 +48,9 @@ import type {
   VehicleInput,
   VehiclePricingInput,
   VehicleListItem,
+  LoginAccount,
+  CustomerAccountDTO,
+  Page,
 } from "@/types";
 import type { VehicleKind, VehicleStatus } from "@/lib/constants";
 import { BLOCKING_STATUSES, DEFAULTS, newBookingCode } from "@/lib/constants";
@@ -118,6 +121,7 @@ function userToStaff(u: typeof users.$inferSelect): StaffDTO {
     drivingLicense: u.drivingLicense ?? null,
     vehicleLicense: u.vehicleLicense ?? null,
     available: u.available ?? true,
+    hasPassword: !!u.passwordHash,
   };
 }
 
@@ -801,6 +805,126 @@ const pgRepo = {
     }
     const [created] = await db!.insert(users).values({ phone, name: name ?? null }).returning();
     return { id: created.id, phone, name: created.name };
+  },
+
+  // ---------- password login (0015) ----------
+  getLoginAccount: async (phone: string): Promise<LoginAccount | null> => {
+    const [u] = await db!.select().from(users).where(eq(users.phone, phone)).limit(1);
+    return u
+      ? {
+          id: u.id, phone: u.phone, name: u.name, role: u.role,
+          passwordHash: u.passwordHash, failedLoginCount: u.failedLoginCount,
+          lockedUntil: u.lockedUntil, phoneVerifiedAt: u.phoneVerifiedAt,
+        }
+      : null;
+  },
+  getAccountById: async (id: string): Promise<LoginAccount | null> => {
+    const [u] = await db!.select().from(users).where(eq(users.id, id)).limit(1);
+    return u
+      ? {
+          id: u.id, phone: u.phone, name: u.name, role: u.role,
+          passwordHash: u.passwordHash, failedLoginCount: u.failedLoginCount,
+          lockedUntil: u.lockedUntil, phoneVerifiedAt: u.phoneVerifiedAt,
+        }
+      : null;
+  },
+  /** Set/replace a password (admin reset or seed). Clears failed attempts and any lock. */
+  setPassword: async (userId: string, passwordHash: string): Promise<boolean> => {
+    const res = await db!
+      .update(users)
+      .set({ passwordHash, passwordSetAt: new Date(), failedLoginCount: 0, lockedUntil: null, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+    return res.length > 0;
+  },
+  /** A customer with no password yet creates one. Atomic: only if still unset, so two people can't
+   *  both claim the number; the number becomes unverified until an agent calls it. */
+  claimAccount: async (userId: string, passwordHash: string, name: string | null): Promise<boolean> => {
+    const res = await db!
+      .update(users)
+      .set({
+        passwordHash, passwordSetAt: new Date(), failedLoginCount: 0, lockedUntil: null, phoneVerifiedAt: null,
+        ...(name ? { name } : {}), updatedAt: new Date(),
+      })
+      .where(and(eq(users.id, userId), eq(users.role, "customer"), sql`${users.passwordHash} IS NULL`))
+      .returning({ id: users.id });
+    return res.length > 0;
+  },
+  /** One more wrong password, counted atomically; locks the account once `max` is reached. */
+  recordLoginFailure: async (userId: string, max: number, lockMs: number): Promise<{ lockedUntil: Date | null }> => {
+    const [row] = await db!
+      .update(users)
+      .set({
+        failedLoginCount: sql`CASE WHEN ${users.failedLoginCount} + 1 >= ${max} THEN 0 ELSE ${users.failedLoginCount} + 1 END`,
+        lockedUntil: sql`CASE WHEN ${users.failedLoginCount} + 1 >= ${max} THEN now() + (${lockMs} || ' milliseconds')::interval ELSE ${users.lockedUntil} END`,
+      })
+      .where(eq(users.id, userId))
+      .returning({ lockedUntil: users.lockedUntil });
+    return { lockedUntil: row?.lockedUntil ?? null };
+  },
+  clearLoginFailures: async (userId: string): Promise<void> => {
+    await db!.update(users).set({ failedLoginCount: 0, lockedUntil: null }).where(eq(users.id, userId));
+  },
+  /** New account with a password. Returns created=false when the phone is already taken (unique index). */
+  createUserWithPassword: async (input: {
+    phone: string; name: string | null; role: LoginAccount["role"]; passwordHash: string; verified: boolean;
+  }): Promise<{ created: true; id: string } | { created: false }> => {
+    const now = new Date();
+    const res = await db!
+      .insert(users)
+      .values({
+        phone: input.phone, name: input.name, role: input.role, passwordHash: input.passwordHash,
+        passwordSetAt: now, phoneVerifiedAt: input.verified ? now : null,
+      })
+      .onConflictDoNothing({ target: users.phone })
+      .returning({ id: users.id });
+    return res[0] ? { created: true, id: res[0].id } : { created: false };
+  },
+  /** Give an existing account a staff role (bootstrap admin only). */
+  setAccountRole: async (userId: string, role: StaffRole): Promise<boolean> => {
+    const res = await db!.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, userId)).returning({ id: users.id });
+    return res.length > 0;
+  },
+  setPhoneVerified: async (userId: string, verified: boolean): Promise<boolean> => {
+    const res = await db!
+      .update(users)
+      .set({ phoneVerifiedAt: verified ? new Date() : null, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+    return res.length > 0;
+  },
+  /** Customers for admin, searched and paginated in the database. */
+  searchCustomers: async (q: string, page: number, pageSize: number): Promise<Page<CustomerAccountDTO>> => {
+    const term = q.trim();
+    const like = `%${term.replace(/[\\%_]/g, (c) => "\\" + c)}%`; // search text is literal, not a LIKE pattern
+    const where = term
+      ? and(eq(users.role, "customer"), sql`(${users.phone} ILIKE ${like} OR ${users.name} ILIKE ${like})`)
+      : eq(users.role, "customer");
+    const [{ count }] = await db!.select({ count: sql<number>`count(*)::int` }).from(users).where(where);
+    const rows = await db!
+      .select()
+      .from(users)
+      .where(where)
+      .orderBy(desc(users.createdAt), users.id)
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
+    return {
+      rows: rows.map((u) => ({
+        id: u.id, phone: u.phone, name: u.name, hasPassword: !!u.passwordHash,
+        phoneVerifiedAt: u.phoneVerifiedAt, createdAt: u.createdAt,
+      })),
+      page, pageSize, total: count, totalPages: Math.max(1, Math.ceil(count / pageSize)),
+    };
+  },
+  /** Which of these phones an agent has verified (for the «رقم غير مؤكد» badge on orders). */
+  verifiedPhones: async (phones: string[]): Promise<Set<string>> => {
+    const list = [...new Set(phones.filter(Boolean))];
+    if (!list.length) return new Set();
+    const rows = await db!
+      .select({ phone: users.phone })
+      .from(users)
+      .where(and(inArray(users.phone, list), sql`${users.phoneVerifiedAt} IS NOT NULL`));
+    return new Set(rows.map((r) => r.phone));
   },
 
   // ---------- business settings ----------
