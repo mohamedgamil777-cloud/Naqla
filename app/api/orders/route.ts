@@ -13,8 +13,8 @@ const Body = z.object({
   // the driver needs readable addresses — required, not just pins
   pickupAddress: z.string().trim().min(3).max(300),
   dropoffAddress: z.string().trim().min(3).max(300),
-  pickupDetails: z.string().max(200).optional().nullable(),
-  dropoffDetails: z.string().max(200).optional().nullable(),
+  pickupDetails: z.string().max(300).optional().nullable(),
+  dropoffDetails: z.string().max(300).optional().nullable(),
   cargoType: z.string().max(60).optional().nullable(),
   notes: z.string().max(500).optional().nullable(),
   pickupLat: z.number().optional().nullable(),

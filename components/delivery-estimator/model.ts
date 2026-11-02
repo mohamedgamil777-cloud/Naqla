@@ -19,6 +19,63 @@ export interface LatLng {
 /** Which stop an address/pin belongs to: a = pickup, b = drop-off. */
 export type Stop = "a" | "b";
 
+/** One end of the trip: the point picked on the map / in search, its street address, and the extra parts. */
+export interface StopState {
+  point: LatLng | null;
+  /** street address — from Google (search pick or reverse lookup), editable */
+  address: string;
+  building: string;
+  floor: string;
+  apartment: string;
+  landmark: string;
+}
+
+export const emptyStop = (): StopState => ({
+  point: null,
+  address: "",
+  building: "",
+  floor: "",
+  apartment: "",
+  landmark: "",
+});
+
+const DETAIL_PARTS = [
+  ["building", "عمارة"],
+  ["floor", "الدور"],
+  ["apartment", "شقة"],
+] as const;
+const DETAIL_SEP = " · ";
+
+type StopDetails = Pick<StopState, "building" | "floor" | "apartment" | "landmark">;
+
+/** Extra address parts → the single details text orders and saved addresses store
+ *  ("عمارة 12 · الدور 3 · شقة 5 · قدام الصيدلية"). */
+export function composeDetails(s: StopDetails): string {
+  const parts: string[] = DETAIL_PARTS.flatMap(([key, label]) =>
+    s[key].trim() ? [`${label} ${s[key].trim()}`] : [],
+  );
+  if (s.landmark.trim()) parts.push(s.landmark.trim());
+  return parts.join(DETAIL_SEP);
+}
+
+/** Inverse of composeDetails; anything it can't place (older free text) lands in the landmark. */
+export function parseDetails(text: string | null): StopDetails {
+  const out: StopDetails = { building: "", floor: "", apartment: "", landmark: "" };
+  const rest: string[] = [];
+  for (const part of (text ?? "")
+    .split(DETAIL_SEP)
+    .map((p) => p.trim())
+    .filter(Boolean)) {
+    const hit = DETAIL_PARTS.find(([key, label]) => !out[key] && part.startsWith(`${label} `));
+    const value = hit ? part.slice(hit[1].length + 1).trim() : "";
+    // composed values are short single fields; a longer sentence that happens to start with a label is free text
+    if (hit && value.length <= 20 && !/[،,]/.test(value)) out[hit[0]] = value;
+    else rest.push(part);
+  }
+  out.landmark = rest.join(DETAIL_SEP);
+  return out;
+}
+
 export interface SavedAddr {
   id: string;
   label: string;
@@ -128,33 +185,14 @@ export function roadKm(a: LatLng, b: LatLng): number {
   return Math.round(haversineKm(a, b) * 1.3 * 10) / 10;
 }
 
-/** Address box: clearly an input — border, tinted background, strong focus ring; red when missing. */
-export function addrField(missing: boolean) {
-  const base =
-    "w-full rounded-xl border bg-panel px-3.5 py-2.5 text-base font-medium text-ink outline-none transition " +
-    "placeholder:text-muted/70 placeholder:font-normal focus:border-primary focus:ring-3 focus:ring-primary/15";
-  return `${base} ${missing ? "border-booked ring-3 ring-booked/15" : "border-line-2 hover:border-ink-2/40"}`;
-}
-
 export const detailField =
   "w-full rounded-xl border border-line bg-panel px-3.5 py-2 text-[15px] text-ink-2 outline-none transition " +
   "placeholder:text-muted/70 focus:border-primary focus:ring-3 focus:ring-primary/15";
 
-/** What the order form keeps in sessionStorage across the login detour. */
+/** Addresses typed on the home page, handed to the order form through sessionStorage. */
 export interface OrderDraft {
-  pickup: LatLng;
-  dropoff: LatLng;
   pickupAddr: string;
   dropoffAddr: string;
-  pickupDetails: string;
-  dropoffDetails: string;
-  notes: string;
-  sizeId: string;
-  hint: string | null;
-  date: string;
-  time: string;
-  loaders: number;
-  promo: string;
 }
 
 export const DRAFT_KEY = "naqla_order_draft";

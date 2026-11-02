@@ -40,6 +40,11 @@ const schema = z.object({
   SEED_ADMIN_PHONE: optional,
   SEED_ADMIN_PASSWORD: optional,
   SEED_ADMIN_NAME: optional,
+  // Google Maps in the browser (order map, place search, reverse geocoding, driver trip map). The key is
+  // sent to the browser by design — restrict it to the site's domains in Google Cloud Console.
+  GOOGLE_MAPS_API_KEY: optional,
+  // Map ID for vector maps / advanced markers. Defaults to Google's DEMO_MAP_ID (fine for development).
+  GOOGLE_MAPS_MAP_ID: optional,
 });
 
 export type ServerEnv = z.infer<typeof schema>;
@@ -99,4 +104,12 @@ export function adminPasscode(): string | null {
 /** Test helper: forget the cached environment. */
 export function resetEnvCache() {
   cached = null;
+}
+
+/** Browser Google Maps settings, or null when no key is configured (pages then fall back to plain fields). */
+export function googleMapsConfig(): { apiKey: string; mapId: string } | null {
+  const { GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_MAP_ID } = getEnv();
+  return GOOGLE_MAPS_API_KEY
+    ? { apiKey: GOOGLE_MAPS_API_KEY, mapId: GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID" }
+    : null;
 }

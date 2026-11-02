@@ -1,20 +1,28 @@
 "use client";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/Icons";
-import { addrField, detailField, type SavedAddr, type Stop } from "./model";
+import type { LatLng } from "@/lib/google-maps";
+import { detailField, type SavedAddr, type Stop, type StopState } from "./model";
+import { PlaceSearch } from "./PlaceSearch";
 
 /** "مطلوب" until filled, then a check. */
 function RequiredTag({ done }: { done: boolean }) {
   if (done) {
-    return <Icon name="check" className="w-4 h-4 text-ok" strokeWidth={3} aria-label="تم" role="img" aria-hidden={false} />;
+    return (
+      <Icon
+        name="check"
+        className="w-4 h-4 text-ok"
+        strokeWidth={3}
+        aria-label="تم"
+        role="img"
+        aria-hidden={false}
+      />
+    );
   }
   return <span className="text-xs font-medium text-muted">مطلوب</span>;
 }
 
-const STOP_LOOK: Record<
-  Stop,
-  { title: string; marker: string; label: string; detailsLabel: string }
-> = {
+const STOP_LOOK: Record<Stop, { title: string; marker: string; label: string; detailsLabel: string }> = {
   a: {
     title: "مكان الاستلام",
     marker: "rounded-full border-[3px] border-booked bg-panel",
@@ -31,58 +39,118 @@ const STOP_LOOK: Record<
 
 type StopFieldsProps = {
   stop: Stop;
-  address: string;
-  details: string;
-  onAddress: (value: string) => void;
-  onDetails: (value: string) => void;
+  value: StopState;
+  apiKey: string;
+  /** maps unavailable → plain address field, no pin required */
+  plain: boolean;
+  near: LatLng;
+  /** the street address is being looked up for a freshly placed pin */
+  resolving: boolean;
   onFocus: () => void;
-  /** show the address as missing (after a failed order attempt) */
+  /** picked from search: point + address */
+  onPick: (point: LatLng, address: string) => void;
+  onChange: (patch: Partial<StopState>) => void;
+  /** show the stop as missing (after a failed order attempt) */
   missing: boolean;
   /** button beside the title ("موقعي" / "الخريطة") */
   action: ReactNode;
   children?: ReactNode;
 };
 
-/** One stop of the trip: title, address, optional details, and saved-address chips (children). */
+const smallLabel = "block mb-1 text-xs font-semibold text-muted";
+
+/**
+ * One stop of the trip: search (or tap the map) → the street address comes from Google → the customer
+ * adds building, floor, apartment and a landmark. Saved-address chips come in as children.
+ */
 export function StopFields({
   stop,
-  address,
-  details,
-  onAddress,
-  onDetails,
+  value,
+  apiKey,
+  plain,
+  near,
+  resolving,
   onFocus,
+  onPick,
+  onChange,
   missing,
   action,
   children,
 }: StopFieldsProps) {
   const look = STOP_LOOK[stop];
+  const located = plain ? !!value.address.trim() : !!value.point;
 
   return (
-    <div className="p-4 flex flex-col gap-2">
+    <div className="p-4 flex flex-col gap-2.5">
       <div className="flex items-center gap-3">
         {/* same stop markers as the map pins and the home-page form */}
         <span className={`w-4 h-4 shrink-0 ${look.marker}`} aria-hidden />
         <span className="flex-1 min-w-0 flex items-center gap-2 font-semibold whitespace-nowrap">
-          {look.title} <RequiredTag done={!!address.trim()} />
+          {look.title} <RequiredTag done={located} />
         </span>
         {action}
       </div>
-      <input
-        value={address}
-        onChange={(e) => onAddress(e.target.value)}
+      <PlaceSearch
+        apiKey={apiKey}
+        plain={plain}
+        address={value.address}
+        near={value.point ?? near}
+        label={look.label}
+        missing={missing}
         onFocus={onFocus}
-        placeholder="المنطقة، الشارع، رقم العمارة"
-        aria-label={look.label}
-        aria-invalid={missing ? true : undefined}
-        className={addrField(missing)}
+        onPick={onPick}
+        onType={(address) => onChange({ address })}
       />
-      <input
-        value={details}
-        onChange={(e) => onDetails(e.target.value)}
-        placeholder="الدور، الشقة، علامة مميزة (اختياري)"
-        aria-label={look.detailsLabel}
-        className={detailField}
-      />
+      {!plain && (resolving || !value.point) && (
+        <p className="text-[13px] text-muted -mt-1" aria-live="polite">
+          {resolving ? "بنجيب العنوان…" : "اختار من نتايج البحث، أو اضغط على الخريطة لتحديد المكان بالظبط."}
+        </p>
+      )}
+
+      {located && (
+        <fieldset className="flex flex-col gap-2.5">
+          <legend className="sr-only">{look.detailsLabel}</legend>
+          <div className="grid grid-cols-3 gap-2">
+            <label>
+              <span className={smallLabel}>رقم العمارة</span>
+              <input
+                value={value.building}
+                onChange={(e) => onChange({ building: e.target.value })}
+                className={detailField}
+                maxLength={20}
+              />
+            </label>
+            <label>
+              <span className={smallLabel}>الدور</span>
+              <input
+                value={value.floor}
+                onChange={(e) => onChange({ floor: e.target.value })}
+                className={detailField}
+                maxLength={20}
+              />
+            </label>
+            <label>
+              <span className={smallLabel}>الشقة</span>
+              <input
+                value={value.apartment}
+                onChange={(e) => onChange({ apartment: e.target.value })}
+                className={detailField}
+                maxLength={20}
+              />
+            </label>
+          </div>
+          <label>
+            <span className={smallLabel}>علامة مميزة (اختياري)</span>
+            <input
+              value={value.landmark}
+              onChange={(e) => onChange({ landmark: e.target.value })}
+              placeholder="مثلاً: قدام الصيدلية، البوابة التانية"
+              className={detailField}
+              maxLength={120}
+            />
+          </label>
+        </fieldset>
+      )}
       {children}
     </div>
   );
@@ -97,7 +165,7 @@ type SavedAddressChipsProps = {
   onSave: () => void;
 };
 
-/** Saved-address chips + "⭐ احفظ" under an address (signed-in customers only). */
+/** Saved-address chips + "احفظ العنوان" under an address (signed-in customers only). */
 export function SavedAddressChips({ saved, value, message, onPick, onSave }: SavedAddressChipsProps) {
   const typed = value.trim();
   const alreadySaved = saved.some((a) => a.address === typed);
@@ -111,7 +179,8 @@ export function SavedAddressChips({ saved, value, message, onPick, onSave }: Sav
           onClick={() => onPick(a)}
           className="shrink-0 rounded-full border border-line-2 bg-panel px-3 py-1.5 text-sm font-bold text-ink-2 hover:border-primary hover:text-primary"
         >
-          <Icon name="mapPin" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{a.label}
+          <Icon name="mapPin" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
+          {a.label}
         </button>
       ))}
       {typed && !alreadySaved && (
@@ -120,7 +189,8 @@ export function SavedAddressChips({ saved, value, message, onPick, onSave }: Sav
           onClick={onSave}
           className="shrink-0 rounded-full bg-primary-soft text-primary-ink px-3 py-1.5 text-sm font-bold"
         >
-          ⭐ احفظ العنوان
+          <Icon name="star" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
+          احفظ العنوان
         </button>
       )}
       {message && <span className="shrink-0 text-sm font-bold text-ok">{message}</span>}

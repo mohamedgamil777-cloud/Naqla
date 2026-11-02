@@ -63,7 +63,7 @@ export function OrderCard(props: OrderCardProps) {
 }
 
 function ratingText(rating: number, comment: string | null) {
-  return `${"⭐".repeat(rating)}${comment ? ` — ${comment}` : ""}`;
+  return `${"★".repeat(rating)}${comment ? ` — ${comment}` : ""}`;
 }
 
 function OrderCardHeader({ order: o, companyName }: { order: DeliveryOrderDTO; companyName: string | null }) {

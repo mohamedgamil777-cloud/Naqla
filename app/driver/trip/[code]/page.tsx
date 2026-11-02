@@ -5,6 +5,7 @@ import { getSession } from "@/services/session";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { Icon, type IconName } from "@/components/Icons";
 import { TripMap } from "@/components/driver/TripMap";
+import { googleMapsConfig } from "@/lib/env";
 import { PodView } from "@/components/PodView";
 import { OrderActions } from "@/components/driver/OrderActions";
 import {
@@ -97,7 +98,7 @@ function Details({ o }: { o: DeliveryOrderDTO }) {
 
       {/* map with the two ends labelled on top */}
       <div className="relative">
-        <TripMap pickup={pickup} dropoff={dropoff} />
+        <TripMap pickup={pickup} dropoff={dropoff} maps={googleMapsConfig()} />
         <MapLabel className="top-3 right-3" kind="pickup" text={o.pickupAddress} />
         <MapLabel className="bottom-3 left-3" kind="dropoff" text={o.dropoffAddress} />
       </div>

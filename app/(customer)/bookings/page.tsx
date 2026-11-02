@@ -372,7 +372,7 @@ function PastOrder({ o, ratingAbove = false }: { o: DeliveryOrderDTO; ratingAbov
             </span>
           </div>
         ) : ratingAbove ? (
-          <span className="text-sm font-bold text-accent-ink">⭐ قيّم السواق من فوق</span>
+          <span className="text-sm font-bold text-accent-ink"><Icon name="star" className="w-4 h-4 inline-block align-[-3px] me-1" />قيّم السواق من فوق</span>
         ) : (
           <RateOrder code={o.code} driverName={o.driverName} />
         ))}

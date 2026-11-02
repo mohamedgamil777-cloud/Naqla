@@ -181,6 +181,7 @@ const PATHS = {
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   close: <path d="M18 6 6 18M6 6l12 12" />,
   plus: <path d="M5 12h14M12 5v14" />,
+  download: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />,
   arrowLeft: <path d="M19 12H5m7 7-7-7 7-7" />,
   building: (
     <>

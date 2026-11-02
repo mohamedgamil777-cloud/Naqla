@@ -1,117 +1,120 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any -- Leaflet is loaded from a CDN at runtime, untyped */
 import { useEffect, useRef, type RefObject } from "react";
+import { loadGoogleMaps, onMapsAuthFailure, pinElement } from "@/lib/google-maps";
 import type { LatLng, Stop } from "./model";
 
-function loadLeaflet(): Promise<any> {
-  if ((window as any).L) return Promise.resolve((window as any).L);
-  return new Promise((resolve, reject) => {
-    if (!document.getElementById("leaflet-css")) {
-      const css = document.createElement("link");
-      css.id = "leaflet-css";
-      css.rel = "stylesheet";
-      css.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
-      document.head.appendChild(css);
-    }
-    const s = document.createElement("script");
-    s.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
-    s.onload = () => resolve((window as any).L);
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
-
-/** Round map pin: red for pickup, teal flag for drop-off (matches the location card). */
-function pinIcon(L: any, kind: Stop) {
-  const bg = kind === "a" ? "#d9452b" : "#0b6b5b";
-  const glyph =
-    kind === "a"
-      ? '<circle cx="12" cy="10" r="3" fill="#fff"/>'
-      : '<path d="M8 17V6s1-1 3-1 3 1.5 5 1.5 2-.5 2-.5v6s-.5.5-2 .5-3-1.5-5-1.5-3 1-3 1" fill="#fff"/>';
-  return L.divIcon({
-    className: "",
-    html:
-      '<svg width="34" height="42" viewBox="0 0 24 30" style="filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))">' +
-      `<path d="M12 29s9-8.6 9-17A9 9 0 0 0 3 12c0 8.4 9 17 9 17z" fill="${bg}"/>${glyph}</svg>`,
-    iconSize: [34, 42],
-    iconAnchor: [17, 42],
-  });
-}
-
 type UseDeliveryMapArgs = {
+  apiKey: string;
+  mapId: string;
   open: boolean;
   container: RefObject<HTMLDivElement | null>;
   center: LatLng;
-  pickup: LatLng;
-  dropoff: LatLng;
-  /** which pin a tap on the map moves */
+  /** the two stops; a missing point has no pin yet */
+  points: Record<Stop, LatLng | null>;
+  /** which pin a tap on the map places */
   active: Stop;
-  onMove: (stop: Stop, point: LatLng) => void;
+  /** a pin was placed by a tap or moved by dragging */
+  onPick: (stop: Stop, point: LatLng) => void;
   onError: () => void;
 };
 
 /**
- * Leaflet map with draggable pickup/drop-off pins. Built lazily the first time it opens.
- * Returns helpers to move a pin or the view from outside (saved address, "my location", swap).
+ * Google map with draggable pickup/drop-off pins. Built lazily the first time it opens; afterwards the
+ * pins follow `points` (search picks, saved addresses, "my location", swap) and the view keeps both in sight.
  */
 export function useDeliveryMap({
+  apiKey,
+  mapId,
   open,
   container,
   center,
-  pickup,
-  dropoff,
+  points,
   active,
-  onMove,
+  onPick,
   onError,
 }: UseDeliveryMapArgs) {
-  const mapRef = useRef<any>(null);
-  const markersRef = useRef<{ a: any; b: any }>({ a: null, b: null });
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<Record<Stop, google.maps.marker.AdvancedMarkerElement | null>>({
+    a: null,
+    b: null,
+  });
   const activeRef = useRef<Stop>(active);
   activeRef.current = active;
-  const onMoveRef = useRef(onMove);
-  onMoveRef.current = onMove;
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
+  const pointsRef = useRef(points);
+  pointsRef.current = points;
+
+  /** Puts each pin where `points` says and keeps both in view. */
+  function sync() {
+    const map = mapRef.current;
+    if (!map) return;
+    const placed: LatLng[] = [];
+    for (const stop of ["a", "b"] as const) {
+      const point = pointsRef.current[stop];
+      let marker = markersRef.current[stop];
+      if (!point) {
+        if (marker) marker.map = null;
+        continue;
+      }
+      placed.push(point);
+      if (!marker) {
+        marker = new google.maps.marker.AdvancedMarkerElement({
+          content: pinElement(stop),
+          gmpDraggable: true,
+          title: stop === "a" ? "مكان الاستلام" : "مكان التسليم",
+        });
+        marker.addListener("dragend", (e: google.maps.MapMouseEvent) => {
+          if (e.latLng) onPickRef.current(stop, e.latLng.toJSON());
+        });
+        markersRef.current[stop] = marker;
+      }
+      marker.position = point;
+      marker.map = map;
+    }
+    const bounds = map.getBounds();
+    const outOfView = placed.some((p) => !bounds?.contains(p));
+    if (placed.length === 2 && outOfView) {
+      const fit = new google.maps.LatLngBounds();
+      placed.forEach((p) => fit.extend(p));
+      map.fitBounds(fit, 56);
+    } else if (placed.length === 1 && outOfView) {
+      map.panTo(placed[0]);
+      if ((map.getZoom() ?? 0) < 14) map.setZoom(15);
+    }
+  }
 
   useEffect(() => {
-    if (!open) return;
-    if (mapRef.current) {
-      setTimeout(() => mapRef.current.invalidateSize(), 50);
-      return;
-    }
+    if (!open || mapRef.current) return;
     let cancelled = false;
-    loadLeaflet()
-      .then((L) => {
+    const stopAuth = onMapsAuthFailure(onError);
+    loadGoogleMaps(apiKey)
+      .then(() => Promise.all([google.maps.importLibrary("maps"), google.maps.importLibrary("marker")]))
+      .then(() => {
         if (cancelled || !container.current || mapRef.current) return;
-        const map = L.map(container.current).setView([center.lat, center.lng], 13);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "&copy; OpenStreetMap",
-          maxZoom: 19,
-        }).addTo(map);
-        const a = L.marker([pickup.lat, pickup.lng], { draggable: true, icon: pinIcon(L, "a") }).addTo(map);
-        const b = L.marker([dropoff.lat, dropoff.lng], { draggable: true, icon: pinIcon(L, "b") }).addTo(map);
-        markersRef.current = { a, b };
-        a.on("dragend", () => onMoveRef.current("a", a.getLatLng()));
-        b.on("dragend", () => onMoveRef.current("b", b.getLatLng()));
-        map.on("click", (e: any) => {
-          const stop = activeRef.current;
-          markersRef.current[stop].setLatLng(e.latlng);
-          onMoveRef.current(stop, { lat: e.latlng.lat, lng: e.latlng.lng });
+        const map = new google.maps.Map(container.current, {
+          center,
+          zoom: 12,
+          mapId,
+          disableDefaultUI: true,
+          zoomControl: true,
+          clickableIcons: false,
+          gestureHandling: window.matchMedia("(pointer: coarse)").matches ? "cooperative" : "greedy",
+        });
+        map.addListener("click", (e: google.maps.MapMouseEvent) => {
+          if (e.latLng) onPickRef.current(activeRef.current, e.latLng.toJSON());
         });
         mapRef.current = map;
+        google.maps.event.addListenerOnce(map, "idle", sync);
       })
       .catch(onError);
     return () => {
       cancelled = true;
+      stopAuth();
     };
-    // the map is built once; later pin moves go through setPin
+    // the map is built once; later changes go through the points effect below
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  return {
-    setPin(stop: Stop, point: LatLng) {
-      markersRef.current[stop]?.setLatLng([point.lat, point.lng]);
-    },
-    focus(point: LatLng) {
-      mapRef.current?.setView([point.lat, point.lng], 14);
-    },
-  };
+  useEffect(sync, [points.a, points.b]);
 }

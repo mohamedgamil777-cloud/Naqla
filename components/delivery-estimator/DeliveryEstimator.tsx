@@ -4,9 +4,12 @@
  * This component owns the order state; each section is a focused child component.
  */
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { cairoDateISO } from "@/lib/client-time";
+import { geocodeAddress, loadGoogleMaps, reverseGeocode } from "@/lib/google-maps";
 import { useTyping } from "@/hooks/useTyping";
 import type { Quote } from "@/engines/pricing";
+import { AuthGate } from "./AuthGate";
 import { ExtrasSection } from "./ExtrasSection";
 import { CompanyBanner, OrderPlaced, Stepper } from "./OrderHeader";
 import { OrderBar } from "./OrderBar";
@@ -27,6 +30,9 @@ import {
   ORDER_ERROR,
   addDaysISO,
   cairoNowMinutes,
+  composeDetails,
+  emptyStop,
+  parseDetails,
   roadKm,
   slotMinutes,
   timeSlots,
@@ -37,6 +43,7 @@ import {
   type SavedAddr,
   type SizeOpt,
   type Stop,
+  type StopState,
 } from "./model";
 
 export type { AccountInfo, OrderOptions, SavedAddr } from "./model";
@@ -50,6 +57,8 @@ type DeliveryEstimatorProps = {
   options: OrderOptions;
   /** logged-in customer: company (B2B) + saved addresses */
   account?: AccountInfo;
+  /** Google Maps (search, pins, reverse lookup); null → typed addresses and a hand-set distance */
+  maps: { apiKey: string; mapId: string } | null;
 };
 
 const GENERIC_ERROR = "حصلت مشكلة، حاول تاني.";
@@ -65,7 +74,9 @@ export function DeliveryEstimator({
   loaderFee,
   options,
   account,
+  maps,
 }: DeliveryEstimatorProps) {
+  const router = useRouter();
   const typing = useTyping(); // keyboard up → hide the sticky order bar
   const allSlots = timeSlots(options.hours.open, options.hours.close);
   const today = cairoDateISO(0);
@@ -77,13 +88,14 @@ export function DeliveryEstimator({
   const firstDay = slotsFor(today).length ? today : addDaysISO(today, 1);
 
   // ---- places ----
-  const [pickup, setPickup] = useState<LatLng>({ lat: center.lat + 0.008, lng: center.lng - 0.008 });
-  const [dropoff, setDropoff] = useState<LatLng>({ lat: center.lat - 0.008, lng: center.lng + 0.008 });
-  const [pickupAddr, setPickupAddr] = useState("");
-  const [dropoffAddr, setDropoffAddr] = useState("");
-  const [pickupDetails, setPickupDetails] = useState("");
-  const [dropoffDetails, setDropoffDetails] = useState("");
-  const [km, setKm] = useState(() => roadKm(pickup, dropoff));
+  const [stops, setStops] = useState<Record<Stop, StopState>>({ a: emptyStop(), b: emptyStop() });
+  const updateStop = (stop: Stop, patch: Partial<StopState>) =>
+    setStops((all) => ({ ...all, [stop]: { ...all[stop], ...patch } }));
+  /** a reverse lookup is running for this stop's pin */
+  const [resolving, setResolving] = useState<Record<Stop, boolean>>({ a: false, b: false });
+  const lookupSeq = useRef<Record<Stop, number>>({ a: 0, b: 0 });
+  // straight-line × road factor from the two pins; a hand-set value without maps
+  const [km, setKm] = useState(5);
   const [locating, setLocating] = useState(false);
   const [addrError, setAddrError] = useState(false);
   const [saved, setSaved] = useState<SavedAddr[]>(account?.saved ?? []);
@@ -94,15 +106,39 @@ export function DeliveryEstimator({
   const [mapOpen, setMapOpen] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [activeStop, setActiveStop] = useState<Stop>("a");
-  const setStopPoint = (stop: Stop, point: LatLng) => (stop === "a" ? setPickup(point) : setDropoff(point));
-  const map = useDeliveryMap({
-    open: mapOpen,
+  /** no key or Google refused it → plain address fields, no pins required */
+  const plain = !maps || mapError;
+
+  /** A stop got a point (map tap, dragged pin, my location): store it, then fetch its street address. */
+  function locate(stop: Stop, point: LatLng, address?: string) {
+    updateStop(stop, address ? { point, address } : { point });
+    if (stop === "a" && !stops.b.point) setActiveStop("b"); // the next tap places the drop-off
+    if (address || !maps) return;
+    const seq = ++lookupSeq.current[stop];
+    setResolving((r) => ({ ...r, [stop]: true }));
+    loadGoogleMaps(maps.apiKey)
+      .then(() => reverseGeocode(point))
+      .then((found) => {
+        if (seq !== lookupSeq.current[stop]) return; // the pin moved again meanwhile
+        updateStop(stop, { address: found ?? "مكان محدد على الخريطة" });
+      })
+      .catch(() => {
+        if (seq === lookupSeq.current[stop]) updateStop(stop, { address: "مكان محدد على الخريطة" });
+      })
+      .finally(() => {
+        if (seq === lookupSeq.current[stop]) setResolving((r) => ({ ...r, [stop]: false }));
+      });
+  }
+
+  useDeliveryMap({
+    apiKey: maps?.apiKey ?? "",
+    mapId: maps?.mapId ?? "DEMO_MAP_ID",
+    open: mapOpen && !plain,
     container: mapEl,
     center,
-    pickup,
-    dropoff,
+    points: { a: stops.a.point, b: stops.b.point },
     active: activeStop,
-    onMove: (stop, point) => setStopPoint(stop, { lat: point.lat, lng: point.lng }),
+    onPick: (stop, point) => locate(stop, point),
     onError: () => setMapError(true),
   });
 
@@ -129,13 +165,13 @@ export function DeliveryEstimator({
   const [loaders, setLoaders] = useState(0);
   const [notes, setNotes] = useState("");
   const [appliedPromo, setAppliedPromo] = useState("");
-  /** bumped when a draft restores a coupon, so the coupon field shows it */
-  const [promoFieldKey, setPromoFieldKey] = useState(0);
   const [promoMsg, setPromoMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [pricing, setPricing] = useState(false);
 
   // ---- ordering ----
+  const [loggedIn, setLoggedIn] = useState(Boolean(account?.loggedIn));
+  const [authOpen, setAuthOpen] = useState(false);
   const [ordering, setOrdering] = useState(false);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [orderErr, setOrderErr] = useState<string | null>(null);
@@ -151,51 +187,48 @@ export function DeliveryEstimator({
     if (window.matchMedia("(min-width: 1024px)").matches) setMapOpen(true);
   }, []);
 
-  // Once both addresses are filled, drop the "missing address" warning.
+  const stopReady = (stop: StopState) => stop.address.trim().length >= 3 && (plain || !!stop.point);
+  const placesDone = stopReady(stops.a) && stopReady(stops.b);
+
+  // Once both stops are set, drop the "missing place" warning.
   useEffect(() => {
-    if (addrError && pickupAddr.trim() && dropoffAddr.trim()) {
+    if (addrError && placesDone) {
       setAddrError(false);
       setOrderErr(null);
     }
-  }, [addrError, pickupAddr, dropoffAddr]);
+  }, [addrError, placesDone]);
 
   useEffect(() => {
-    setKm(roadKm(pickup, dropoff));
-  }, [pickup, dropoff]);
+    if (stops.a.point && stops.b.point) setKm(roadKm(stops.a.point, stops.b.point));
+  }, [stops.a.point, stops.b.point]);
 
-  // Keep the order through the login detour: ordering while logged out goes to /login and back;
-  // the draft lives in sessionStorage (this tab only).
+  // Addresses typed on the home page: put each on the map (Google's best match), or keep the text.
   useEffect(() => {
     const draft = takeDraft();
     if (!draft) return;
-    if (draft.pickup) setPickup(draft.pickup);
-    if (draft.dropoff) setDropoff(draft.dropoff);
-    setPickupAddr(draft.pickupAddr ?? "");
-    setDropoffAddr(draft.dropoffAddr ?? "");
-    setPickupDetails(draft.pickupDetails ?? "");
-    setDropoffDetails(draft.dropoffDetails ?? "");
-    setNotes(draft.notes ?? "");
-    const draftSize = sizes.find((s) => s.id === draft.sizeId);
-    if (draftSize) {
-      setSizeId(draftSize.id);
-      setVehicleTouched(true);
+    for (const [stop, text] of [
+      ["a", draft.pickupAddr],
+      ["b", draft.dropoffAddr],
+    ] as const) {
+      const typed = text?.trim();
+      if (!typed) continue;
+      updateStop(stop, { address: typed });
+      if (!maps) continue;
+      loadGoogleMaps(maps.apiKey)
+        .then(() => geocodeAddress(typed))
+        .then((hit) => hit && updateStop(stop, { point: hit.point, address: hit.address }))
+        .catch(() => {}); // the customer picks it on the map instead
     }
-    if (draft.hint) setHint(draft.hint);
-    if (draft.date && draft.date >= today) setDate(draft.date);
-    if (draft.time && slotsFor(draft.date ?? today).includes(draft.time)) setTime(draft.time);
-    setTimeTouched(true);
-    setLoaders(Math.min(options.maxLoaders, Number(draft.loaders) || 0));
-    if (draft.promo) {
-      setAppliedPromo(draft.promo);
-      setPromoFieldKey((k) => k + 1);
-    }
-    // distance is recomputed from the restored pins
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on mount
   }, []);
 
   // Live price: re-quote on the server whenever an input changes (debounced).
+  const canPrice = Boolean(sizeId) && (plain || Boolean(stops.a.point && stops.b.point));
   useEffect(() => {
-    if (!sizeId) return;
+    if (!canPrice) {
+      setQuote(null);
+      return;
+    }
     let cancelled = false;
     setPricing(true);
     const timer = setTimeout(async () => {
@@ -226,7 +259,7 @@ export function DeliveryEstimator({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [sizeId, km, loaders, appliedPromo]);
+  }, [canPrice, sizeId, km, loaders, appliedPromo]);
 
   function pickHint(size: string) {
     setHint(size);
@@ -239,14 +272,7 @@ export function DeliveryEstimator({
   }
 
   function swap() {
-    setPickup(dropoff);
-    setDropoff(pickup);
-    setPickupAddr(dropoffAddr);
-    setDropoffAddr(pickupAddr);
-    setPickupDetails(dropoffDetails);
-    setDropoffDetails(pickupDetails);
-    map.setPin("a", dropoff);
-    map.setPin("b", pickup);
+    setStops((all) => ({ a: all.b, b: all.a }));
   }
 
   function useMyLocation() {
@@ -254,11 +280,7 @@ export function DeliveryEstimator({
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setPickup(here);
-        map.setPin("a", here);
-        map.focus(here);
-        if (!pickupAddr.trim()) setPickupAddr("موقعي الحالي");
+        locate("a", { lat: pos.coords.latitude, lng: pos.coords.longitude });
         setLocating(false);
       },
       () => setLocating(false),
@@ -266,39 +288,30 @@ export function DeliveryEstimator({
     );
   }
 
-  /** Fill a stop from a saved address — also moves the pin so the distance stays right. */
+  /** Fill a stop from a saved address, pin included, so the distance stays right. */
   function applySaved(stop: Stop, address: SavedAddr) {
-    if (stop === "a") {
-      setPickupAddr(address.address);
-      setPickupDetails(address.details ?? "");
-    } else {
-      setDropoffAddr(address.address);
-      setDropoffDetails(address.details ?? "");
-    }
-    if (address.lat != null && address.lng != null) {
-      const point = { lat: address.lat, lng: address.lng };
-      setStopPoint(stop, point);
-      map.setPin(stop, point);
-    }
+    const point = address.lat != null && address.lng != null ? { lat: address.lat, lng: address.lng } : null;
+    updateStop(stop, { address: address.address, point, ...parseDetails(address.details) });
   }
 
   async function saveAddress(stop: Stop) {
-    const address = (stop === "a" ? pickupAddr : dropoffAddr).trim();
-    if (!address) return;
+    const { address, point } = stops[stop];
+    if (!address.trim()) return;
     const suggested = stop === "a" ? "المخزن" : "";
     const label = window.prompt("اسم العنوان (مثلاً: المخزن، الفرع، البيت)", suggested)?.trim();
     if (!label) return;
-    const point = stop === "a" ? pickup : dropoff;
-    const details = (stop === "a" ? pickupDetails : dropoffDetails).trim() || null;
+    const details = composeDetails(stops[stop]) || null;
+    const lat = point?.lat ?? null;
+    const lng = point?.lng ?? null;
     try {
       const r = await fetch("/api/addresses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label, address, details, lat: point.lat, lng: point.lng }),
+        body: JSON.stringify({ label, address: address.trim(), details, lat, lng }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.id) throw new Error(`addresses ${r.status}`);
-      setSaved((list) => [...list, { id: j.id, label, address, details, lat: point.lat, lng: point.lng }]);
+      setSaved((list) => [...list, { id: j.id, label, address: address.trim(), details, lat, lng }]);
       setSavedMsg({ stop, text: `اتحفظ «${label}»` });
     } catch {
       setSavedMsg({ stop, text: "مقدرناش نحفظه دلوقتي" });
@@ -306,16 +319,22 @@ export function DeliveryEstimator({
     setTimeout(() => setSavedMsg(null), 2500);
   }
 
-  async function placeOrder() {
+  /** Sends the order. Logged out → the sign-in step opens; after signing in it calls this again. */
+  async function placeOrder(afterSignIn = false) {
     if (!sizeId) return;
-    if (!pickupAddr.trim() || !dropoffAddr.trim()) {
-      setAddrError(true); // the message shows right under the address fields
+    if (!placesDone) {
+      setAddrError(true); // the message shows right under the places
       goTo("sec-places");
+      return;
+    }
+    if (!loggedIn && !afterSignIn) {
+      setAuthOpen(true);
       return;
     }
     setOrdering(true);
     setOrderErr(null);
     try {
+      const { a, b } = stops;
       const r = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -324,37 +343,24 @@ export function DeliveryEstimator({
           km,
           loaders,
           promoCode: appliedPromo || null,
-          pickupAddress: pickupAddr || null,
-          dropoffAddress: dropoffAddr || null,
-          pickupDetails: pickupDetails || null,
-          dropoffDetails: dropoffDetails || null,
+          pickupAddress: a.address.trim(),
+          dropoffAddress: b.address.trim(),
+          pickupDetails: composeDetails(a) || null,
+          dropoffDetails: composeDetails(b) || null,
           cargoType: options.cargo.find((h) => h.size === hint)?.label ?? null,
           notes: notes || null,
-          pickupLat: pickup.lat,
-          pickupLng: pickup.lng,
-          dropoffLat: dropoff.lat,
-          dropoffLng: dropoff.lng,
+          pickupLat: a.point?.lat ?? null,
+          pickupLng: a.point?.lng ?? null,
+          dropoffLat: b.point?.lat ?? null,
+          dropoffLng: b.point?.lng ?? null,
           date,
           time,
         }),
       });
       if (r.status === 401) {
-        keepDraft({
-          pickup,
-          dropoff,
-          pickupAddr,
-          dropoffAddr,
-          pickupDetails,
-          dropoffDetails,
-          notes,
-          sizeId,
-          hint,
-          date,
-          time,
-          loaders,
-          promo: appliedPromo,
-        });
-        window.location.href = "/login?next=/estimate";
+        // the session expired since the page loaded
+        setLoggedIn(false);
+        setAuthOpen(true);
         return;
       }
       const j = await r.json();
@@ -372,17 +378,33 @@ export function DeliveryEstimator({
     }
   }
 
+  function signedIn() {
+    setAuthOpen(false);
+    setLoggedIn(true);
+    router.refresh(); // header, account and company pricing follow the new session
+    void placeOrder(true);
+  }
+
   if (orderCode) return <OrderPlaced code={orderCode} />;
 
-  const placesDone = Boolean(pickupAddr.trim() && dropoffAddr.trim());
-  const missingPickup = addrError && !pickupAddr.trim();
-  const missingDropoff = addrError && !dropoffAddr.trim();
+  const stopProps = (stop: Stop) => ({
+    stop,
+    value: stops[stop],
+    apiKey: maps?.apiKey ?? "",
+    plain,
+    near: center,
+    resolving: resolving[stop],
+    missing: addrError && !stopReady(stops[stop]),
+    onFocus: () => setActiveStop(stop),
+    onPick: (point: LatLng, address: string) => locate(stop, point, address),
+    onChange: (patch: Partial<StopState>) => updateStop(stop, patch),
+  });
 
   const savedChips = (stop: Stop) =>
     account?.loggedIn ? (
       <SavedAddressChips
         saved={saved}
-        value={stop === "a" ? pickupAddr : dropoffAddr}
+        value={stops[stop].address}
         message={savedMsg?.stop === stop ? savedMsg.text : null}
         onPick={(address) => applySaved(stop, address)}
         onSave={() => saveAddress(stop)}
@@ -397,13 +419,7 @@ export function DeliveryEstimator({
 
         <PlacesCard>
           <StopFields
-            stop="a"
-            address={pickupAddr}
-            details={pickupDetails}
-            onAddress={setPickupAddr}
-            onDetails={setPickupDetails}
-            onFocus={() => setActiveStop("a")}
-            missing={missingPickup}
+            {...stopProps("a")}
             action={<LocateButton locating={locating} onClick={useMyLocation} />}
           >
             {savedChips("a")}
@@ -412,31 +428,29 @@ export function DeliveryEstimator({
           <SwapDivider onSwap={swap} />
 
           <StopFields
-            stop="b"
-            address={dropoffAddr}
-            details={dropoffDetails}
-            onAddress={setDropoffAddr}
-            onDetails={setDropoffDetails}
-            onFocus={() => setActiveStop("b")}
-            missing={missingDropoff}
-            action={<MapToggleButton open={mapOpen} onClick={() => setMapOpen((o) => !o)} />}
+            {...stopProps("b")}
+            action={plain ? null : <MapToggleButton open={mapOpen} onClick={() => setMapOpen((o) => !o)} />}
           >
             {savedChips("b")}
             {addrError && !placesDone && (
-              <p className="text-sm font-bold text-booked">
-                اكتب عنوان الاستلام والتسليم عشان السواق يوصل للمكان بالظبط.
+              <p className="text-sm font-semibold text-booked" role="alert">
+                {plain
+                  ? "اكتب عنوان الاستلام والتسليم عشان السواق يوصل للمكان بالظبط."
+                  : "حدد مكان الاستلام والتسليم من البحث أو على الخريطة عشان نحسب المسافة والسواق يوصل بالظبط."}
               </p>
             )}
           </StopFields>
 
-          <MapPanel
-            open={mapOpen}
-            error={mapError}
-            active={activeStop}
-            onActive={setActiveStop}
-            container={mapEl}
-          />
-          <DistanceBar km={km} onChange={setKm} />
+          {maps && (
+            <MapPanel
+              open={mapOpen}
+              error={mapError}
+              active={activeStop}
+              onActive={setActiveStop}
+              container={mapEl}
+            />
+          )}
+          {(plain || (stops.a.point && stops.b.point)) && <DistanceBar km={km} onChange={setKm} />}
         </PlacesCard>
 
         <ScheduleSection
@@ -468,7 +482,6 @@ export function DeliveryEstimator({
         />
 
         <ExtrasSection
-          key={promoFieldKey}
           loaders={loaders}
           maxLoaders={options.maxLoaders}
           loaderFee={loaderFee}
@@ -497,9 +510,16 @@ export function DeliveryEstimator({
           ordering={ordering}
           error={orderErr}
           hidden={typing}
-          onOrder={placeOrder}
+          onOrder={() => void placeOrder()}
         />
       </aside>
+
+      <AuthGate
+        open={authOpen}
+        total={quote?.total ?? null}
+        onClose={() => setAuthOpen(false)}
+        onAuthenticated={signedIn}
+      />
     </div>
   );
 }
@@ -511,13 +531,5 @@ function takeDraft(): Partial<OrderDraft> | null {
     return raw ? (JSON.parse(raw) as Partial<OrderDraft>) : null;
   } catch {
     return null;
-  }
-}
-
-function keepDraft(draft: OrderDraft) {
-  try {
-    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  } catch {
-    // private mode / storage full: the customer re-enters the order after login
   }
 }

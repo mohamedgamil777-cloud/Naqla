@@ -12,7 +12,7 @@ type OrderDriverPanelProps = {
 };
 
 function driverOptionLabel(driver: StaffDTO, rating?: RatingStat) {
-  const stars = rating ? ` ⭐${rating.avg.toFixed(1)}` : "";
+  const stars = rating ? ` ★${rating.avg.toFixed(1)}` : "";
   const away = driver.available ? "" : " (مش متاح)";
   return `${driver.name}${stars}${away}`;
 }

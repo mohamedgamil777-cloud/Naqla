@@ -5,6 +5,7 @@ import { getAppContent, getBusiness } from "@/db/lib/settings";
 import { DeliveryEstimator, type AccountInfo } from "@/components/delivery-estimator/DeliveryEstimator";
 import { getSession } from "@/services/session";
 import { addressOwner, companyContext } from "@/services/company-service";
+import { googleMapsConfig } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,7 @@ export default async function EstimatePage({ searchParams }: { searchParams: Pro
             cargo: content.order.cargo,
           }}
           center={{ lat: branch.lat ?? 30.0444, lng: branch.lng ?? 31.2357 }}
+          maps={googleMapsConfig()}
         />
       )}
     </div>

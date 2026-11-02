@@ -176,7 +176,7 @@ export default async function CompanyPage({
 
       <Section
         title={`العناوين المحفوظة (${saved.length})`}
-        hint="بتظهر لكل موظفي الشركة في صفحة الطلب — احفظ عنوان جديد بزرار «⭐ احفظ» وانت بتطلب"
+        hint="بتظهر لكل موظفي الشركة في صفحة الطلب — احفظ عنوان جديد بزرار «احفظ العنوان» وانت بتطلب"
       >
         {saved.length === 0 ? (
           <p className="text-muted text-sm">مفيش عناوين محفوظة لسه.</p>

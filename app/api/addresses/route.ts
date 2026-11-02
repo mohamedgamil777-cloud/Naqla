@@ -21,7 +21,7 @@ export const GET = withErrorHandling("GET /api/addresses", async function GET() 
 const Body = z.object({
   label: z.string().trim().min(1).max(40),
   address: z.string().trim().min(3).max(300),
-  details: z.string().trim().max(200).optional().nullable(),
+  details: z.string().trim().max(300).optional().nullable(),
   lat: z.number().min(-90).max(90).optional().nullable(),
   lng: z.number().min(-180).max(180).optional().nullable(),
 });

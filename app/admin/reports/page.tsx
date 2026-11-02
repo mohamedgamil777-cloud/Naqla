@@ -1,5 +1,6 @@
 import { getDatasetSummaries } from "@/services/reporting-service";
 import { requirePermission } from "@/lib/authz";
+import { Icon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function ReportsPage() {
           rel="noopener noreferrer"
           className="rounded-2xl px-6 py-3 font-bold bg-white text-primary"
         >
-          ⬇️ تصدير الكل (ملف واحد)
+          <Icon name="download" className="w-4 h-4 inline-block align-[-3px] me-1.5" />تصدير الكل (ملف واحد)
         </a>
       </div>
 
@@ -53,7 +54,7 @@ export default async function ReportsPage() {
                 rel="noopener noreferrer"
                 className="rounded-xl px-4 py-2.5 font-bold bg-primary text-white whitespace-nowrap"
               >
-                ⬇️ تصدير
+                <Icon name="download" className="w-4 h-4 inline-block align-[-3px] me-1.5" />تصدير
               </a>
             </div>
             <div className="flex flex-wrap gap-1.5">

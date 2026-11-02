@@ -78,9 +78,9 @@ export default async function FinancePage({
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <ExportBtn href={`/api/admin/export?report=deliveries&${q}`} label="⬇️ تقرير التوصيلات المفصّل" />
-        <ExportBtn href={`/api/admin/export?report=deliveries-by-driver&${q}`} label="⬇️ التوصيلات حسب السواق" />
-        <ExportBtn href={`/api/admin/export?report=cashflow&${q}`} label="⬇️ تقرير التدفّق النقدي" />
+        <ExportBtn href={`/api/admin/export?report=deliveries&${q}`} label="تقرير التوصيلات المفصّل" />
+        <ExportBtn href={`/api/admin/export?report=deliveries-by-driver&${q}`} label="التوصيلات حسب السواق" />
+        <ExportBtn href={`/api/admin/export?report=cashflow&${q}`} label="تقرير التدفّق النقدي" />
       </div>
 
       <Section title="التوصيلات حسب السواق (مطابقة الكاش)">
@@ -210,8 +210,8 @@ export default async function FinancePage({
 
       {/* Export */}
       <div className="flex flex-wrap gap-3">
-        <ExportBtn href={`/api/admin/export?report=bookings&${q}`} label="⬇️ تقرير الرحلات المفصّل" />
-        <ExportBtn href={`/api/admin/export?report=revenue-by-vehicle&${q}`} label="⬇️ الإيراد حسب العربية" />
+        <ExportBtn href={`/api/admin/export?report=bookings&${q}`} label="تقرير الرحلات المفصّل" />
+        <ExportBtn href={`/api/admin/export?report=revenue-by-vehicle&${q}`} label="الإيراد حسب العربية" />
       </div>
 
       {/* Detailed per-trip report */}
@@ -293,7 +293,13 @@ function Tile({ label, value, tone }: { label: string; value: string; tone?: "ok
 }
 function ExportBtn({ href, label }: { href: string; label: string }) {
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="rounded-2xl px-5 py-3 font-bold bg-primary text-white">
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 font-semibold bg-primary text-white hover:bg-primary-ink"
+    >
+      <Icon name="download" className="w-4 h-4" />
       {label}
     </a>
   );
