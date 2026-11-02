@@ -32,10 +32,14 @@ export function migrationFiles(dir = DIR): { name: string; sql: string; checksum
     });
 }
 
-async function main() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
-  const mode = process.argv.includes("--baseline") ? "baseline" : process.argv.includes("--status") ? "status" : "apply";
+export type MigrateMode = "apply" | "status" | "baseline";
+
+/** Apply (or list / baseline) the tracked migrations on one database. */
+export async function runMigrations(
+  url: string,
+  mode: MigrateMode = "apply",
+  log: (line: string) => void = console.log,
+) {
   const sql = postgres(url, { max: 1, prepare: false, onnotice: () => {} });
 
   try {
@@ -45,36 +49,50 @@ async function main() {
       applied_at timestamptz NOT NULL DEFAULT now()
     )`;
     const applied = new Map(
-      (await sql<{ name: string; checksum: string }[]>`SELECT name, checksum FROM public.schema_migrations`).map((r) => [r.name, r.checksum]),
+      (
+        await sql<{ name: string; checksum: string }[]>`SELECT name, checksum FROM public.schema_migrations`
+      ).map((r) => [r.name, r.checksum]),
     );
     const files = migrationFiles();
 
     const changed = files.filter((f) => applied.has(f.name) && applied.get(f.name) !== f.checksum);
     if (changed.length) {
-      throw new Error(`Applied migrations were edited (forward-only history — add a new file instead): ${changed.map((f) => f.name).join(", ")}`);
+      throw new Error(
+        `Applied migrations were edited (forward-only history — add a new file instead): ${changed.map((f) => f.name).join(", ")}`,
+      );
     }
     const pending = files.filter((f) => !applied.has(f.name));
 
     if (mode === "status") {
-      for (const f of files) console.log(`${applied.has(f.name) ? "applied" : "PENDING"}  ${f.name}`);
+      for (const f of files) log(`${applied.has(f.name) ? "applied" : "PENDING"}  ${f.name}`);
       return;
     }
     if (!pending.length) {
-      console.log("Database is up to date.");
+      log("Database is up to date.");
       return;
     }
     for (const f of pending) {
-      process.stdout.write(`${mode === "baseline" ? "Recording" : "Applying"} ${f.name} ... `);
       await sql.begin(async (tx) => {
         if (mode === "apply") await tx.unsafe(f.sql);
         await tx`INSERT INTO public.schema_migrations (name, checksum) VALUES (${f.name}, ${f.checksum})`;
       });
-      process.stdout.write("done\n");
+      log(`${mode === "baseline" ? "Recorded" : "Applied"} ${f.name}`);
     }
-    console.log(mode === "baseline" ? "Baseline recorded." : "Migrations complete.");
+    log(mode === "baseline" ? "Baseline recorded." : "Migrations complete.");
   } finally {
     await sql.end();
   }
+}
+
+async function main() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is not set");
+  const mode: MigrateMode = process.argv.includes("--baseline")
+    ? "baseline"
+    : process.argv.includes("--status")
+      ? "status"
+      : "apply";
+  await runMigrations(url, mode);
 }
 
 if (process.argv[1] && /migrate\.ts$/.test(process.argv[1])) {

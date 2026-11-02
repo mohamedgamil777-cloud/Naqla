@@ -1,39 +1,51 @@
+import { removeMemberAction, deleteCompanyPaymentAction } from "@/actions/admin/companies";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { repo } from "@/db/repo";
+import { getCompany, listCompanyMembers, listCompanyPayments } from "@/db/lib/companies";
+import { deliveryOrderMonths, searchDeliveryOrders } from "@/db/lib/delivery-orders";
 import { companyBalance, currentMonth, monthLabel } from "@/services/company-service";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { toLocal } from "@/lib/phone";
 import { CompanyForm, MemberForm, PaymentForm } from "@/components/admin/CompanyForms";
-import { removeMemberAction, deleteCompanyPaymentAction } from "@/app/admin/companies/actions";
 import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 const METHOD: Record<string, string> = { cash: "كاش", bank: "تحويل بنكي", wallet: "محفظة" };
 const STATUS: Record<string, string> = {
-  new: "جديد", confirmed: "مؤكد", assigned: "تم تعيين سائق", en_route: "في الطريق", arrived: "وصل للاستلام", completed: "تم التوصيل", cancelled: "ملغي",
+  new: "جديد",
+  confirmed: "مؤكد",
+  assigned: "تم تعيين سائق",
+  en_route: "في الطريق",
+  arrived: "وصل للاستلام",
+  completed: "تم التوصيل",
+  cancelled: "ملغي",
 };
 
 export default async function AdminCompany({ params }: { params: Promise<{ id: string }> }) {
   await requirePermission("company:manage");
   const { id } = await params;
-  const company = await repo.getCompany(id);
+  const company = await getCompany(id);
   if (!company) notFound();
-  const [members, payments, orders, bal] = await Promise.all([
-    repo.listCompanyMembers(id),
-    repo.listCompanyPayments(id),
-    repo.listDeliveryOrdersByCompany(id),
+  // the latest orders and payments only; the monthly statement has the full history
+  const [members, payments, latest, orderMonths, bal] = await Promise.all([
+    listCompanyMembers(id),
+    listCompanyPayments(id),
+    searchDeliveryOrders({ companyId: id }, 1, 20),
+    deliveryOrderMonths({ companyId: id }),
     companyBalance(id),
   ]);
+  const orders = latest.rows;
   // months that have activity (+ the current one) for the statement picker
-  const months = [...new Set([currentMonth(), ...orders.map((o) => o.scheduledAt.toISOString().slice(0, 7))])].sort().reverse();
+  const months = [...new Set([currentMonth(), ...orderMonths])].sort().reverse();
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 text-sm">
-        <Link href="/admin/companies" className="text-primary font-bold">الشركات</Link>
+        <Link href="/admin/companies" className="text-primary font-bold">
+          الشركات
+        </Link>
         <span className="text-muted">/</span>
         <span className="font-bold">{company.name}</span>
       </div>
@@ -52,20 +64,29 @@ export default async function AdminCompany({ params }: { params: Promise<{ id: s
         <CompanyForm c={company} />
       </Card>
 
-      <Card title={`المستخدمين (${members.length})`} hint="أي حد من دول يدخل برقم موبايله هيطلب باسم الشركة وبسعرها.">
+      <Card
+        title={`المستخدمين (${members.length})`}
+        hint="أي حد من دول يدخل برقم موبايله هيطلب باسم الشركة وبسعرها."
+      >
         <div className="flex flex-col divide-y divide-line">
           {members.map((m) => (
             <div key={m.id} className="flex items-center justify-between gap-2 py-2.5">
               <div>
                 <span className="font-bold">{m.name ?? "—"}</span>{" "}
-                <span className="text-muted" dir="ltr">{toLocal(m.phone) ?? m.phone}</span>{" "}
-                <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${m.role === "owner" ? "bg-primary-soft text-primary-ink" : "bg-panel-2 text-ink-2"}`}>
+                <span className="text-muted" dir="ltr">
+                  {toLocal(m.phone) ?? m.phone}
+                </span>{" "}
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-bold ${m.role === "owner" ? "bg-primary-soft text-primary-ink" : "bg-panel-2 text-ink-2"}`}
+                >
                   {m.role === "owner" ? "مدير الحساب" : "مستخدم"}
                 </span>
               </div>
               <form action={removeMemberAction}>
                 <input type="hidden" name="companyId" value={company.id} />
-                <button name="id" value={m.id} className="text-booked text-sm font-bold">حذف</button>
+                <button name="id" value={m.id} className="text-booked text-sm font-bold">
+                  حذف
+                </button>
               </form>
             </div>
           ))}
@@ -77,7 +98,11 @@ export default async function AdminCompany({ params }: { params: Promise<{ id: s
       <Card title="كشف الحساب الشهري">
         <div className="flex flex-wrap gap-2">
           {months.map((m) => (
-            <Link key={m} href={`/admin/companies/${company.id}/statement?month=${m}`} className="rounded-xl border-2 border-primary text-primary px-4 py-2 font-bold hover:bg-primary-soft">
+            <Link
+              key={m}
+              href={`/admin/companies/${company.id}/statement?month=${m}`}
+              className="rounded-xl border-2 border-primary text-primary px-4 py-2 font-bold hover:bg-primary-soft"
+            >
               📄 {monthLabel(m)}
             </Link>
           ))}
@@ -90,12 +115,15 @@ export default async function AdminCompany({ params }: { params: Promise<{ id: s
           {payments.map((p) => (
             <div key={p.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
               <span>
-                <span className="font-extrabold">{formatEgp(p.amount)}</span> · {METHOD[p.method] ?? p.method} · {labelDateArabic(p.createdAt)}
+                <span className="font-extrabold">{formatEgp(p.amount)}</span> · {METHOD[p.method] ?? p.method}{" "}
+                · {labelDateArabic(p.createdAt)}
                 {p.note && <span className="text-muted"> · {p.note}</span>}
               </span>
               <form action={deleteCompanyPaymentAction}>
                 <input type="hidden" name="companyId" value={company.id} />
-                <button name="id" value={p.id} className="text-booked font-bold">حذف</button>
+                <button name="id" value={p.id} className="text-booked font-bold">
+                  حذف
+                </button>
               </form>
             </div>
           ))}
@@ -103,17 +131,24 @@ export default async function AdminCompany({ params }: { params: Promise<{ id: s
         </div>
       </Card>
 
-      <Card title={`آخر الطلبات (${orders.length})`}>
+      <Card title={`آخر الطلبات (${orders.length} من ${latest.total})`}>
         <div className="flex flex-col divide-y divide-line text-sm">
-          {orders.slice(0, 20).map((o) => (
+          {orders.map((o) => (
             <div key={o.code} className="py-2.5 flex flex-wrap items-center justify-between gap-2">
               <span>
-                <span className="font-bold" dir="ltr">#{o.code}</span> · {labelDateArabic(o.scheduledAt)} {labelTime(o.scheduledAt)} · {o.sizeName} ·{" "}
+                <span className="font-bold" dir="ltr">
+                  #{o.code}
+                </span>{" "}
+                · {labelDateArabic(o.scheduledAt)} {labelTime(o.scheduledAt)} · {o.sizeName} ·{" "}
                 <span className="text-muted">{o.contactName ?? "—"}</span>
               </span>
               <span className="flex items-center gap-2">
-                <span className="text-xs rounded-full bg-panel-2 px-2 py-0.5">{o.billing === "account" ? "على الحساب" : "كاش"}</span>
-                <span className="text-xs rounded-full bg-panel-2 px-2 py-0.5">{STATUS[o.status] ?? o.status}</span>
+                <span className="text-xs rounded-full bg-panel-2 px-2 py-0.5">
+                  {o.billing === "account" ? "على الحساب" : "كاش"}
+                </span>
+                <span className="text-xs rounded-full bg-panel-2 px-2 py-0.5">
+                  {STATUS[o.status] ?? o.status}
+                </span>
                 <span className="font-extrabold">{formatEgp(o.priceSnapshot.total)}</span>
               </span>
             </div>

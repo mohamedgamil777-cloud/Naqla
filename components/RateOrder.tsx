@@ -1,12 +1,13 @@
 "use client";
+import { rateOrderAction } from "@/actions/customer/bookings";
+import type { ActionResult } from "@/lib/action-result";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { rateOrderAction, type RateState } from "@/app/(customer)/bookings/actions";
 import { Icon } from "@/components/Icons";
 
 /** Star rating input for a completed delivery order. */
 export function RateOrder({ code, driverName }: { code: string; driverName?: string | null }) {
-  const [state, action] = useActionState<RateState, FormData>(rateOrderAction, { ok: false });
+  const [state, action] = useActionState<ActionResult, FormData>(rateOrderAction, { ok: false });
   const [stars, setStars] = useState(0);
 
   if (state.ok) {
@@ -20,19 +21,35 @@ export function RateOrder({ code, driverName }: { code: string; driverName?: str
   return (
     <form action={action} className="bg-panel-2 rounded-2xl p-3 flex flex-col gap-2.5">
       <div className="text-center">
-        <div className="font-extrabold">{driverName ? `قيّم السواق ${driverName}` : "إيه رأيك في التوصيلة؟"}</div>
+        <div className="font-extrabold">
+          {driverName ? `قيّم السواق ${driverName}` : "إيه رأيك في التوصيلة؟"}
+        </div>
         <div className="text-xs text-muted mt-0.5">اختار من 1 لـ 5 نجوم</div>
       </div>
       <input type="hidden" name="code" value={code} />
       <input type="hidden" name="rating" value={stars} />
       <div className="flex gap-1.5 justify-center" dir="ltr">
         {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} type="button" onClick={() => setStars(n)} className="p-0.5" aria-label={n === 1 ? "نجمة واحدة" : n === 2 ? "نجمتين" : `${n} نجوم`} aria-pressed={n <= stars}>
-            <Icon name="star" className={`w-8 h-8 ${n <= stars ? "text-accent fill-current" : "text-line-2"}`} />
+          <button
+            key={n}
+            type="button"
+            onClick={() => setStars(n)}
+            className="p-0.5"
+            aria-label={n === 1 ? "نجمة واحدة" : n === 2 ? "نجمتين" : `${n} نجوم`}
+            aria-pressed={n <= stars}
+          >
+            <Icon
+              name="star"
+              className={`w-8 h-8 ${n <= stars ? "text-accent fill-current" : "text-line-2"}`}
+            />
           </button>
         ))}
       </div>
-      <input name="comment" placeholder={driverName ? "رأيك في السواق والخدمة (اختياري)" : "اكتب رأيك (اختياري)"} className="rounded-xl border border-line bg-panel px-3 py-2.5 text-sm outline-none focus:border-primary" />
+      <input
+        name="comment"
+        placeholder={driverName ? "رأيك في السواق والخدمة (اختياري)" : "اكتب رأيك (اختياري)"}
+        className="rounded-xl border border-line bg-panel px-3 py-2.5 text-base lg:text-sm outline-none focus:border-primary"
+      />
       {state.error && <div className="text-booked text-xs font-bold text-center">{state.error}</div>}
       <SubmitBtn disabled={stars === 0} />
     </form>
@@ -42,7 +59,11 @@ export function RateOrder({ code, driverName }: { code: string; driverName?: str
 function SubmitBtn({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending || disabled} className="tap rounded-xl bg-primary text-white font-bold disabled:opacity-40">
+    <button
+      type="submit"
+      disabled={pending || disabled}
+      className="tap rounded-xl bg-primary text-white font-bold disabled:opacity-40"
+    >
       {pending ? "…" : "ابعت التقييم"}
     </button>
   );

@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { quote, ServiceError } from "@/services/booking-service";
+import { withErrorHandling } from "@/lib/route";
 
 const Body = z.object({
   vehicleId: z.string().uuid(),
   startISO: z.string().datetime(),
-  hours: z.number().int().min(1).max(24 * 30),
+  hours: z
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 30),
   withDriver: z.boolean(),
   withDelivery: z.boolean(),
   loaders: z.number().int().min(0).max(10).optional(),
@@ -13,7 +18,7 @@ const Body = z.object({
   promoCode: z.string().max(40).optional().nullable(),
 });
 
-export async function POST(req: NextRequest) {
+export const POST = withErrorHandling("POST /api/quote", async function POST(req: NextRequest) {
   let body: unknown;
   try {
     body = await req.json();
@@ -35,4 +40,4 @@ export async function POST(req: NextRequest) {
     }
     throw e;
   }
-}
+});

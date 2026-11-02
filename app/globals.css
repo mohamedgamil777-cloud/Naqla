@@ -67,37 +67,51 @@ body {
 }
 
 @layer base {
-/* ---- Smooth, subtle motion ---- */
-a,
-button,
-input,
-select,
-textarea,
-summary {
-  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease,
-    transform 0.12s ease, opacity 0.18s ease;
-}
-button:not(:disabled):active,
-a.tap:active {
-  transform: scale(0.98);
-}
-@keyframes naqla-rise {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
+  /* iPhone Safari zooms into any focused field under 16px and keeps that zoom across client-side
+   navigation (fixed bottom nav ends up off screen). Fields without their own size get 16px;
+   utilities (text-base lg:text-sm, text-lg…) still win. */
+  input,
+  select,
+  textarea {
+    font-size: 1rem;
   }
-  to {
-    opacity: 1;
-    transform: none;
+
+  /* ---- Smooth, subtle motion ---- */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  summary {
+    transition:
+      background-color 0.18s ease,
+      color 0.18s ease,
+      border-color 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.12s ease,
+      opacity 0.18s ease;
   }
-}
-main > * {
-  animation: naqla-rise 0.32s ease-out backwards; /* not "both": a held transform would trap position:fixed children */
-}
-::selection {
-  background: var(--color-accent-soft);
-  color: var(--color-primary-ink);
-}
+  button:not(:disabled):active,
+  a.tap:active {
+    transform: scale(0.98);
+  }
+  @keyframes naqla-rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  main > * {
+    animation: naqla-rise 0.32s ease-out backwards; /* not "both": a held transform would trap position:fixed children */
+  }
+  ::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-primary-ink);
+  }
 }
 
 /* Buttons never smaller than a comfortable tap target. */

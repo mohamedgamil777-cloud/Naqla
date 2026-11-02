@@ -8,7 +8,7 @@
  *  - account exists WITH a password → leave it alone (never overwrites; a customer who already chose
  *    a password is never promoted, so nobody can claim the owner's number and become admin)
  */
-import { repo } from "@/db/repo";
+import { createUserWithPassword, getLoginAccount, promoteToBootstrapAdmin } from "@/db/lib/accounts";
 import { getEnv } from "@/lib/env";
 import { hashPassword } from "@/lib/password";
 import { passwordProblem } from "@/lib/password-policy";
@@ -31,25 +31,34 @@ export async function ensureBootstrapAdmin(): Promise<BootstrapResult> {
     return { status: "refused", reason: "SEED_ADMIN_PHONE is not a valid Egyptian mobile number" };
   }
   const problem = passwordProblem(SEED_ADMIN_PASSWORD, "super_admin");
-  if (problem) return { status: "refused", reason: "SEED_ADMIN_PASSWORD is too weak (8+ characters, not a common password)" };
+  if (problem)
+    return {
+      status: "refused",
+      reason: "SEED_ADMIN_PASSWORD is too weak (8+ characters, not a common password)",
+    };
 
-  const acct = await repo.getLoginAccount(phone);
+  const acct = await getLoginAccount(phone);
   if (!acct) {
-    const res = await repo.createUserWithPassword({
-      phone, name: SEED_ADMIN_NAME ?? "المدير العام", role: "super_admin",
-      passwordHash: await hashPassword(SEED_ADMIN_PASSWORD), verified: true,
+    const res = await createUserWithPassword({
+      phone,
+      name: SEED_ADMIN_NAME ?? "المدير العام",
+      role: "super_admin",
+      passwordHash: await hashPassword(SEED_ADMIN_PASSWORD),
+      verified: true,
     });
     return res.created ? { status: "created" } : { status: "exists" }; // another instance created it first
   }
   if (acct.passwordHash) {
     return isAdminRole(acct.role)
       ? { status: "exists" }
-      : { status: "refused", reason: "that phone already has a non-admin account with its own password — not promoted" };
+      : {
+          status: "refused",
+          reason: "that phone already has a non-admin account with its own password — not promoted",
+        };
   }
-  await repo.setPassword(acct.id, await hashPassword(SEED_ADMIN_PASSWORD));
-  if (acct.role !== "super_admin") await repo.setAccountRole(acct.id, "super_admin");
-  await repo.setPhoneVerified(acct.id, true);
-  return { status: "password-set" };
+  // password, role and verified phone in one update; only while the account still has no password
+  const done = await promoteToBootstrapAdmin(acct.id, await hashPassword(SEED_ADMIN_PASSWORD));
+  return done ? { status: "password-set" } : { status: "exists" };
 }
 
 let once: Promise<void> | null = null;

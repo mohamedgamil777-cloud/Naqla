@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { repo } from "@/db/repo";
+import { z } from "zod";
+import { Pagination } from "@/components/Pagination";
+import { searchBookings } from "@/db/lib/bookings";
+import { listOpenDeliveryOrders, searchDeliveryOrders } from "@/db/lib/delivery-orders";
 import { getSession } from "@/services/session";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
@@ -42,7 +45,20 @@ const STEPS: { label: string; at: number; icon: IconName }[] = [
   { label: "تم التوصيل", at: 5, icon: "flag" },
 ];
 
-export default async function BookingsPage() {
+const PAGE_SIZE = 10;
+const Query = z.object({
+  /** page of past delivery orders */
+  page: z.coerce.number().int().min(1).max(10_000).catch(1),
+  /** page of rental bookings */
+  rpage: z.coerce.number().int().min(1).max(10_000).catch(1),
+});
+
+export default async function BookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const { page, rpage } = Query.parse(await searchParams);
   const session = await getSession();
   if (!session) {
     return (
@@ -54,25 +70,35 @@ export default async function BookingsPage() {
     );
   }
 
-  const [orders, bookings] = await Promise.all([
-    repo.listDeliveryOrdersByPhone(session.phone),
-    repo.listBookingsByPhone(session.phone),
+  const phone = session.phone;
+  // live orders are few; finished orders and rentals are paginated in the database
+  const [activeOrders, past, rentals, unrated] = await Promise.all([
+    listOpenDeliveryOrders({ phone }),
+    searchDeliveryOrders({ phone, status: "closed" }, page, PAGE_SIZE, "recent"),
+    searchBookings({ phone }, rpage, PAGE_SIZE, true),
+    searchDeliveryOrders({ phone, status: "completed", unrated: true }, 1, 1, "recent"),
   ]);
+  const pastOrders = past.rows;
+  const bookings = rentals.rows;
+  const href = (p: { page?: number; rpage?: number }) =>
+    `/bookings?page=${p.page ?? page}&rpage=${p.rpage ?? rpage}`;
 
-  if (orders.length === 0 && bookings.length === 0) {
+  if (activeOrders.length === 0 && past.total === 0 && rentals.total === 0) {
     return (
       <EmptyState
         title="لسه مفيش طلبات"
         subtitle="اطلب أول توصيلة وهتلاقيها هنا تتابعها خطوة بخطوة"
-        action={<LinkButton href="/estimate" variant="accent">انقللي</LinkButton>}
+        action={
+          <LinkButton href="/estimate" variant="accent">
+            انقللي
+          </LinkButton>
+        }
       />
     );
   }
 
-  const activeOrders = orders.filter((o) => o.status !== "cancelled" && o.status !== "completed");
-  const pastOrders = orders.filter((o) => o.status === "completed" || o.status === "cancelled");
   // the most recent delivered trip that still has no rating gets a highlighted card at the top
-  const toRate = pastOrders.find((o) => o.status === "completed" && o.rating == null) ?? null;
+  const toRate = unrated.rows[0] ?? null;
 
   return (
     <div className="p-4 flex flex-col gap-6">
@@ -90,7 +116,8 @@ export default async function BookingsPage() {
             <div className="min-w-0">
               <div className="font-extrabold text-lg">وصلت توصيلتك! قيّم السواق</div>
               <div className="text-sm text-muted truncate">
-                <span dir="ltr">#{toRate.code}</span> · {toRate.pickupAddress || "—"} ← {toRate.dropoffAddress || "—"}
+                <span dir="ltr">#{toRate.code}</span> · {toRate.pickupAddress || "—"} ←{" "}
+                {toRate.dropoffAddress || "—"}
               </div>
             </div>
           </div>
@@ -108,26 +135,31 @@ export default async function BookingsPage() {
       )}
 
       {activeOrders.length === 0 && (
-        <Link href="/estimate" className="tap bg-accent text-on-accent rounded-2xl font-extrabold text-lg flex items-center justify-center gap-2 shadow-[0_6px_16px_rgba(242,165,65,0.3)]">
+        <Link
+          href="/estimate"
+          className="tap bg-accent text-on-accent rounded-2xl font-extrabold text-lg flex items-center justify-center gap-2 shadow-[0_6px_16px_rgba(242,165,65,0.3)]"
+        >
           اطلب توصيلة جديدة <Icon name="chevronLeft" className="w-5 h-5" strokeWidth={2.6} />
         </Link>
       )}
 
       {pastOrders.length > 0 && (
         <section className="flex flex-col gap-3">
-          <SectionTitle title="الطلبات السابقة" count={pastOrders.length} />
+          <SectionTitle title="الطلبات السابقة" count={past.total} />
           {pastOrders.map((o) => (
             <PastOrder key={o.code} o={o} ratingAbove={o.code === toRate?.code} />
           ))}
+          <Pagination page={past.page} totalPages={past.totalPages} href={(p) => href({ page: p })} />
         </section>
       )}
 
       {bookings.length > 0 && (
         <section className="flex flex-col gap-3">
-          <SectionTitle title="حجوزات الإيجار" count={bookings.length} />
+          <SectionTitle title="حجوزات الإيجار" count={rentals.total} />
           {bookings.map((b) => (
             <RentalRow key={b.code} b={b} />
           ))}
+          <Pagination page={rentals.page} totalPages={rentals.totalPages} href={(p) => href({ rpage: p })} />
         </section>
       )}
     </div>
@@ -152,7 +184,10 @@ function StatusPill({ status }: { status: DeliveryOrderStatus }) {
 function Route({ o }: { o: DeliveryOrderDTO }) {
   return (
     <div className="relative flex flex-col gap-2.5">
-      <span className="absolute right-[0.95rem] top-8 bottom-8 border-r-2 border-dotted border-primary/40" aria-hidden />
+      <span
+        className="absolute right-[0.95rem] top-8 bottom-8 border-r-2 border-dotted border-primary/40"
+        aria-hidden
+      />
       <div className="flex items-center gap-2.5">
         <span className="w-8 h-8 shrink-0 rounded-full bg-booked-soft text-booked grid place-items-center">
           <Icon name="mapPin" className="w-4 h-4" />
@@ -197,9 +232,13 @@ function OrderHead({ o }: { o: DeliveryOrderDTO }) {
         <div className="min-w-0">
           <div className="font-extrabold flex items-center gap-1.5">
             {o.sizeName}
-            {o.sizeCode && <span className="rounded-full bg-panel-2 text-ink-2 text-[11px] px-2 py-0.5">{o.sizeCode}</span>}
+            {o.sizeCode && (
+              <span className="rounded-full bg-panel-2 text-ink-2 text-[11px] px-2 py-0.5">{o.sizeCode}</span>
+            )}
           </div>
-          <div className="text-muted text-sm" dir="ltr">#{o.code}</div>
+          <div className="text-muted text-sm" dir="ltr">
+            #{o.code}
+          </div>
         </div>
       </div>
       <StatusPill status={o.status} />
@@ -216,7 +255,9 @@ function ActiveOrder({ o }: { o: DeliveryOrderDTO }) {
       <Meta o={o} />
 
       {o.driverName && (o.status === "assigned" || o.status === "en_route" || o.status === "arrived") && (
-        <div className={`rounded-2xl px-3.5 py-3 flex flex-col gap-3 ${o.status === "assigned" ? "bg-primary-soft" : "bg-ok-soft"}`}>
+        <div
+          className={`rounded-2xl px-3.5 py-3 flex flex-col gap-3 ${o.status === "assigned" ? "bg-primary-soft" : "bg-ok-soft"}`}
+        >
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 shrink-0 rounded-full bg-panel grid place-items-center text-primary">
               <Icon name="user" className="w-5 h-5" />
@@ -224,7 +265,13 @@ function ActiveOrder({ o }: { o: DeliveryOrderDTO }) {
             <div className="text-sm">
               <div className="text-xs text-muted">السائق</div>
               <div className="font-extrabold text-base">{o.driverName}</div>
-              <div className="text-ink-2">{o.status === "en_route" ? "السائق في الطريق لمكان الاستلام" : o.status === "arrived" ? "السائق وصل لمكان الاستلام" : "هيكون عندك في الميعاد"}</div>
+              <div className="text-ink-2">
+                {o.status === "en_route"
+                  ? "السائق في الطريق لمكان الاستلام"
+                  : o.status === "arrived"
+                    ? "السائق وصل لمكان الاستلام"
+                    : "هيكون عندك في الميعاد"}
+              </div>
             </div>
           </div>
           {o.driverPhone && (
@@ -279,11 +326,19 @@ function Tracker({ cur }: { cur: number }) {
                       : "bg-panel border-line-2 text-muted"
                 }`}
               >
-                {reached && !isCur ? <Icon name="check" className="w-4 h-4" strokeWidth={3} /> : <Icon name={s.icon} className="w-4 h-4" />}
+                {reached && !isCur ? (
+                  <Icon name="check" className="w-4 h-4" strokeWidth={3} />
+                ) : (
+                  <Icon name={s.icon} className="w-4 h-4" />
+                )}
               </span>
-              {!last && <span className={`w-0.5 flex-1 min-h-4 ${i < currentIdx ? "bg-primary" : "bg-line-2"}`} />}
+              {!last && (
+                <span className={`w-0.5 flex-1 min-h-4 ${i < currentIdx ? "bg-primary" : "bg-line-2"}`} />
+              )}
             </div>
-            <span className={`pt-1 ${last ? "" : "pb-3"} ${isCur ? "font-extrabold text-emph" : reached ? "font-semibold text-ink-2" : "text-muted"}`}>
+            <span
+              className={`pt-1 ${last ? "" : "pb-3"} ${isCur ? "font-extrabold text-emph" : reached ? "font-semibold text-ink-2" : "text-muted"}`}
+            >
               {s.label}
             </span>
           </li>
@@ -295,7 +350,9 @@ function Tracker({ cur }: { cur: number }) {
 
 function PastOrder({ o, ratingAbove = false }: { o: DeliveryOrderDTO; ratingAbove?: boolean }) {
   return (
-    <article className={`bg-panel border border-line rounded-card p-4 flex flex-col gap-3 ${o.status === "cancelled" ? "opacity-75" : ""}`}>
+    <article
+      className={`bg-panel border border-line rounded-card p-4 flex flex-col gap-3 ${o.status === "cancelled" ? "opacity-75" : ""}`}
+    >
       <OrderHead o={o} />
       <Route o={o} />
       <Meta o={o} />
@@ -306,7 +363,11 @@ function PastOrder({ o, ratingAbove = false }: { o: DeliveryOrderDTO; ratingAbov
             <span className="text-muted">تقييمك للسواق:</span>
             <span className="flex gap-0.5" dir="ltr">
               {[1, 2, 3, 4, 5].map((n) => (
-                <Icon key={n} name="star" className={`w-5 h-5 ${n <= (o.rating ?? 0) ? "text-accent fill-current" : "text-line-2"}`} />
+                <Icon
+                  key={n}
+                  name="star"
+                  className={`w-5 h-5 ${n <= (o.rating ?? 0) ? "text-accent fill-current" : "text-line-2"}`}
+                />
               ))}
             </span>
           </div>
@@ -321,7 +382,10 @@ function PastOrder({ o, ratingAbove = false }: { o: DeliveryOrderDTO; ratingAbov
 
 function RentalRow({ b }: { b: BookingDTO }) {
   return (
-    <Link href={`/bookings/${b.code}`} className="bg-panel border border-line rounded-card p-4 shadow-sm flex items-center justify-between gap-3">
+    <Link
+      href={`/bookings/${b.code}`}
+      className="bg-panel border border-line rounded-card p-4 shadow-sm flex items-center justify-between gap-3"
+    >
       <div>
         <div className="font-bold">{b.vehicleName}</div>
         <div className="text-sm text-muted mt-0.5">

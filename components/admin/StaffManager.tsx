@@ -1,9 +1,10 @@
 "use client";
+import { setStaffPasswordAction } from "@/actions/admin/accounts";
+import { saveStaff, deleteStaffAction } from "@/actions/admin/staff";
+import type { ActionResult } from "@/lib/action-result";
 import { ratingLabel, type RatingStat } from "@/services/ratings";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { saveStaff, deleteStaff, type FormState } from "@/app/admin/actions";
-import { setStaffPasswordAction, type AccountActionState } from "@/app/admin/accounts/actions";
 import { minPasswordFor } from "@/lib/password-policy";
 import { ImageField } from "@/components/admin/ImageField";
 import type { StaffDTO, StaffRole } from "@/types";
@@ -17,10 +18,17 @@ const ROLES: { value: StaffRole; label: string }[] = [
 ];
 const roleLabel = (r: string) => ROLES.find((x) => x.value === r)?.label ?? r;
 
-const inp = "rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary w-full";
+const inp =
+  "rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary w-full";
 const lbl = "text-xs font-bold text-ink-2";
 
-export function StaffManager({ staff, ratings = {} }: { staff: StaffDTO[]; ratings?: Record<string, RatingStat> }) {
+export function StaffManager({
+  staff,
+  ratings = {},
+}: {
+  staff: StaffDTO[];
+  ratings?: Record<string, RatingStat>;
+}) {
   return (
     <div className="flex flex-col gap-5">
       <StaffForm />
@@ -33,14 +41,22 @@ export function StaffManager({ staff, ratings = {} }: { staff: StaffDTO[]; ratin
         ))}
         {staff.length === 0 && <p className="text-muted p-4">مفيش موظفين مضافين.</p>}
       </div>
-      <p className="text-muted text-sm">بيانات السائق (الرخص والصور) بتظهر له في صفحته، وبتساعد الإدارة وقت التوصيل.</p>
-      <p className="text-muted text-sm">بعد ما تضيف موظف أو سواق، اعمل له كلمة سر من تحت الكارت بتاعه وابعتهاله — بيدخل برقم موبايله وكلمة السر دي.</p>
+      <p className="text-muted text-sm">
+        بيانات السائق (الرخص والصور) بتظهر له في صفحته، وبتساعد الإدارة وقت التوصيل.
+      </p>
+      <p className="text-muted text-sm">
+        بعد ما تضيف موظف أو سواق، اعمل له كلمة سر من تحت الكارت بتاعه وابعتهاله — بيدخل برقم موبايله وكلمة
+        السر دي.
+      </p>
     </div>
   );
 }
 
 function StaffForm({ staff, rating }: { staff?: StaffDTO; rating?: RatingStat }) {
-  const [state, action] = useActionState<FormState, FormData>(saveStaff, { ok: false });
+  const [state, action] = useActionState<ActionResult, FormData>(saveStaff, { ok: false });
+  const [deleteState, deleteAction] = useActionState<ActionResult, FormData>(deleteStaffAction, {
+    ok: false,
+  });
   const [role, setRole] = useState<StaffRole>(staff?.role ?? "agent");
   const isEdit = !!staff;
 
@@ -51,45 +67,103 @@ function StaffForm({ staff, rating }: { staff?: StaffDTO; rating?: RatingStat })
         <h2 className="font-extrabold">{isEdit ? staff.name || "موظف" : "إضافة موظف"}</h2>
         <span className="flex items-center gap-2">
           {isEdit && role === "driver" && (
-            <span className="rounded-full bg-accent-soft text-accent-ink px-2.5 py-0.5 text-xs font-bold" title="متوسط تقييم العملاء">{ratingLabel(rating)}</span>
+            <span
+              className="rounded-full bg-accent-soft text-accent-ink px-2.5 py-0.5 text-xs font-bold"
+              title="متوسط تقييم العملاء"
+            >
+              {ratingLabel(rating)}
+            </span>
           )}
-          {isEdit && <span className="rounded-full bg-primary-soft text-primary-ink px-2.5 py-0.5 text-xs font-bold">{roleLabel(role)}</span>}
+          {isEdit && (
+            <span className="rounded-full bg-primary-soft text-primary-ink px-2.5 py-0.5 text-xs font-bold">
+              {roleLabel(role)}
+            </span>
+          )}
         </span>
       </div>
-      {state.error && <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">{state.error}</div>}
-      {state.ok && <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تم الحفظ ✅</div>}
+      {state.error && (
+        <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">
+          {state.error}
+        </div>
+      )}
+      {deleteState.error && (
+        <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">
+          {deleteState.error}
+        </div>
+      )}
+      {state.ok && (
+        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تم الحفظ ✅</div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <label className="flex flex-col gap-1">
           <span className={lbl}>الاسم</span>
-          <input className={inp} name="name" defaultValue={staff?.name ?? ""} placeholder="اسم الموظف" required />
+          <input
+            className={inp}
+            name="name"
+            defaultValue={staff?.name ?? ""}
+            placeholder="اسم الموظف"
+            required
+          />
         </label>
         <label className="flex flex-col gap-1">
           <span className={lbl}>رقم الموبايل</span>
-          <input className={inp} name="phone" defaultValue={staff?.phone ?? ""} placeholder="01xxxxxxxxx" dir="ltr" required />
+          <input
+            className={inp}
+            name="phone"
+            defaultValue={staff?.phone ?? ""}
+            placeholder="01xxxxxxxxx"
+            dir="ltr"
+            required
+          />
         </label>
         <label className="flex flex-col gap-1">
           <span className={lbl}>الوظيفة</span>
-          <select className={inp} name="role" value={role} onChange={(e) => setRole(e.target.value as StaffRole)}>
-            {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+          <select
+            className={inp}
+            name="role"
+            value={role}
+            onChange={(e) => setRole(e.target.value as StaffRole)}
+          >
+            {ROLES.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
           </select>
         </label>
         <label className="flex flex-col gap-1">
           <span className={lbl}>الرقم القومي</span>
-          <input className={inp} name="nationalId" defaultValue={staff?.nationalId ?? ""} placeholder="١٤ رقم" dir="ltr" />
+          <input
+            className={inp}
+            name="nationalId"
+            defaultValue={staff?.nationalId ?? ""}
+            placeholder="١٤ رقم"
+            dir="ltr"
+          />
         </label>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
         <ImageField name="photo" label="📷 الصورة الشخصية" defaultValue={staff?.photo} />
-        {role === "driver" && <ImageField name="drivingLicense" label="🪪 رخصة القيادة" defaultValue={staff?.drivingLicense} />}
-        {role === "driver" && <ImageField name="vehicleLicense" label="🚗 رخصة العربية" defaultValue={staff?.vehicleLicense} />}
+        {role === "driver" && (
+          <ImageField name="drivingLicense" label="🪪 رخصة القيادة" defaultValue={staff?.drivingLicense} />
+        )}
+        {role === "driver" && (
+          <ImageField name="vehicleLicense" label="🚗 رخصة العربية" defaultValue={staff?.vehicleLicense} />
+        )}
       </div>
 
       <div className="flex gap-2">
         <SaveBtn isEdit={isEdit} />
         {isEdit && (
-          <button formAction={deleteStaff} name="id" value={staff.id} className="rounded-xl px-4 py-2.5 font-bold text-booked border border-booked-soft hover:bg-booked-soft">
+          <button
+            formAction={deleteAction}
+            formNoValidate
+            name="id"
+            value={staff.id}
+            className="rounded-xl px-4 py-2.5 font-bold text-booked border border-booked-soft hover:bg-booked-soft"
+          >
             حذف
           </button>
         )}
@@ -100,21 +174,43 @@ function StaffForm({ staff, rating }: { staff?: StaffDTO; rating?: RatingStat })
 
 /** Separate form (forms can't nest): set or reset this person's password. */
 function PasswordForm({ staff }: { staff: StaffDTO }) {
-  const [state, action] = useActionState<AccountActionState, FormData>(setStaffPasswordAction, { ok: false });
+  const [state, action] = useActionState<ActionResult, FormData>(setStaffPasswordAction, { ok: false });
   const min = minPasswordFor(staff.role);
   return (
-    <form action={action} className="bg-panel-2 border border-line border-t-0 rounded-b-card -mt-3 pt-5 px-4 pb-3 flex flex-col gap-2">
+    <form
+      action={action}
+      className="bg-panel-2 border border-line border-t-0 rounded-b-card -mt-3 pt-5 px-4 pb-3 flex flex-col gap-2"
+    >
       <input type="hidden" name="id" value={staff.id} />
       <div className="flex items-center gap-2 text-sm font-bold">
         🔑 كلمة السر
-        <span className={`rounded-full px-2 py-0.5 text-xs ${staff.hasPassword ? "bg-ok-soft text-ok" : "bg-booked-soft text-booked"}`}>
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs ${staff.hasPassword ? "bg-ok-soft text-ok" : "bg-booked-soft text-booked"}`}
+        >
           {staff.hasPassword ? "متعملة — يقدر يدخل" : "مش متعملة — مش هيقدر يدخل"}
         </span>
       </div>
-      {state.error && <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">{state.error}</div>}
-      {state.ok && <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">اتحفظت كلمة السر ✅ ابعتها له.</div>}
+      {state.error && (
+        <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">
+          {state.error}
+        </div>
+      )}
+      {state.ok && (
+        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">
+          اتحفظت كلمة السر ✅ ابعتها له.
+        </div>
+      )}
       <div className="flex gap-2">
-        <input className={inp} type="password" name="password" minLength={min} placeholder={`${min} حروف أو أرقام على الأقل`} autoComplete="new-password" dir="ltr" required />
+        <input
+          className={inp}
+          type="password"
+          name="password"
+          minLength={min}
+          placeholder={`${min} حروف أو أرقام على الأقل`}
+          autoComplete="new-password"
+          dir="ltr"
+          required
+        />
         <PasswordBtn hasPassword={!!staff.hasPassword} />
       </div>
     </form>
@@ -124,7 +220,10 @@ function PasswordForm({ staff }: { staff: StaffDTO }) {
 function PasswordBtn({ hasPassword }: { hasPassword: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button disabled={pending} className="rounded-xl px-4 py-2.5 font-bold border-2 border-primary text-primary whitespace-nowrap disabled:opacity-50">
+    <button
+      disabled={pending}
+      className="rounded-xl px-4 py-2.5 font-bold border-2 border-primary text-primary whitespace-nowrap disabled:opacity-50"
+    >
       {pending ? "…" : hasPassword ? "تغيير" : "حفظ"}
     </button>
   );
@@ -133,7 +232,10 @@ function PasswordBtn({ hasPassword }: { hasPassword: boolean }) {
 function SaveBtn({ isEdit }: { isEdit: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button disabled={pending} className="rounded-xl px-5 py-2.5 font-bold bg-primary text-white disabled:opacity-50">
+    <button
+      disabled={pending}
+      className="rounded-xl px-5 py-2.5 font-bold bg-primary text-white disabled:opacity-50"
+    >
       {pending ? "…" : isEdit ? "حفظ التعديلات" : "إضافة الموظف"}
     </button>
   );

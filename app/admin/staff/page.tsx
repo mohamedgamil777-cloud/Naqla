@@ -1,14 +1,14 @@
-import { repo } from "@/db/repo";
+import { driverRatingStats } from "@/db/lib/drivers";
+import { listStaff } from "@/db/lib/staff";
 import { StaffManager } from "@/components/admin/StaffManager";
-import { driverRatings } from "@/services/ratings";
 import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminStaff() {
   await requirePermission("staff:manage");
-  const [staff, orders] = await Promise.all([repo.listStaff(), repo.listDeliveryOrders()]);
-  const ratings = driverRatings(orders);
+  // ratings are averaged in the database
+  const [staff, ratings] = await Promise.all([listStaff(), driverRatingStats()]);
   return (
     <div className="flex flex-col gap-5">
       <h1 className="text-2xl font-extrabold">الموظفين</h1>

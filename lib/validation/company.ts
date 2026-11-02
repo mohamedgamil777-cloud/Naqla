@@ -1,0 +1,60 @@
+/** B2B companies: admin company records, members, account payments, and the customer company page. */
+import { z } from "zod";
+import { selectCompanyMemberSchema, selectCompanyPaymentSchema, selectCompanySchema } from "@/db/schema";
+import { isValidEgyptianMobile, toE164 } from "@/lib/phone";
+import {
+  checkbox,
+  egpAmount,
+  egyptianMobile,
+  id,
+  optionalId,
+  optionalNumber,
+  optionalText,
+  positiveEgpAmount,
+  requiredText,
+} from "./fields";
+
+export const companyInputSchema = z.object({
+  id: optionalId(),
+  name: requiredText("اكتب اسم الشركة.", 160),
+  /** a company landline is allowed too; mobiles are normalized to E.164 */
+  phone: optionalText(40).transform((v) => (v && isValidEgyptianMobile(v) ? toE164(v) : v)),
+  taxNumber: optionalText(40),
+  address: optionalText(300),
+  discountPct: optionalNumber("الخصم من 0 لـ 100%.", { min: 0, max: 100 }).transform((v) =>
+    Math.round(v ?? 0),
+  ),
+  billing: optionalText(10)
+    .pipe(selectCompanySchema.shape.billing.nullable().catch("cash"))
+    .transform((v) => v ?? "cash"),
+  creditLimit: egpAmount("الحد الائتماني مش صحيح."),
+  active: checkbox(),
+});
+
+export const companyMemberInputSchema = z.object({
+  companyId: id("الشركة مش موجودة."),
+  phone: egyptianMobile("رقم موبايل مش صحيح (01xxxxxxxxx)."),
+  name: optionalText(120),
+  role: optionalText(10)
+    .pipe(selectCompanyMemberSchema.shape.role.nullable().catch("member"))
+    .transform((v) => v ?? "member"),
+});
+
+export const companyChildRefSchema = z.object({ companyId: id("الشركة مش موجودة."), id: id("مش موجود.") });
+
+export const companyPaymentInputSchema = z.object({
+  companyId: id("الشركة مش موجودة."),
+  amount: positiveEgpAmount("اكتب المبلغ."),
+  method: optionalText(10)
+    .pipe(selectCompanyPaymentSchema.shape.method.nullable().catch("bank"))
+    .transform((v) => v ?? "bank"),
+  note: optionalText(500),
+});
+
+/** شركتي: the owner adds a colleague (always as a member). */
+export const companyUserInputSchema = z.object({
+  phone: egyptianMobile("رقم موبايل مش صحيح (01xxxxxxxxx)."),
+  name: optionalText(120),
+});
+
+export const savedAddressRefSchema = z.object({ id: id("العنوان مش موجود.") });

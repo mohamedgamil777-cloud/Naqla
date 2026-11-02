@@ -36,9 +36,13 @@ export async function authorizeRequest(permission: Permission): Promise<RequestA
   if (!actor) {
     // signed in as a customer/driver = known identity without admin access → 403, not 401
     const status = (await getSession()) ? 403 : 401;
-    return { ok: false, response: NextResponse.json({ error: status === 401 ? "UNAUTHENTICATED" : "FORBIDDEN" }, { status }) };
+    return {
+      ok: false,
+      response: NextResponse.json({ error: status === 401 ? "UNAUTHENTICATED" : "FORBIDDEN" }, { status }),
+    };
   }
-  if (!can(actor.role, permission)) return { ok: false, response: NextResponse.json({ error: "FORBIDDEN" }, { status: 403 }) };
+  if (!can(actor.role, permission))
+    return { ok: false, response: NextResponse.json({ error: "FORBIDDEN" }, { status: 403 }) };
   return { ok: true, actor };
 }
 

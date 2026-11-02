@@ -162,7 +162,7 @@ describe("admin export route", { timeout: 60_000 }, () => {
 
 describe("CSV formula injection", () => {
   it("neutralises formula-looking text but keeps numbers", () => {
-    expect(csvCell("=HYPERLINK(\"x\")")).toBe(`"'=HYPERLINK(""x"")"`);
+    expect(csvCell('=HYPERLINK("x")')).toBe(`"'=HYPERLINK(""x"")"`);
     expect(csvCell("+201000000001")).toBe("'+201000000001");
     expect(csvCell("@cmd")).toBe("'@cmd");
     expect(csvCell("-12.50")).toBe("-12.50");
@@ -172,16 +172,21 @@ describe("CSV formula injection", () => {
 });
 
 describe("every admin page and action checks a permission on the server", () => {
-  const root = join(process.cwd(), "app", "admin");
   const files: string[] = [];
-  const walk = (d: string) => {
+  const walk = (d: string, keep: (f: string) => boolean) => {
     for (const f of readdirSync(d)) {
       const p = join(d, f);
-      if (statSync(p).isDirectory()) walk(p);
-      else if (f === "page.tsx" || f === "actions.ts") files.push(p);
+      if (statSync(p).isDirectory()) walk(p, keep);
+      else if (keep(f)) files.push(p);
     }
   };
-  walk(root);
+  walk(join(process.cwd(), "app", "admin"), (f) => f === "page.tsx");
+  // server actions live in the top-level actions/ folder
+  walk(join(process.cwd(), "actions", "admin"), (f) => f.endsWith(".ts"));
+
+  it("finds the admin server actions", () => {
+    expect(files.filter((f) => f.includes(`${join("actions", "admin")}`)).length).toBeGreaterThanOrEqual(11);
+  });
 
   it.each(files.map((f) => [f.slice(process.cwd().length + 1)]))("%s", (rel) => {
     const src = readFileSync(join(process.cwd(), rel), "utf8");
@@ -194,7 +199,8 @@ describe("every admin page and action checks a permission on the server", () => 
         const body = src.slice(src.indexOf(`export async function ${name}`)).split(/\nexport /)[0];
         // content actions share a guarded helper: update() → requirePermission("content:manage")
         const viaGuardedHelper =
-          /(await|return) update\(/.test(body) && /async function update\([\s\S]*?requirePermission\(/.test(src);
+          /(await|return) update\(/.test(body) &&
+          /async function update\([\s\S]*?requirePermission\(/.test(src);
         const guarded = /requirePermission\(/.test(body) || viaGuardedHelper;
         expect(guarded, `${rel} → ${name} has no permission check`).toBe(true);
       }

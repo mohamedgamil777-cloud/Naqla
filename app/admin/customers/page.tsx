@@ -1,10 +1,10 @@
-import Link from "next/link";
+import { verifyCustomerPhoneAction } from "@/actions/admin/accounts";
 import { z } from "zod";
-import { repo } from "@/db/repo";
+import { searchCustomers } from "@/db/lib/accounts";
 import { requirePermission } from "@/lib/authz";
 import { labelDateArabic } from "@/lib/time";
-import { verifyCustomerPhoneAction } from "@/app/admin/accounts/actions";
 import { CustomerPasswordForm } from "@/components/admin/CustomerPasswordForm";
+import { Pagination, listHref } from "@/components/Pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -15,18 +15,23 @@ const Query = z.object({
 });
 
 /** Agents: find a customer, confirm the number by phone call, reset a forgotten password. */
-export default async function AdminCustomers({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+export default async function AdminCustomers({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   await requirePermission("customer:manage");
   const { q, page } = Query.parse(await searchParams);
-  const result = await repo.searchCustomers(q, page, PAGE_SIZE);
-  const href = (p: number) => `/admin/customers?${new URLSearchParams({ ...(q ? { q } : {}), page: String(p) })}`;
+  const result = await searchCustomers(q, page, PAGE_SIZE);
+  const href = (p: number) => listHref("/admin/customers", { q, page: p });
 
   return (
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-2xl font-extrabold">العملاء</h1>
         <p className="text-muted text-sm mt-1">
-          اتصل بالعميل وأكّد إن الرقم بتاعه، وبعدين دوس «تأكيد الرقم». ولو نسي كلمة السر اعمله كلمة سر مؤقتة وقولهاله.
+          اتصل بالعميل وأكّد إن الرقم بتاعه، وبعدين دوس «تأكيد الرقم». ولو نسي كلمة السر اعمله كلمة سر مؤقتة
+          وقولهاله.
         </p>
       </div>
 
@@ -50,13 +55,19 @@ export default async function AdminCustomers({ searchParams }: { searchParams: P
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="font-extrabold">{c.name || "بدون اسم"}</p>
-                <p className="text-muted text-sm" dir="ltr">{c.phone.replace(/^\+20/, "0")}</p>
+                <p className="text-muted text-sm" dir="ltr">
+                  {c.phone.replace(/^\+20/, "0")}
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                <span className={`rounded-full px-2.5 py-1 ${c.phoneVerifiedAt ? "bg-ok-soft text-ok" : "bg-reserved-soft text-reserved"}`}>
+                <span
+                  className={`rounded-full px-2.5 py-1 ${c.phoneVerifiedAt ? "bg-ok-soft text-ok" : "bg-reserved-soft text-reserved"}`}
+                >
                   {c.phoneVerifiedAt ? "✔ رقم مؤكد" : "رقم غير مؤكد"}
                 </span>
-                <span className={`rounded-full px-2.5 py-1 ${c.hasPassword ? "bg-primary-soft text-primary-ink" : "bg-panel-2 text-muted"}`}>
+                <span
+                  className={`rounded-full px-2.5 py-1 ${c.hasPassword ? "bg-primary-soft text-primary-ink" : "bg-panel-2 text-muted"}`}
+                >
                   {c.hasPassword ? "عنده كلمة سر" : "لسه معملش كلمة سر"}
                 </span>
                 <span className="text-muted font-normal">من {labelDateArabic(c.createdAt)}</span>
@@ -79,15 +90,7 @@ export default async function AdminCustomers({ searchParams }: { searchParams: P
         {result.rows.length === 0 && <p className="text-muted p-4">مفيش عملاء{q ? " بالبحث ده" : ""}.</p>}
       </div>
 
-      {result.totalPages > 1 && (
-        <nav className="flex items-center justify-center gap-3" aria-label="الصفحات">
-          {page > 1 ? <Link href={href(page - 1)} className="rounded-xl px-4 py-2 border border-line-2 font-bold">السابق</Link> : null}
-          <span className="text-sm text-muted">
-            صفحة {result.page} من {result.totalPages}
-          </span>
-          {page < result.totalPages ? <Link href={href(page + 1)} className="rounded-xl px-4 py-2 border border-line-2 font-bold">التالي</Link> : null}
-        </nav>
-      )}
+      <Pagination page={result.page} totalPages={result.totalPages} href={href} />
     </div>
   );
 }

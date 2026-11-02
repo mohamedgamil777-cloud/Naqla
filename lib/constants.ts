@@ -7,13 +7,7 @@ import type { DeliveryOrderStatus } from "@/types";
 export const VEHICLE_KINDS = ["pickup", "van"] as const;
 export type VehicleKind = (typeof VEHICLE_KINDS)[number];
 
-export const VEHICLE_STATUSES = [
-  "available",
-  "reserved",
-  "rented",
-  "maintenance",
-  "inactive",
-] as const;
+export const VEHICLE_STATUSES = ["available", "reserved", "rented", "maintenance", "inactive"] as const;
 export type VehicleStatus = (typeof VEHICLE_STATUSES)[number];
 
 export const BOOKING_STATUSES = [
@@ -27,12 +21,7 @@ export const BOOKING_STATUSES = [
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 
 /** Statuses that occupy the vehicle and therefore block the time range. */
-export const BLOCKING_STATUSES: BookingStatus[] = [
-  "pending",
-  "confirmed",
-  "ready",
-  "active",
-];
+export const BLOCKING_STATUSES: BookingStatus[] = ["pending", "confirmed", "ready", "active"];
 
 export const DEFAULTS = {
   /** Minutes reserved between two rentals (cleaning / refuel / return). §14.2 */

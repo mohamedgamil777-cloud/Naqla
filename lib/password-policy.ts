@@ -15,7 +15,11 @@ export function passwordProblem(password: string, role?: string | null): string 
   if (password.length < min) return `كلمة السر لازم تكون ${min} حروف أو أرقام على الأقل.`;
   if (password.length > MAX_PASSWORD) return "كلمة السر طويلة أوي.";
   if (/^(.)\1+$/.test(password)) return "اختار كلمة سر أصعب من كده (مش نفس الحرف متكرر).";
-  if (["123456", "1234567", "12345678", "123456789", "password", "000000", "111111"].includes(password.toLowerCase())) {
+  if (
+    ["123456", "1234567", "12345678", "123456789", "password", "000000", "111111"].includes(
+      password.toLowerCase(),
+    )
+  ) {
     return "كلمة السر دي سهلة أوي، اختار حاجة تانية.";
   }
   return null;

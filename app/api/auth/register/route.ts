@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { registerCustomer } from "@/services/auth";
 import { authFailure, badRequest, signedIn } from "@/services/auth-http";
+import { withErrorHandling } from "@/lib/route";
 
 const Body = z.object({
   phone: z.string().trim().min(6).max(20),
@@ -10,7 +11,7 @@ const Body = z.object({
 });
 
 /** New customer account (or first password for an existing customer without one) → signed in. */
-export async function POST(req: NextRequest) {
+export const POST = withErrorHandling("POST /api/auth/register", async function POST(req: NextRequest) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return badRequest();
   try {
@@ -18,4 +19,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return authFailure(e);
   }
-}
+});

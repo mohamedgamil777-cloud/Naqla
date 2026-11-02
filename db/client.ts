@@ -1,26 +1,55 @@
-/** Postgres/Drizzle client. Null when DATABASE_URL is not configured — allowed only outside
- * production (lib/env refuses to start production without it), where the in-memory store is used. */
+/**
+ * Postgres/Drizzle client — the only data store (development, tests and production).
+ * The connection is opened on first use, never at import: `next build` imports this module without a
+ * database, and lib/env refuses to run the server without DATABASE_URL.
+ */
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
-import { getEnv } from "@/lib/env";
+import { EnvError, getEnv } from "@/lib/env";
 
-const url = getEnv().DATABASE_URL;
+export type Database = ReturnType<typeof drizzle<typeof schema>>;
+/** A transaction handle; repo functions that take part in a caller's transaction accept `Executor`. */
+export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+export type Executor = Database | Transaction;
 
-let _sql: ReturnType<typeof postgres> | null = null;
-let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+let instance: Database | null = null;
 
-if (url) {
+function connect(): Database {
+  if (instance) return instance;
+  const url = getEnv().DATABASE_URL;
+  if (!url) throw new EnvError("DATABASE_URL is required");
   // Serverless: an instance can be frozen while holding a socket, which then dies silently. Without
   // these timeouts the next request reuses the dead connection and hangs (seen live 2026-11-01).
   // Use the Supabase pooler in SESSION mode (port 5432): transaction mode (6543) garbles postgres-js
   // pipelined queries ("invalid frontend message type"). Session mode holds a server slot per
   // connection, so keep the per-instance pool small.
-  _sql = postgres(url, { max: 3, prepare: false, idle_timeout: 20, connect_timeout: 10, max_lifetime: 60 * 5 });
-  _db = drizzle(_sql, { schema });
+  const client = postgres(url, {
+    max: 3,
+    prepare: false,
+    idle_timeout: 20,
+    connect_timeout: 10,
+    max_lifetime: 60 * 5,
+    onnotice: () => {},
+  });
+  instance = drizzle(client, { schema });
+  return instance;
 }
 
-export const hasDb = Boolean(url);
-export const sql = _sql;
-export const db = _db;
+/** Lazily connected Drizzle database. */
+export const db: Database = new Proxy({} as Database, {
+  get(_target, prop) {
+    const real = connect();
+    const value = Reflect.get(real, prop, real);
+    return typeof value === "function" ? value.bind(real) : value;
+  },
+});
+
+/** Close the pool (scripts and tests). */
+export async function closeDb(): Promise<void> {
+  if (!instance) return;
+  await instance.$client.end();
+  instance = null;
+}
+
 export { schema };

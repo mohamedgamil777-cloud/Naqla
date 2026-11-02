@@ -13,7 +13,9 @@ const KEYLEN = 32;
 
 function scrypt(password: string, salt: Buffer, keylen: number, opts: ScryptOptions): Promise<Buffer> {
   return new Promise((resolve, reject) =>
-    scryptCb(password.normalize("NFKC"), salt, keylen, opts, (err, key) => (err ? reject(err) : resolve(key))),
+    scryptCb(password.normalize("NFKC"), salt, keylen, opts, (err, key) =>
+      err ? reject(err) : resolve(key),
+    ),
   );
 }
 

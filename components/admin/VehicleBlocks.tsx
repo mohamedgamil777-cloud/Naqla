@@ -1,10 +1,12 @@
 "use client";
+import { addVehicleBlock, deleteVehicleBlockAction } from "@/actions/admin/vehicles";
+import type { ActionResult } from "@/lib/action-result";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { addVehicleBlock, deleteVehicleBlock, type FormState } from "@/app/admin/actions";
 import { cairoDateISO } from "@/lib/client-time";
 
-const inp = "rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary";
+const inp =
+  "rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary";
 const lbl = "block text-xs font-bold text-ink-2 mb-1";
 
 export interface BlockRow {
@@ -14,17 +16,25 @@ export interface BlockRow {
 }
 
 export function VehicleBlocks({ vehicleId, blocks }: { vehicleId: string; blocks: BlockRow[] }) {
-  const [state, action] = useActionState<FormState, FormData>(addVehicleBlock, { ok: false });
+  const [state, action] = useActionState<ActionResult, FormData>(addVehicleBlock, { ok: false });
 
   return (
     <div className="bg-panel border border-line rounded-card p-5 flex flex-col gap-4">
       <div>
         <h2 className="font-extrabold text-lg">أوقات عدم التوفّر</h2>
-        <p className="text-sm text-muted">اقفل مواعيد معينة للعربية (صيانة أو حجز خاص) — مش هتظهر للعملاء في المواعيد دي.</p>
+        <p className="text-sm text-muted">
+          اقفل مواعيد معينة للعربية (صيانة أو حجز خاص) — مش هتظهر للعملاء في المواعيد دي.
+        </p>
       </div>
 
-      {state.error && <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">{state.error}</div>}
-      {state.ok && <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تمت الإضافة ✅</div>}
+      {state.error && (
+        <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">
+          {state.error}
+        </div>
+      )}
+      {state.ok && (
+        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تمت الإضافة ✅</div>
+      )}
 
       <form action={action} className="flex flex-wrap items-end gap-3">
         <input type="hidden" name="vehicleId" value={vehicleId} />
@@ -56,14 +66,18 @@ export function VehicleBlocks({ vehicleId, blocks }: { vehicleId: string; blocks
             <div key={b.id} className="flex items-center justify-between py-2.5 gap-2">
               <div>
                 <span className="font-semibold">{b.label}</span>
-                <span className={`ms-2 text-xs font-bold rounded-full px-2 py-0.5 ${b.reason === "maintenance" ? "bg-booked-soft text-booked" : "bg-reserved-soft text-reserved"}`}>
+                <span
+                  className={`ms-2 text-xs font-bold rounded-full px-2 py-0.5 ${b.reason === "maintenance" ? "bg-booked-soft text-booked" : "bg-reserved-soft text-reserved"}`}
+                >
                   {b.reason === "maintenance" ? "صيانة" : "حجز خاص"}
                 </span>
               </div>
-              <form action={deleteVehicleBlock}>
+              <form action={deleteVehicleBlockAction}>
                 <input type="hidden" name="id" value={b.id} />
                 <input type="hidden" name="vehicleId" value={vehicleId} />
-                <button className="text-booked font-bold text-sm rounded-lg px-3 py-1.5 hover:bg-booked-soft">حذف</button>
+                <button className="text-booked font-bold text-sm rounded-lg px-3 py-1.5 hover:bg-booked-soft">
+                  حذف
+                </button>
               </form>
             </div>
           ))}
@@ -77,7 +91,10 @@ export function VehicleBlocks({ vehicleId, blocks }: { vehicleId: string; blocks
 function AddBtn() {
   const { pending } = useFormStatus();
   return (
-    <button disabled={pending} className="rounded-xl px-5 py-2.5 font-bold bg-primary text-white disabled:opacity-50">
+    <button
+      disabled={pending}
+      className="rounded-xl px-5 py-2.5 font-bold bg-primary text-white disabled:opacity-50"
+    >
       {pending ? "…" : "اقفل الوقت"}
     </button>
   );

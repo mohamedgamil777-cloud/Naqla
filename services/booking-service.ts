@@ -3,7 +3,12 @@
  * layer and the pure engines. API routes call these; they never trust client
  * prices or availability.
  */
-import { repo } from "@/db/repo";
+import { getBusy } from "@/db/lib/availability";
+import { getBooking, insertBooking, updateBookingSchedule } from "@/db/lib/bookings";
+import { defaultBranch, getBranch } from "@/db/lib/branches";
+import { validatePromo } from "@/db/lib/coupons";
+import { getBusiness } from "@/db/lib/settings";
+import { getVehicle, resolveRule } from "@/db/lib/vehicles";
 import {
   availableDurations,
   checkRange,
@@ -24,13 +29,14 @@ export class ServiceError extends Error {
 }
 
 async function buildContext(vehicleId: string): Promise<AvailabilityContext> {
-  const v = await repo.getVehicle(vehicleId);
+  const v = await getVehicle(vehicleId);
   if (!v) throw new ServiceError("VEHICLE_NOT_FOUND");
   const [branch, business] = await Promise.all([
-    repo.getBranch(v.branchId).then((b) => b ?? repo.defaultBranch()),
-    repo.getBusiness(),
+    getBranch(v.branchId).then((b) => b ?? defaultBranch()),
+    getBusiness(),
   ]);
-  const busyRaw = await repo.getBusy(vehicleId);
+  // only what hasn't ended yet (a day back covers the buffer around a booking ending now)
+  const busyRaw = await getBusy(vehicleId, new Date(Date.now() - 24 * 60 * 60 * 1000));
   const busy = busyRaw.map((iv) => padInterval(iv, business.bufferMinutes));
   const bookable = v.status !== "inactive" && v.status !== "maintenance";
   return {
@@ -69,7 +75,7 @@ export async function quote(params: {
   km?: number;
   promoCode?: string | null;
 }): Promise<Quote> {
-  const [rule, business] = await Promise.all([repo.resolveRule(params.vehicleId), repo.getBusiness()]);
+  const [rule, business] = await Promise.all([resolveRule(params.vehicleId), getBusiness()]);
   const start = new Date(params.startISO);
   const baseInput = {
     start,
@@ -84,7 +90,7 @@ export async function quote(params: {
   const preview = computeQuote(baseInput, rule, { vatRate: business.vatRate });
   let promo = null;
   if (params.promoCode && params.promoCode.trim()) {
-    promo = await repo.validatePromo(params.promoCode.trim(), preview.subtotal);
+    promo = await validatePromo(params.promoCode.trim(), preview.subtotal);
     if (!promo) throw new ServiceError("INVALID_PROMO");
   }
   return computeQuote({ ...baseInput, promo }, rule, { vatRate: business.vatRate });
@@ -131,7 +137,7 @@ export async function createBooking(input: {
     promoCode: input.promoCode,
   });
 
-  const v = await repo.getVehicle(input.vehicleId);
+  const v = await getVehicle(input.vehicleId);
   const branchId = v!.branchId;
 
   const createInput: CreateBookingInput = {
@@ -151,8 +157,9 @@ export async function createBooking(input: {
   };
 
   try {
-    const { code } = await repo.createBooking(createInput, q, branchId);
-    if (input.promoCode && q.discount > 0) await repo.redeemPromo(input.promoCode);
+    // the coupon use is counted in the same transaction as the booking
+    const redeem = input.promoCode && q.discount > 0 ? input.promoCode : null;
+    const { code } = await insertBooking(createInput, q, branchId, redeem);
     return { code, quote: q };
   } catch (e) {
     const msg = (e as Error).message;
@@ -168,21 +175,24 @@ export async function createBooking(input: {
  *  trip), re-price with its existing add-ons, and update the amount due. */
 export async function extendBooking(
   code: string,
-  newHours: number
+  newHours: number,
 ): Promise<{ ok: true; quote: Quote } | { ok: false; reason: string }> {
-  const b = await repo.getBooking(code);
+  const b = await getBooking(code);
   if (!b) return { ok: false, reason: "not_found" };
   if (b.status === "completed" || b.status === "cancelled") return { ok: false, reason: "closed" };
   if (!Number.isFinite(newHours) || newHours < 1) return { ok: false, reason: "bad_hours" };
-  const business = await repo.getBusiness();
+  const business = await getBusiness();
   if (newHours > business.maxHours) return { ok: false, reason: "too_long" };
 
   const start = b.startsAt;
   const newEnd = addHours(start, newHours);
 
   // Conflict check vs OTHER bookings/blocks (buffer-padded), excluding this trip.
-  const busy = (await repo.getBusyExcept(b.vehicleId, code)).map((iv) => padInterval(iv, business.bufferMinutes));
-  const conflict = busy.some((iv) => start.getTime() < iv.end.getTime() && iv.start.getTime() < newEnd.getTime());
+  const since = new Date(start.getTime() - 24 * 60 * 60 * 1000);
+  const busy = (await getBusy(b.vehicleId, since, code)).map((iv) => padInterval(iv, business.bufferMinutes));
+  const conflict = busy.some(
+    (iv) => start.getTime() < iv.end.getTime() && iv.start.getTime() < newEnd.getTime(),
+  );
   if (conflict) return { ok: false, reason: "conflict" };
 
   let q: Quote;
@@ -200,7 +210,7 @@ export async function extendBooking(
   }
 
   try {
-    await repo.updateBookingSchedule(code, newEnd, q);
+    await updateBookingSchedule(code, newEnd, q);
   } catch (e) {
     const msg = (e as Error).message;
     if (msg === "CONFLICT" || msg === "VEHICLE_BLOCKED") return { ok: false, reason: "conflict" };
@@ -209,7 +219,12 @@ export async function extendBooking(
   return { ok: true, quote: q };
 }
 
-async function alternatives(vehicleId: string, start: Date, hours: number, reason: string): Promise<AlternativesResult> {
+async function alternatives(
+  vehicleId: string,
+  start: Date,
+  hours: number,
+  reason: string,
+): Promise<AlternativesResult> {
   const ctx = await buildContext(vehicleId);
   const { cairoDateISO, labelDateArabic, labelTime } = await import("@/lib/time");
   const dateISO = cairoDateISO(start);

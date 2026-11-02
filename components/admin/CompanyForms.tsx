@@ -1,27 +1,28 @@
 "use client";
+import { saveCompanyAction, addMemberAction, addCompanyPaymentAction } from "@/actions/admin/companies";
+import type { ActionResult } from "@/lib/action-result";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import {
-  saveCompanyAction,
-  addMemberAction,
-  addCompanyPaymentAction,
-  type CompanyFormState,
-} from "@/app/admin/companies/actions";
 import { piastresToEgp } from "@/lib/money";
 import type { CompanyDTO } from "@/types";
 
-const inp = "w-full rounded-xl border border-line-2 bg-panel px-3 py-2.5 outline-none focus:border-primary";
+const inp =
+  "w-full rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary";
 const lbl = "text-xs font-bold text-ink-2";
 
-function Status({ s, okText = "تم الحفظ ✅" }: { s: CompanyFormState; okText?: string }) {
-  if (s.error) return <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-bold">{s.error}</div>;
+function Status({ s, okText = "تم الحفظ ✅" }: { s: ActionResult; okText?: string }) {
+  if (s.error)
+    return <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-bold">{s.error}</div>;
   if (s.ok) return <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-bold">{okText}</div>;
   return null;
 }
 function Btn({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
   return (
-    <button disabled={pending} className="self-start rounded-xl bg-primary text-white px-5 py-2.5 font-bold disabled:opacity-50">
+    <button
+      disabled={pending}
+      className="self-start rounded-xl bg-primary text-white px-5 py-2.5 font-bold disabled:opacity-50"
+    >
       {pending ? "…" : children}
     </button>
   );
@@ -29,7 +30,7 @@ function Btn({ children }: { children: React.ReactNode }) {
 
 /** Create (no company) or edit a company. */
 export function CompanyForm({ c }: { c?: CompanyDTO }) {
-  const [s, action] = useActionState<CompanyFormState, FormData>(saveCompanyAction, { ok: false });
+  const [s, action] = useActionState<ActionResult, FormData>(saveCompanyAction, { ok: false });
   return (
     <form action={action} className="flex flex-col gap-3">
       {c && <input type="hidden" name="id" value={c.id} />}
@@ -37,11 +38,23 @@ export function CompanyForm({ c }: { c?: CompanyDTO }) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <label className="flex flex-col gap-1 sm:col-span-2">
           <span className={lbl}>اسم الشركة</span>
-          <input className={inp} name="name" required defaultValue={c?.name} placeholder="مثلاً: معرض الأثاث الحديث" />
+          <input
+            className={inp}
+            name="name"
+            required
+            defaultValue={c?.name}
+            placeholder="مثلاً: معرض الأثاث الحديث"
+          />
         </label>
         <label className="flex flex-col gap-1">
           <span className={lbl}>تليفون الشركة</span>
-          <input className={inp} name="phone" dir="ltr" defaultValue={c?.phone ?? ""} placeholder="01xxxxxxxxx" />
+          <input
+            className={inp}
+            name="phone"
+            dir="ltr"
+            defaultValue={c?.phone ?? ""}
+            placeholder="01xxxxxxxxx"
+          />
         </label>
         <label className="flex flex-col gap-1">
           <span className={lbl}>الرقم الضريبي (اختياري)</span>
@@ -53,7 +66,14 @@ export function CompanyForm({ c }: { c?: CompanyDTO }) {
         </label>
         <label className="flex flex-col gap-1">
           <span className={lbl}>خصم الشركة على كل طلب (%)</span>
-          <input className={inp} name="discountPct" type="number" min="0" max="100" defaultValue={c?.discountPct ?? 0} />
+          <input
+            className={inp}
+            name="discountPct"
+            type="number"
+            min="0"
+            max="100"
+            defaultValue={c?.discountPct ?? 0}
+          />
         </label>
         <label className="flex flex-col gap-1">
           <span className={lbl}>طريقة الدفع</span>
@@ -64,11 +84,22 @@ export function CompanyForm({ c }: { c?: CompanyDTO }) {
         </label>
         <label className="flex flex-col gap-1">
           <span className={lbl}>حد الائتمان (جنيه، 0 = مفتوح)</span>
-          <input className={inp} name="creditLimit" type="number" min="0" defaultValue={c ? piastresToEgp(c.creditLimit) : 0} />
+          <input
+            className={inp}
+            name="creditLimit"
+            type="number"
+            min="0"
+            defaultValue={c ? piastresToEgp(c.creditLimit) : 0}
+          />
         </label>
         {c && (
           <label className="flex items-center gap-2 font-bold text-sm self-end pb-2.5 cursor-pointer">
-            <input type="checkbox" name="active" defaultChecked={c.active} className="w-5 h-5 accent-[var(--color-primary)]" />
+            <input
+              type="checkbox"
+              name="active"
+              defaultChecked={c.active}
+              className="w-5 h-5 accent-[var(--color-primary)]"
+            />
             الحساب شغّال
           </label>
         )}
@@ -79,7 +110,7 @@ export function CompanyForm({ c }: { c?: CompanyDTO }) {
 }
 
 export function MemberForm({ companyId }: { companyId: string }) {
-  const [s, action] = useActionState<CompanyFormState, FormData>(addMemberAction, { ok: false });
+  const [s, action] = useActionState<ActionResult, FormData>(addMemberAction, { ok: false });
   return (
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="companyId" value={companyId} />
@@ -98,13 +129,21 @@ export function MemberForm({ companyId }: { companyId: string }) {
 }
 
 export function PaymentForm({ companyId }: { companyId: string }) {
-  const [s, action] = useActionState<CompanyFormState, FormData>(addCompanyPaymentAction, { ok: false });
+  const [s, action] = useActionState<ActionResult, FormData>(addCompanyPaymentAction, { ok: false });
   return (
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="companyId" value={companyId} />
       <Status s={s} okText="اتسجّلت الدفعة ✅" />
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr_auto] gap-2">
-        <input className={inp} name="amount" type="number" min="1" step="0.01" required placeholder="المبلغ (جنيه)" />
+        <input
+          className={inp}
+          name="amount"
+          type="number"
+          min="1"
+          step="0.01"
+          required
+          placeholder="المبلغ (جنيه)"
+        />
         <select className={inp} name="method" defaultValue="bank">
           <option value="bank">تحويل بنكي</option>
           <option value="cash">كاش</option>

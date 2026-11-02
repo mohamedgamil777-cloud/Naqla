@@ -1,11 +1,13 @@
 "use client";
+import { adminAddPayment, adminRefundPayment, adminDeletePayment } from "@/actions/admin/bookings";
+import type { ActionResult } from "@/lib/action-result";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { adminAddPayment, adminRefundPayment, adminDeletePayment, type FormState } from "@/app/admin/actions";
 import { formatEgp } from "@/lib/money";
 import type { PaymentDTO } from "@/types";
 
-const inp = "rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary";
+const inp =
+  "rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary";
 const lbl = "block text-xs font-bold text-ink-2 mb-1";
 const methodLabel = (m: string) => (m === "cash" ? "كاش" : m === "card" ? "كارت" : "أونلاين");
 
@@ -20,10 +22,12 @@ export function PaymentsPanel({
   dueTotal: number;
   depositDue: number;
 }) {
-  const [state, action] = useActionState<FormState, FormData>(adminAddPayment, { ok: false });
+  const [state, action] = useActionState<ActionResult, FormData>(adminAddPayment, { ok: false });
 
   const paidRent = payments.filter((p) => p.kind === "rent").reduce((s, p) => s + p.amount, 0);
-  const depositHeld = payments.filter((p) => p.kind === "deposit" && p.status === "paid").reduce((s, p) => s + p.amount, 0);
+  const depositHeld = payments
+    .filter((p) => p.kind === "deposit" && p.status === "paid")
+    .reduce((s, p) => s + p.amount, 0);
   const balance = Math.max(0, dueTotal - paidRent);
 
   return (
@@ -35,7 +39,11 @@ export function PaymentsPanel({
         <Tile label="المطلوب (إيجار)" value={formatEgp(dueTotal)} />
         <Tile label="المدفوع" value={formatEgp(paidRent)} tone="ok" />
         <Tile label="المتبقي" value={formatEgp(balance)} tone={balance > 0 ? "warn" : "ok"} />
-        <Tile label="التأمين المحتجز" value={formatEgp(depositHeld)} sub={`المطلوب ${formatEgp(depositDue)}`} />
+        <Tile
+          label="التأمين المحتجز"
+          value={formatEgp(depositHeld)}
+          sub={`المطلوب ${formatEgp(depositDue)}`}
+        />
       </div>
 
       {/* list */}
@@ -56,13 +64,17 @@ export function PaymentsPanel({
                   <form action={adminRefundPayment}>
                     <input type="hidden" name="id" value={p.id} />
                     <input type="hidden" name="code" value={code} />
-                    <button className="text-reserved font-bold text-sm rounded-lg px-3 py-1.5 hover:bg-reserved-soft">استرجاع التأمين</button>
+                    <button className="text-reserved font-bold text-sm rounded-lg px-3 py-1.5 hover:bg-reserved-soft">
+                      استرجاع التأمين
+                    </button>
                   </form>
                 )}
                 <form action={adminDeletePayment}>
                   <input type="hidden" name="id" value={p.id} />
                   <input type="hidden" name="code" value={code} />
-                  <button className="text-booked font-bold text-sm rounded-lg px-3 py-1.5 hover:bg-booked-soft">حذف</button>
+                  <button className="text-booked font-bold text-sm rounded-lg px-3 py-1.5 hover:bg-booked-soft">
+                    حذف
+                  </button>
                 </form>
               </div>
             </div>
@@ -73,8 +85,16 @@ export function PaymentsPanel({
       {/* add */}
       <form action={action} className="border-t border-line pt-4 flex flex-wrap items-end gap-3">
         <input type="hidden" name="code" value={code} />
-        {state.error && <div className="w-full bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">{state.error}</div>}
-        {state.ok && <div className="w-full bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تم تسجيل الدفعة ✅</div>}
+        {state.error && (
+          <div className="w-full bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">
+            {state.error}
+          </div>
+        )}
+        {state.ok && (
+          <div className="w-full bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">
+            تم تسجيل الدفعة ✅
+          </div>
+        )}
         <label>
           <span className={lbl}>المبلغ (جنيه)</span>
           <input className={`${inp} w-32`} name="amount" type="number" min="0" step="10" required />
@@ -104,7 +124,17 @@ export function PaymentsPanel({
   );
 }
 
-function Tile({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "ok" | "warn" }) {
+function Tile({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: "ok" | "warn";
+}) {
   const color = tone === "ok" ? "text-ok" : tone === "warn" ? "text-rented" : "text-ink";
   return (
     <div className="rounded-xl bg-panel-2 p-3">
@@ -118,7 +148,10 @@ function Tile({ label, value, sub, tone }: { label: string; value: string; sub?:
 function AddBtn() {
   const { pending } = useFormStatus();
   return (
-    <button disabled={pending} className="rounded-xl px-5 py-2.5 font-bold bg-primary text-white disabled:opacity-50">
+    <button
+      disabled={pending}
+      className="rounded-xl px-5 py-2.5 font-bold bg-primary text-white disabled:opacity-50"
+    >
       {pending ? "…" : "سجّل دفعة"}
     </button>
   );

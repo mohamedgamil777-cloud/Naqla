@@ -1,12 +1,23 @@
 import Link from "next/link";
-import { repo } from "@/db/repo";
+import { getDeliveryOrder } from "@/db/lib/delivery-orders";
+import { getStaffByPhone } from "@/db/lib/staff";
 import { getSession } from "@/services/session";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { Icon, type IconName } from "@/components/Icons";
 import { TripMap } from "@/components/driver/TripMap";
 import { PodView } from "@/components/PodView";
 import { OrderActions } from "@/components/driver/OrderActions";
-import { Card, ContactButtons, DriverNotice, RoutePoint, ScreenHead, StepBar, TripStats, pointUrl, routeUrl } from "@/components/driver/parts";
+import {
+  Card,
+  ContactButtons,
+  DriverNotice,
+  RoutePoint,
+  ScreenHead,
+  StepBar,
+  TripStats,
+  pointUrl,
+  routeUrl,
+} from "@/components/driver/parts";
 import type { DeliveryOrderDTO } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -14,21 +25,31 @@ export const dynamic = "force-dynamic";
 export default async function DriverTripPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const session = await getSession();
-  const driver = session ? await repo.getStaffByPhone(session.phone) : null;
+  const driver = session ? await getStaffByPhone(session.phone) : null;
 
   if (!driver || driver.role !== "driver") {
     return (
       <DriverNotice icon="lock" title="الصفحة دي للسواقين بس">
-        <Link href="/login?next=/driver" className="tap rounded-2xl bg-primary text-white font-bold grid place-items-center">الدخول</Link>
+        <Link
+          href="/login?next=/driver"
+          className="tap rounded-2xl bg-primary text-white font-bold grid place-items-center"
+        >
+          الدخول
+        </Link>
       </DriverNotice>
     );
   }
 
-  const o = await repo.getDeliveryOrder(code);
+  const o = await getDeliveryOrder(code);
   if (!o || o.driverId !== driver.id) {
     return (
       <DriverNotice icon="search" title="التوصيلة دي مش موجودة أو مش ليك">
-        <Link href="/driver" className="tap rounded-2xl bg-primary text-white font-bold grid place-items-center">رجوع لشغلي</Link>
+        <Link
+          href="/driver"
+          className="tap rounded-2xl bg-primary text-white font-bold grid place-items-center"
+        >
+          رجوع لشغلي
+        </Link>
       </DriverNotice>
     );
   }
@@ -38,7 +59,12 @@ export default async function DriverTripPage({ params }: { params: Promise<{ cod
     return (
       <DriverNotice icon="xCircle" title="التوصيلة دي اتلغت">
         <p className="text-muted">لو عندك سؤال كلّم الإدارة.</p>
-        <Link href="/driver" className="tap rounded-2xl bg-primary text-white font-bold grid place-items-center">رجوع لشغلي</Link>
+        <Link
+          href="/driver"
+          className="tap rounded-2xl bg-primary text-white font-bold grid place-items-center"
+        >
+          رجوع لشغلي
+        </Link>
       </DriverNotice>
     );
   }
@@ -49,7 +75,8 @@ export default async function DriverTripPage({ params }: { params: Promise<{ cod
 /* ---------- 1) before starting: details + map ---------- */
 function Details({ o }: { o: DeliveryOrderDTO }) {
   const pickup = o.pickupLat != null && o.pickupLng != null ? { lat: o.pickupLat, lng: o.pickupLng } : null;
-  const dropoff = o.dropoffLat != null && o.dropoffLng != null ? { lat: o.dropoffLat, lng: o.dropoffLng } : null;
+  const dropoff =
+    o.dropoffLat != null && o.dropoffLng != null ? { lat: o.dropoffLat, lng: o.dropoffLng } : null;
   const route = routeUrl(o);
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -62,7 +89,9 @@ function Details({ o }: { o: DeliveryOrderDTO }) {
         </span>
         <span className="text-ink-2 text-left">
           {labelDateArabic(o.scheduledAt)}
-          <span className="block text-sm text-muted" dir="ltr">#{o.code}</span>
+          <span className="block text-sm text-muted" dir="ltr">
+            #{o.code}
+          </span>
         </span>
       </div>
 
@@ -100,12 +129,27 @@ function Details({ o }: { o: DeliveryOrderDTO }) {
   );
 }
 
-function MapLabel({ kind, text, className }: { kind: "pickup" | "dropoff"; text: string | null; className: string }) {
+function MapLabel({
+  kind,
+  text,
+  className,
+}: {
+  kind: "pickup" | "dropoff";
+  text: string | null;
+  className: string;
+}) {
   return (
-    <div className={`absolute z-[500] max-w-[60%] bg-panel/95 rounded-2xl shadow-md px-3 py-2 flex items-center gap-2 ${className}`}>
-      <Icon name={kind === "pickup" ? "mapPin" : "flag"} className={`w-5 h-5 shrink-0 ${kind === "pickup" ? "text-booked" : "text-primary"}`} />
+    <div
+      className={`absolute z-[500] max-w-[60%] bg-panel/95 rounded-2xl shadow-md px-3 py-2 flex items-center gap-2 ${className}`}
+    >
+      <Icon
+        name={kind === "pickup" ? "mapPin" : "flag"}
+        className={`w-5 h-5 shrink-0 ${kind === "pickup" ? "text-booked" : "text-primary"}`}
+      />
       <span className="min-w-0">
-        <span className="block text-[11px] text-muted">{kind === "pickup" ? "موقع الاستلام" : "موقع التسليم"}</span>
+        <span className="block text-[11px] text-muted">
+          {kind === "pickup" ? "موقع الاستلام" : "موقع التسليم"}
+        </span>
         <span className="block font-extrabold truncate">{text || "على الخريطة"}</span>
       </span>
     </div>
@@ -116,8 +160,18 @@ function MapLabel({ kind, text, className }: { kind: "pickup" | "dropoff"; text:
 function OnTheWay({ o }: { o: DeliveryOrderDTO }) {
   const toPickup = o.status === "en_route";
   const target = toPickup
-    ? { kind: "pickup" as const, address: o.pickupAddress, details: o.pickupDetails, url: pointUrl(o.pickupLat, o.pickupLng, o.pickupAddress) }
-    : { kind: "dropoff" as const, address: o.dropoffAddress, details: o.dropoffDetails, url: pointUrl(o.dropoffLat, o.dropoffLng, o.dropoffAddress) };
+    ? {
+        kind: "pickup" as const,
+        address: o.pickupAddress,
+        details: o.pickupDetails,
+        url: pointUrl(o.pickupLat, o.pickupLng, o.pickupAddress),
+      }
+    : {
+        kind: "dropoff" as const,
+        address: o.dropoffAddress,
+        details: o.dropoffDetails,
+        url: pointUrl(o.dropoffLat, o.dropoffLng, o.dropoffAddress),
+      };
 
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -148,24 +202,39 @@ function OnTheWay({ o }: { o: DeliveryOrderDTO }) {
             rel="noopener noreferrer"
             className="tap rounded-2xl bg-primary-soft text-primary-ink font-extrabold text-lg flex items-center justify-center gap-2"
           >
-            <Icon name="map" className="w-5 h-5" /> {toPickup ? "افتح الطريق لمكان الاستلام" : "افتح الطريق لمكان التسليم"}
+            <Icon name="map" className="w-5 h-5" />{" "}
+            {toPickup ? "افتح الطريق لمكان الاستلام" : "افتح الطريق لمكان التسليم"}
           </a>
         )}
       </Card>
 
-      <details className="group bg-panel border border-line rounded-card shadow-sm overflow-hidden" open={!toPickup || undefined}>
+      <details
+        className="group bg-panel border border-line rounded-card shadow-sm overflow-hidden"
+        open={!toPickup || undefined}
+      >
         <summary className="list-none cursor-pointer p-4 flex items-center justify-between font-extrabold text-lg">
           <span className="flex items-center gap-2">
             <Icon name="file" className="w-6 h-6 text-ink-2" /> معلومات الطلب
           </span>
-          <Icon name="chevronDown" className="w-5 h-5 text-muted group-open:rotate-180 transition-transform" />
+          <Icon
+            name="chevronDown"
+            className="w-5 h-5 text-muted group-open:rotate-180 transition-transform"
+          />
         </summary>
         <div className="px-4 pb-4 flex flex-col divide-y divide-line">
           <InfoRow icon="truck" k="العربية" v={`${o.sizeName}${o.sizeCode ? ` · ${o.sizeCode}` : ""}`} />
           {o.cargoType && <InfoRow icon="box" k="نوع الحمولة" v={o.cargoType} />}
           <InfoRow icon="map" k="المسافة الإجمالية" v={`${o.km} كم`} />
-          <InfoRow icon="users" k="عدد العمالة" v={o.loaders === 0 ? "مفيش" : o.loaders === 1 ? "عامل واحد" : `${o.loaders} عمال`} />
-          <InfoRow icon={toPickup ? "flag" : "mapPin"} k={toPickup ? "التسليم في" : "الاستلام كان من"} v={(toPickup ? o.dropoffAddress : o.pickupAddress) || "على الخريطة"} />
+          <InfoRow
+            icon="users"
+            k="عدد العمالة"
+            v={o.loaders === 0 ? "مفيش" : o.loaders === 1 ? "عامل واحد" : `${o.loaders} عمال`}
+          />
+          <InfoRow
+            icon={toPickup ? "flag" : "mapPin"}
+            k={toPickup ? "التسليم في" : "الاستلام كان من"}
+            v={(toPickup ? o.dropoffAddress : o.pickupAddress) || "على الخريطة"}
+          />
           {o.notes && <InfoRow icon="file" k="ملاحظات العميل" v={o.notes} />}
         </div>
       </details>
@@ -219,7 +288,10 @@ function Delivered({ o }: { o: DeliveryOrderDTO }) {
 
       <PodView o={o} />
 
-      <Link href="/driver" className="tap rounded-2xl bg-primary text-white text-xl font-extrabold flex items-center justify-center gap-2">
+      <Link
+        href="/driver"
+        className="tap rounded-2xl bg-primary text-white text-xl font-extrabold flex items-center justify-center gap-2"
+      >
         العودة إلى شغلي <Icon name="chevronLeft" className="w-6 h-6" strokeWidth={2.6} />
       </Link>
     </div>

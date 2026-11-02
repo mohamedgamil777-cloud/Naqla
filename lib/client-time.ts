@@ -12,13 +12,23 @@ export function dayLabel(offsetDays: number): string {
   if (offsetDays === 0) return "اليوم";
   if (offsetDays === 1) return "غداً";
   const d = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
-  return new Intl.DateTimeFormat("ar-EG", { weekday: "long", day: "numeric", month: "long", timeZone: TZ }).format(d);
+  return new Intl.DateTimeFormat("ar-EG", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: TZ,
+  }).format(d);
 }
 
 /** Arabic label for a full date from an ISO date string. */
 export function fullDateLabel(dateISO: string): string {
   const d = new Date(dateISO + "T12:00:00");
-  return new Intl.DateTimeFormat("ar-EG", { weekday: "long", day: "numeric", month: "long", timeZone: TZ }).format(d);
+  return new Intl.DateTimeFormat("ar-EG", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: TZ,
+  }).format(d);
 }
 
 /** 12-hour label with ص/م from a 24h hour. */

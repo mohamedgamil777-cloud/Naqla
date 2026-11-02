@@ -47,8 +47,18 @@ export function labelHour24(d: Date): string {
 /** Arabic long date, e.g. "20 سبتمبر 2026". */
 export function labelDateArabic(d: Date): string {
   const months = [
-    "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
-    "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
+    "يناير",
+    "فبراير",
+    "مارس",
+    "أبريل",
+    "مايو",
+    "يونيو",
+    "يوليو",
+    "أغسطس",
+    "سبتمبر",
+    "أكتوبر",
+    "نوفمبر",
+    "ديسمبر",
   ];
   const day = formatInTimeZone(d, TZ, "d");
   const monthIdx = Number(formatInTimeZone(d, TZ, "M")) - 1;
@@ -64,4 +74,9 @@ export function addHours(d: Date, h: number): Date {
 
 export function addMinutes(d: Date, m: number): Date {
   return new Date(d.getTime() + m * 60 * 1000);
+}
+
+/** The calendar day after an ISO date ("2026-02-28" → "2026-03-01"). */
+export function nextDateISO(dateISO: string): string {
+  return new Date(Date.parse(`${dateISO}T00:00:00Z`) + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }

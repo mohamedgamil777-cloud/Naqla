@@ -44,7 +44,8 @@ export function HeroImagesField({ defaultValue }: { defaultValue: string[] }) {
       <span className="text-sm font-bold text-ink-2">
         صور الرئيسية — عرض متحرك ({images.length}/{MAX})
         <span className="block text-xs text-muted font-normal">
-          بتتقلب لوحدها كل 5 ثواني والعميل يقدر يسحبها. الأفضل صور عرضها أكبر من طولها. لو مفيش صور بيظهر الرسم الافتراضي.
+          بتتقلب لوحدها كل 5 ثواني والعميل يقدر يسحبها. الأفضل صور عرضها أكبر من طولها. لو مفيش صور بيظهر
+          الرسم الافتراضي.
         </span>
       </span>
       {images.map((src) => (
@@ -56,14 +57,36 @@ export function HeroImagesField({ defaultValue }: { defaultValue: string[] }) {
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={src} alt={`صورة ${i + 1}`} className="w-full aspect-[36/19] object-cover" />
-              <span className="absolute top-1.5 right-1.5 rounded-full bg-ink/70 text-white text-xs font-bold px-2 py-0.5">{i + 1}</span>
+              <span className="absolute top-1.5 right-1.5 rounded-full bg-ink/70 text-white text-xs font-bold px-2 py-0.5">
+                {i + 1}
+              </span>
             </div>
             <div className="flex items-center justify-between px-1.5 py-1">
               <span className="flex">
-                <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="w-8 h-8 rounded-lg hover:bg-panel-2 disabled:opacity-30" aria-label="قدّم">→</button>
-                <button type="button" onClick={() => move(i, 1)} disabled={i === images.length - 1} className="w-8 h-8 rounded-lg hover:bg-panel-2 disabled:opacity-30" aria-label="أخّر">←</button>
+                <button
+                  type="button"
+                  onClick={() => move(i, -1)}
+                  disabled={i === 0}
+                  className="w-8 h-8 rounded-lg hover:bg-panel-2 disabled:opacity-30"
+                  aria-label="قدّم"
+                >
+                  →
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(i, 1)}
+                  disabled={i === images.length - 1}
+                  className="w-8 h-8 rounded-lg hover:bg-panel-2 disabled:opacity-30"
+                  aria-label="أخّر"
+                >
+                  ←
+                </button>
               </span>
-              <button type="button" onClick={() => setImages((l) => l.filter((_, k) => k !== i))} className="text-booked text-sm font-bold px-2">
+              <button
+                type="button"
+                onClick={() => setImages((l) => l.filter((_, k) => k !== i))}
+                className="text-booked text-sm font-bold px-2"
+              >
                 مسح
               </button>
             </div>

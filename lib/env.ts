@@ -1,6 +1,7 @@
 /**
- * Server environment, validated once with Zod. Production fails closed:
- *  - DATABASE_URL is required (the seeded in-memory store is for local development / tests only)
+ * Server environment, validated once with Zod. Fails closed:
+ *  - DATABASE_URL is required in every environment (Postgres is the only data store — local
+ *    development and tests use their own local databases, see db/README.md)
  *  - SMS_PROVIDER must be a registered adapter (OTP login is off for now; it returns later as 2FA)
  * Secrets fail closed only where they are used, so one bad secret never takes the whole site down
  * (that 500'd every page on 2026-11-01):
@@ -27,7 +28,10 @@ const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   // Scheme check only: real connection strings can carry characters a strict URL parser rejects.
   DATABASE_URL: optional.pipe(
-    z.string().regex(/^postgres(ql)?:\/\//, "DATABASE_URL must be a postgres:// connection string").optional(),
+    z
+      .string()
+      .regex(/^postgres(ql)?:\/\//, "DATABASE_URL must be a postgres:// connection string")
+      .optional(),
   ),
   AUTH_SECRET: optional,
   ADMIN_PASSCODE: optional,
@@ -57,10 +61,12 @@ export function getEnv(): ServerEnv {
   }
   const env = parsed.data;
   const building = process.env.NEXT_PHASE === "phase-production-build";
+  if (!building && !env.DATABASE_URL) throw new EnvError("Refusing to start: DATABASE_URL is required");
   if (env.NODE_ENV === "production" && !building) {
-    if (!env.DATABASE_URL) throw new EnvError("Refusing to start: DATABASE_URL is required in production");
     if (weakSecret(env.AUTH_SECRET)) {
-      console.error("[env] AUTH_SECRET is missing, shorter than 32 characters or the public default — sign-in is disabled.");
+      console.error(
+        "[env] AUTH_SECRET is missing, shorter than 32 characters or the public default — sign-in is disabled.",
+      );
     }
   }
   cached = env;
@@ -82,7 +88,9 @@ export function adminPasscode(): string | null {
   const { ADMIN_PASSCODE, NODE_ENV } = getEnv();
   if (NODE_ENV !== "production") return ADMIN_PASSCODE ?? DEV_ADMIN_PASSCODE;
   if (!ADMIN_PASSCODE || ADMIN_PASSCODE.length < 8 || ADMIN_PASSCODE === DEV_ADMIN_PASSCODE) {
-    console.error("[env] ADMIN_PASSCODE is missing, shorter than 8 characters or the public default — admin passcode login is disabled.");
+    console.error(
+      "[env] ADMIN_PASSCODE is missing, shorter than 8 characters or the public default — admin passcode login is disabled.",
+    );
     return null;
   }
   return ADMIN_PASSCODE;

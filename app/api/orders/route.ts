@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createDeliveryOrder, resolveOrderSchedule } from "@/services/delivery-service";
 import { getSession } from "@/services/session";
 import { companyContext } from "@/services/company-service";
+import { withErrorHandling } from "@/lib/route";
 
 const Body = z.object({
   categoryId: z.string().uuid(),
@@ -24,7 +25,7 @@ const Body = z.object({
   time: z.string().regex(/^\d{2}:\d{2}$/),
 });
 
-export async function POST(req: NextRequest) {
+export const POST = withErrorHandling("POST /api/orders", async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "LOGIN_REQUIRED" }, { status: 401 });
 
@@ -65,4 +66,4 @@ export async function POST(req: NextRequest) {
 
   if (!result.ok) return NextResponse.json({ error: result.reason }, { status: 400 });
   return NextResponse.json({ code: result.code });
-}
+});

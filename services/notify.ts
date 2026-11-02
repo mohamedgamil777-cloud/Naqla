@@ -15,7 +15,6 @@ export interface NotificationProvider {
 
 const logProvider: NotificationProvider = {
   async notify(channel, to, message) {
-    // eslint-disable-next-line no-console
     console.log(`\n[NOTIFY:${channel} → ${to}]\n${message}\n`);
   },
 };
@@ -25,7 +24,11 @@ export function getNotifier(): NotificationProvider {
 }
 
 /** Fire a notification without ever breaking the calling flow (log adapter in MVP). */
-export function fireNotify(to: string | null | undefined, message: string, channel: NotifyChannel = "whatsapp"): void {
+export function fireNotify(
+  to: string | null | undefined,
+  message: string,
+  channel: NotifyChannel = "whatsapp",
+): void {
   if (!to) return;
   void getNotifier()
     .notify(channel, to, message)
@@ -38,7 +41,7 @@ export function fireNotify(to: string | null | undefined, message: string, chann
 export function deliveryCustomerMessage(
   event: "created" | "confirmed" | "assigned" | "en_route" | "arrived" | "completed",
   code: string,
-  driverName?: string | null
+  driverName?: string | null,
 ): string {
   switch (event) {
     case "created":

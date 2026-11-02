@@ -2,8 +2,22 @@
  * Reporting service — assembles every company dataset for the reporting team as
  * flat rows ready for CSV/BI. Money is emitted in EGP. Read-only.
  */
-import { repo } from "@/db/repo";
-import { BOOKING_STATUS_LABEL, DELIVERY_STATUS_LABEL, KIND_LABEL, VEHICLE_STATUS_LABEL } from "@/lib/constants";
+import { listAllVehicleBlocks } from "@/db/lib/availability";
+import { listAllBookings } from "@/db/lib/bookings";
+import { listCategories } from "@/db/lib/categories";
+import { listCompanies } from "@/db/lib/companies";
+import { listDeliveryOrders } from "@/db/lib/delivery-orders";
+import { documentTypesByPhone } from "@/db/lib/documents";
+import { listAllPaymentsFull } from "@/db/lib/payments";
+import { reportRowCounts } from "@/db/lib/reporting";
+import { listStaff } from "@/db/lib/staff";
+import { getVehicleForEdit, listVehicles } from "@/db/lib/vehicles";
+import {
+  BOOKING_STATUS_LABEL,
+  DELIVERY_STATUS_LABEL,
+  KIND_LABEL,
+  VEHICLE_STATUS_LABEL,
+} from "@/lib/constants";
 import { labelDateArabic, labelTime } from "@/lib/time";
 
 export interface Dataset {
@@ -13,31 +27,146 @@ export interface Dataset {
   rows: (string | number)[][];
 }
 
+/** What each export contains (the reports page shows these with row counts, without building the rows). */
+export const DATASET_META = {
+  "delivery-orders": {
+    key: "delivery-orders",
+    title: "طلبات التوصيل",
+    headers: [
+      "رقم الطلب",
+      "تاريخ الطلب",
+      "الميعاد",
+      "الساعة",
+      "الحالة",
+      "المصدر",
+      "الموظف",
+      "العميل",
+      "الموبايل",
+      "الشركة",
+      "الدفع",
+      "الحجم",
+      "من",
+      "إلى",
+      "المسافة (كم)",
+      "عدد العمالة",
+      "نوع الحمولة",
+      "السواق",
+      "الإجمالي",
+      "الخصم",
+      "الضريبة",
+      "كاش اتسلّم",
+      "تاريخ استلام الكاش",
+      "استلمه",
+      "أجر السواق",
+      "التقييم",
+      "المستلم",
+    ],
+  },
+  "bookings-full": {
+    key: "bookings-full",
+    title: "الإيجار بالساعة — النظام القديم (تفصيلي)",
+    headers: [
+      "رقم الرحلة",
+      "المصدر",
+      "الموظف",
+      "العربية",
+      "العميل",
+      "الموبايل",
+      "تاريخ الاستلام",
+      "ساعة الاستلام",
+      "ساعة التسليم",
+      "المدة (ساعة)",
+      "الحالة",
+      "بسائق",
+      "السائق",
+      "توصيل",
+      "عدد العمالة",
+      "الإجمالي",
+      "الخصم",
+      "الضريبة",
+      "المدفوع",
+      "المتبقي",
+      "التأمين المحتجز",
+    ],
+  },
+  payments: {
+    key: "payments",
+    title: "المدفوعات",
+    headers: ["رقم الرحلة", "النوع", "الطريقة", "المبلغ", "الحالة", "ملاحظة", "تاريخ التحصيل"],
+  },
+  fleet: {
+    key: "fleet",
+    title: "الأسطول",
+    headers: [
+      "الاسم",
+      "اللوحة",
+      "النوع",
+      "الفئة",
+      "الماركة",
+      "الموديل",
+      "السنة",
+      "اللون",
+      "ناقل الحركة",
+      "الوقود",
+      "الركاب",
+      "الحمولة (كجم)",
+      "الحالة",
+      "بسائق",
+      "سعر الساعة",
+      "ساعتين",
+      "4 ساعات",
+      "8 ساعات",
+      "اليوم",
+      "ساعة إضافية",
+      "التأمين",
+      "السائق/ساعة",
+      "العمالة/فرد",
+      "الكيلومتر",
+      "التوصيل",
+    ],
+  },
+  customers: {
+    key: "customers",
+    title: "العملاء",
+    headers: ["الاسم", "الموبايل", "عدد الرحلات والطلبات", "إجمالي المدفوع", "عنده بطاقة", "عنده رخصة"],
+  },
+  staff: {
+    key: "staff",
+    title: "الموظفين",
+    headers: ["الاسم", "الموبايل", "الوظيفة"],
+  },
+  categories: {
+    key: "categories",
+    title: "أنواع العربيات",
+    headers: ["الاسم", "الفئة"],
+  },
+  blocks: {
+    key: "blocks",
+    title: "أوقات عدم التوفّر",
+    headers: ["العربية", "من", "إلى", "السبب"],
+  },
+} satisfies Record<string, Omit<Dataset, "rows">>;
+
+export type DatasetKey = keyof typeof DATASET_META;
+
 const egp = (p: number) => (p / 100).toFixed(2);
 const yn = (b: boolean) => (b ? "نعم" : "لا");
 
 export async function getDatasets(): Promise<Dataset[]> {
   const [bookings, payments, vehicles, staff, categories, orders, companies] = await Promise.all([
-    repo.listAllBookings(),
-    repo.listAllPaymentsFull(),
-    repo.listVehicles(),
-    repo.listStaff(),
-    repo.listCategories(),
-    repo.listDeliveryOrders(),
-    repo.listCompanies(),
+    listAllBookings(),
+    listAllPaymentsFull(),
+    listVehicles(),
+    listStaff(),
+    listCategories(),
+    listDeliveryOrders(),
+    listCompanies(),
   ]);
   const companyName = new Map(companies.map((c) => [c.id, c.name]));
 
   // ---- delivery orders (the main business) ----
   const ordersDs: Dataset = {
-    key: "delivery-orders",
-    title: "طلبات التوصيل",
-    headers: [
-      "رقم الطلب", "تاريخ الطلب", "الميعاد", "الساعة", "الحالة", "المصدر", "الموظف",
-      "العميل", "الموبايل", "الشركة", "الدفع", "الحجم", "من", "إلى", "المسافة (كم)", "عدد العمالة", "نوع الحمولة",
-      "السواق", "الإجمالي", "الخصم", "الضريبة", "كاش اتسلّم", "تاريخ استلام الكاش", "استلمه",
-      "أجر السواق", "التقييم", "المستلم",
-    ],
+    ...DATASET_META["delivery-orders"],
     rows: orders.map((o) => [
       o.code,
       labelDateArabic(o.createdAt),
@@ -48,7 +177,7 @@ export async function getDatasets(): Promise<Dataset[]> {
       o.agentName ?? "",
       o.contactName ?? "",
       o.contactPhone ?? "",
-      o.companyId ? companyName.get(o.companyId) ?? "" : "",
+      o.companyId ? (companyName.get(o.companyId) ?? "") : "",
       o.billing === "account" ? "على الحساب" : "كاش",
       o.sizeName,
       o.pickupAddress ?? "",
@@ -73,20 +202,15 @@ export async function getDatasets(): Promise<Dataset[]> {
   const paidByCode = new Map<string, number>();
   const depHeldByCode = new Map<string, number>();
   for (const p of payments) {
-    if (p.kind === "rent" && p.status === "paid") paidByCode.set(p.bookingCode, (paidByCode.get(p.bookingCode) ?? 0) + p.amount);
-    if (p.kind === "deposit" && p.status === "paid") depHeldByCode.set(p.bookingCode, (depHeldByCode.get(p.bookingCode) ?? 0) + p.amount);
+    if (p.kind === "rent" && p.status === "paid")
+      paidByCode.set(p.bookingCode, (paidByCode.get(p.bookingCode) ?? 0) + p.amount);
+    if (p.kind === "deposit" && p.status === "paid")
+      depHeldByCode.set(p.bookingCode, (depHeldByCode.get(p.bookingCode) ?? 0) + p.amount);
   }
 
   // ---- bookings (full) ----
   const bookingsDs: Dataset = {
-    key: "bookings-full",
-    title: "الإيجار بالساعة — النظام القديم (تفصيلي)",
-    headers: [
-      "رقم الرحلة", "المصدر", "الموظف", "العربية", "العميل", "الموبايل",
-      "تاريخ الاستلام", "ساعة الاستلام", "ساعة التسليم", "المدة (ساعة)", "الحالة",
-      "بسائق", "السائق", "توصيل", "عدد العمالة",
-      "الإجمالي", "الخصم", "الضريبة", "المدفوع", "المتبقي", "التأمين المحتجز",
-    ],
+    ...DATASET_META["bookings-full"],
     rows: bookings.map((b) => {
       const paid = paidByCode.get(b.code) ?? 0;
       const due = b.status === "cancelled" ? 0 : b.priceSnapshot.total;
@@ -118,9 +242,7 @@ export async function getDatasets(): Promise<Dataset[]> {
 
   // ---- payments ----
   const paymentsDs: Dataset = {
-    key: "payments",
-    title: "المدفوعات",
-    headers: ["رقم الرحلة", "النوع", "الطريقة", "المبلغ", "الحالة", "ملاحظة", "تاريخ التحصيل"],
+    ...DATASET_META["payments"],
     rows: payments.map((p) => [
       p.bookingCode,
       p.kind === "deposit" ? "تأمين" : "إيجار",
@@ -133,22 +255,38 @@ export async function getDatasets(): Promise<Dataset[]> {
   };
 
   // ---- fleet (full incl. pricing) ----
-  const fullVehicles = await Promise.all(vehicles.map((v) => repo.getVehicleForEdit(v.id)));
+  const fullVehicles = await Promise.all(vehicles.map((v) => getVehicleForEdit(v.id)));
   const fleetDs: Dataset = {
-    key: "fleet",
-    title: "الأسطول",
-    headers: [
-      "الاسم", "اللوحة", "النوع", "الفئة", "الماركة", "الموديل", "السنة", "اللون",
-      "ناقل الحركة", "الوقود", "الركاب", "الحمولة (كجم)", "الحالة", "بسائق",
-      "سعر الساعة", "ساعتين", "4 ساعات", "8 ساعات", "اليوم", "ساعة إضافية",
-      "التأمين", "السائق/ساعة", "العمالة/فرد", "الكيلومتر", "التوصيل",
-    ],
-    rows: fullVehicles.filter((v): v is NonNullable<typeof v> => !!v).map((v) => [
-      v.name, v.plate, KIND_LABEL[v.kind], v.categoryName, v.brand ?? "", v.model ?? "", v.year ?? "", v.color ?? "",
-      v.transmission ?? "", v.fuel ?? "", v.seats ?? "", v.cargoKg ?? "", VEHICLE_STATUS_LABEL[v.status], yn(v.hasDriverOption),
-      egp(v.pricing.hour1), egp(v.pricing.hour2), egp(v.pricing.hour4), egp(v.pricing.hour8), egp(v.pricing.daily), egp(v.pricing.extraHour),
-      egp(v.pricing.deposit), egp(v.pricing.driverFeePerHour), egp(v.pricing.loaderFeePerPerson), egp(v.pricing.perKmPrice), egp(v.pricing.deliveryFee),
-    ]),
+    ...DATASET_META["fleet"],
+    rows: fullVehicles
+      .filter((v): v is NonNullable<typeof v> => !!v)
+      .map((v) => [
+        v.name,
+        v.plate,
+        KIND_LABEL[v.kind],
+        v.categoryName,
+        v.brand ?? "",
+        v.model ?? "",
+        v.year ?? "",
+        v.color ?? "",
+        v.transmission ?? "",
+        v.fuel ?? "",
+        v.seats ?? "",
+        v.cargoKg ?? "",
+        VEHICLE_STATUS_LABEL[v.status],
+        yn(v.hasDriverOption),
+        egp(v.pricing.hour1),
+        egp(v.pricing.hour2),
+        egp(v.pricing.hour4),
+        egp(v.pricing.hour8),
+        egp(v.pricing.daily),
+        egp(v.pricing.extraHour),
+        egp(v.pricing.deposit),
+        egp(v.pricing.driverFeePerHour),
+        egp(v.pricing.loaderFeePerPerson),
+        egp(v.pricing.perKmPrice),
+        egp(v.pricing.deliveryFee),
+      ]),
   };
 
   // ---- customers (derived) ----
@@ -172,63 +310,63 @@ export async function getDatasets(): Promise<Dataset[]> {
     custMap.set(phone, c);
   }
   const custEntries = [...custMap.entries()];
-  const custDocs = await Promise.all(custEntries.map(([phone]) => repo.listDocuments(phone)));
+  const docTypes = await documentTypesByPhone(custEntries.map(([phone]) => phone));
   const customersDs: Dataset = {
-    key: "customers",
-    title: "العملاء",
-    headers: ["الاسم", "الموبايل", "عدد الرحلات والطلبات", "إجمالي المدفوع", "عنده بطاقة", "عنده رخصة"],
-    rows: custEntries.map(([phone, c], i) => {
-      const docs = custDocs[i];
+    ...DATASET_META["customers"],
+    rows: custEntries.map(([phone, c]) => {
+      const docs = docTypes.get(phone);
       return [
         c.name || "-",
         phone,
         c.trips,
         egp(c.collected),
-        yn(docs.some((d) => d.type === "national_id")),
-        yn(docs.some((d) => d.type === "license")),
+        yn(!!docs?.has("national_id")),
+        yn(!!docs?.has("license")),
       ];
     }),
   };
 
   // ---- staff ----
   const roleLabel: Record<string, string> = {
-    super_admin: "مدير عام", fleet_mgr: "مدير أسطول", agent: "موظف حجوزات", driver: "سائق", finance: "حسابات",
+    super_admin: "مدير عام",
+    fleet_mgr: "مدير أسطول",
+    agent: "موظف حجوزات",
+    driver: "سائق",
+    finance: "حسابات",
   };
   const staffDs: Dataset = {
-    key: "staff",
-    title: "الموظفين",
-    headers: ["الاسم", "الموبايل", "الوظيفة"],
+    ...DATASET_META["staff"],
     rows: staff.map((s) => [s.name, s.phone, roleLabel[s.role] ?? s.role]),
   };
 
   // ---- categories ----
   const categoriesDs: Dataset = {
-    key: "categories",
-    title: "أنواع العربيات",
-    headers: ["الاسم", "الفئة"],
+    ...DATASET_META["categories"],
     rows: categories.map((c) => [c.name, KIND_LABEL[c.kind]]),
   };
 
   // ---- vehicle blocks ----
-  const blockLists = await Promise.all(vehicles.map((v) => repo.listVehicleBlocks(v.id)));
+  const blocks = await listAllVehicleBlocks();
   const vehName = new Map(vehicles.map((v) => [v.id, v.name]));
-  const blockRows: (string | number)[][] = [];
-  for (const list of blockLists) {
-    for (const bl of list) {
-      blockRows.push([
-        vehName.get(bl.vehicleId) ?? bl.vehicleId,
-        `${labelDateArabic(bl.startsAt)} ${labelTime(bl.startsAt)}`,
-        `${labelDateArabic(bl.endsAt)} ${labelTime(bl.endsAt)}`,
-        bl.reason === "maintenance" ? "صيانة" : "حجز خاص",
-      ]);
-    }
-  }
+  const blockRows: (string | number)[][] = blocks.map((bl) => [
+    vehName.get(bl.vehicleId) ?? bl.vehicleId,
+    `${labelDateArabic(bl.startsAt)} ${labelTime(bl.startsAt)}`,
+    `${labelDateArabic(bl.endsAt)} ${labelTime(bl.endsAt)}`,
+    bl.reason === "maintenance" ? "صيانة" : "حجز خاص",
+  ]);
   const blocksDs: Dataset = {
-    key: "blocks",
-    title: "أوقات عدم التوفّر",
-    headers: ["العربية", "من", "إلى", "السبب"],
+    ...DATASET_META["blocks"],
     rows: blockRows,
   };
 
   return [ordersDs, bookingsDs, paymentsDs, fleetDs, customersDs, staffDs, categoriesDs, blocksDs];
+}
+
+/** Row counts per dataset, counted in the database (for the reports page). */
+export async function getDatasetSummaries(): Promise<(Omit<Dataset, "rows"> & { rowCount: number })[]> {
+  const counts = await reportRowCounts();
+  return (Object.keys(DATASET_META) as DatasetKey[]).map((key) => ({
+    ...DATASET_META[key],
+    rowCount: counts[key],
+  }));
 }

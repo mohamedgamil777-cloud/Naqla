@@ -2,11 +2,12 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { loginWithPassword } from "@/services/auth";
 import { authFailure, badRequest, signedIn } from "@/services/auth-http";
+import { withErrorHandling } from "@/lib/route";
 
 const Body = z.object({ phone: z.string().trim().min(6).max(20), password: z.string().min(1).max(128) });
 
 /** Phone + password → session cookie (website) and { token } (mobile app). */
-export async function POST(req: NextRequest) {
+export const POST = withErrorHandling("POST /api/auth/login", async function POST(req: NextRequest) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return badRequest();
   try {
@@ -14,4 +15,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return authFailure(e);
   }
-}
+});

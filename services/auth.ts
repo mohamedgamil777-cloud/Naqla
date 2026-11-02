@@ -10,7 +10,14 @@
  *    the number then shows as unverified until an agent confirms it by phone
  *  - drivers and staff get their password from an admin (or the bootstrap admin from env)
  */
-import { repo } from "@/db/repo";
+import {
+  claimAccount,
+  clearLoginFailures,
+  createUserWithPassword,
+  getLoginAccount,
+  recordLoginFailure,
+  setPassword,
+} from "@/db/lib/accounts";
 import { toE164 } from "@/lib/phone";
 import { dummyHash, hashPassword, verifyPassword } from "@/lib/password";
 import { passwordProblem } from "@/lib/password-policy";
@@ -52,7 +59,7 @@ export interface AuthResult {
 
 export async function loginWithPassword(rawPhone: string, password: string): Promise<AuthResult> {
   const phone = normalizePhone(rawPhone);
-  const acct = await repo.getLoginAccount(phone);
+  const acct = await getLoginAccount(phone);
   if (!acct) {
     await verifyPassword(password, await dummyHash()); // same cost as a real check
     throw new AuthError("INVALID_CREDENTIALS");
@@ -65,42 +72,56 @@ export async function loginWithPassword(rawPhone: string, password: string): Pro
     throw new AuthError("PASSWORD_NOT_SET", acct.role === "customer" ? "customer" : "staff");
   }
   if (!(await verifyPassword(password, acct.passwordHash))) {
-    const { lockedUntil } = await repo.recordLoginFailure(acct.id, MAX_FAILED_LOGINS, LOCK_MS);
-    if (lockedUntil && lockedUntil.getTime() > Date.now()) throw new AuthError("ACCOUNT_LOCKED", minutesLeft(lockedUntil));
+    const { lockedUntil } = await recordLoginFailure(acct.id, MAX_FAILED_LOGINS, LOCK_MS);
+    if (lockedUntil && lockedUntil.getTime() > Date.now())
+      throw new AuthError("ACCOUNT_LOCKED", minutesLeft(lockedUntil));
     throw new AuthError("INVALID_CREDENTIALS");
   }
-  if (acct.failedLoginCount > 0 || acct.lockedUntil) await repo.clearLoginFailures(acct.id);
+  if (acct.failedLoginCount > 0 || acct.lockedUntil) await clearLoginFailures(acct.id);
   return { phone, name: acct.name, role: acct.role };
 }
 
 /** Customer self-registration, or first password for a customer account that has none yet. */
-export async function registerCustomer(rawPhone: string, rawName: string, password: string): Promise<AuthResult> {
+export async function registerCustomer(
+  rawPhone: string,
+  rawName: string,
+  password: string,
+): Promise<AuthResult> {
   const phone = normalizePhone(rawPhone);
   const name = rawName.trim().replace(/\s+/g, " ");
   if (name.length < 2 || name.length > 80) throw new AuthError("INVALID_NAME");
   const problem = passwordProblem(password, "customer");
   if (problem) throw new AuthError("WEAK_PASSWORD", problem);
 
-  const existing = await repo.getLoginAccount(phone);
+  const existing = await getLoginAccount(phone);
   if (existing) {
     if (existing.role !== "customer") throw new AuthError("STAFF_ACCOUNT");
     if (existing.passwordHash) throw new AuthError("PHONE_TAKEN");
     // claimed atomically: only while the account still has no password
-    if (!(await repo.claimAccount(existing.id, await hashPassword(password), name))) throw new AuthError("PHONE_TAKEN");
+    if (!(await claimAccount(existing.id, await hashPassword(password), name)))
+      throw new AuthError("PHONE_TAKEN");
     return { phone, name, role: "customer" };
   }
-  const res = await repo.createUserWithPassword({
-    phone, name, role: "customer", passwordHash: await hashPassword(password), verified: false,
+  const res = await createUserWithPassword({
+    phone,
+    name,
+    role: "customer",
+    passwordHash: await hashPassword(password),
+    verified: false,
   });
   if (!res.created) throw new AuthError("PHONE_TAKEN"); // lost a race for the same number
   return { phone, name, role: "customer" };
 }
 
 /** Admin sets a password for any account (staff manager / customers page / bootstrap). */
-export async function adminSetPassword(userId: string, role: string, password: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function adminSetPassword(
+  userId: string,
+  role: string,
+  password: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const problem = passwordProblem(password, role);
   if (problem) return { ok: false, error: problem };
-  const done = await repo.setPassword(userId, await hashPassword(password));
+  const done = await setPassword(userId, await hashPassword(password));
   return done ? { ok: true } : { ok: false, error: "الحساب مش موجود." };
 }
 

@@ -4,8 +4,11 @@
  *  - per-order / per-trip reports, summaries, by-vehicle / by-driver: by TRIP date (scheduledAt / startsAt)
  *  - cashflow / by-method: by COLLECTION date (payment createdAt, order cashReceivedAt)
  */
-import { repo } from "@/db/repo";
-import { cairoDateISO, labelDateArabic } from "@/lib/time";
+import { listBookingsStartingBetween } from "@/db/lib/bookings";
+import { listCompanies } from "@/db/lib/companies";
+import { listDeliveryOrdersForFinance } from "@/db/lib/delivery-orders";
+import { listPaymentsForFinance } from "@/db/lib/payments";
+import { cairoDateISO, cairoDateTime, labelDateArabic, nextDateISO } from "@/lib/time";
 import type { BookingStatus } from "@/lib/constants";
 import type { DeliveryOrderStatus, OrderBilling, OrderSource } from "@/types";
 
@@ -95,11 +98,14 @@ export interface FinanceReport {
 const inRange = (d: string, from: string, to: string) => d >= from && d <= to;
 
 export async function getFinance(from: string, to: string): Promise<FinanceReport> {
+  // Only the rows the report can touch: Cairo days [from, to] as one UTC range.
+  const start = cairoDateTime(from, 0);
+  const end = cairoDateTime(nextDateISO(to), 0);
   const [bookings, payments, orders, companies] = await Promise.all([
-    repo.listAllBookings(),
-    repo.listAllPaymentsFull(),
-    repo.listDeliveryOrders(),
-    repo.listCompanies(),
+    listBookingsStartingBetween(start, end),
+    listPaymentsForFinance(start, end),
+    listDeliveryOrdersForFinance(start, end),
+    listCompanies(),
   ]);
   const companyName = new Map(companies.map((c) => [c.id, c.name]));
 
@@ -110,7 +116,7 @@ export async function getFinance(from: string, to: string): Promise<FinanceRepor
     if (!inRange(dISO, from, to)) continue;
     const done = o.status === "completed";
     const total = done ? o.priceSnapshot.total : 0;
-    const cashReceived = done && o.billing === "cash" ? o.cashReceived ?? 0 : 0;
+    const cashReceived = done && o.billing === "cash" ? (o.cashReceived ?? 0) : 0;
     dRows.push({
       code: o.code,
       dateISO: dISO,
@@ -118,7 +124,7 @@ export async function getFinance(from: string, to: string): Promise<FinanceRepor
       size: o.sizeName,
       customer: o.contactName ?? "-",
       phone: o.contactPhone ?? "-",
-      company: o.companyId ? companyName.get(o.companyId) ?? "شركة" : null,
+      company: o.companyId ? (companyName.get(o.companyId) ?? "شركة") : null,
       status: o.status,
       billing: o.billing,
       source: o.source,
@@ -132,10 +138,14 @@ export async function getFinance(from: string, to: string): Promise<FinanceRepor
     });
   }
   dRows.sort((a, b) => (a.dateISO < b.dateISO ? -1 : a.dateISO > b.dateISO ? 1 : 0));
-  const sum = (k: "total" | "open" | "cashReceived" | "cashPending" | "onAccount") => dRows.reduce((s, r) => s + r[k], 0);
+  const sum = (k: "total" | "open" | "cashReceived" | "cashPending" | "onAccount") =>
+    dRows.reduce((s, r) => s + r[k], 0);
   const completed = dRows.filter((r) => r.status === "completed").length;
 
-  const drvMap = new Map<string, { orders: number; earned: number; cashReceived: number; cashPending: number }>();
+  const drvMap = new Map<
+    string,
+    { orders: number; earned: number; cashReceived: number; cashPending: number }
+  >();
   const sizeMap = new Map<string, { orders: number; earned: number }>();
   for (const r of dRows) {
     if (r.status !== "completed") continue;
@@ -182,8 +192,12 @@ export async function getFinance(from: string, to: string): Promise<FinanceRepor
     if (!inRange(dISO, from, to)) continue;
     const ps = byCode.get(b.code) ?? [];
     const paid = ps.filter((p) => p.kind === "rent" && p.status === "paid").reduce((s, p) => s + p.amount, 0);
-    const depositHeld = ps.filter((p) => p.kind === "deposit" && p.status === "paid").reduce((s, p) => s + p.amount, 0);
-    const depositRefunded = ps.filter((p) => p.kind === "deposit" && p.status === "refunded").reduce((s, p) => s + p.amount, 0);
+    const depositHeld = ps
+      .filter((p) => p.kind === "deposit" && p.status === "paid")
+      .reduce((s, p) => s + p.amount, 0);
+    const depositRefunded = ps
+      .filter((p) => p.kind === "deposit" && p.status === "refunded")
+      .reduce((s, p) => s + p.amount, 0);
     const due = b.status === "cancelled" ? 0 : b.priceSnapshot.total;
     rows.push({
       code: b.code,
@@ -231,10 +245,21 @@ export async function getFinance(from: string, to: string): Promise<FinanceRepor
   const byMethod = { cash: 0, card: 0, online: 0 };
   const dayRow = (d: Date): CashflowRow => {
     const dISO = cairoDateISO(d);
-    return cashMap.get(dISO) ?? { dateISO: dISO, dateLabel: labelDateArabic(d), deliveryIn: 0, rentIn: 0, depositIn: 0, depositOut: 0, net: 0 };
+    return (
+      cashMap.get(dISO) ?? {
+        dateISO: dISO,
+        dateLabel: labelDateArabic(d),
+        deliveryIn: 0,
+        rentIn: 0,
+        depositIn: 0,
+        depositOut: 0,
+        net: 0,
+      }
+    );
   };
   for (const o of orders) {
-    if (o.cashReceived == null || !o.cashReceivedAt || !inRange(cairoDateISO(o.cashReceivedAt), from, to)) continue;
+    if (o.cashReceived == null || !o.cashReceivedAt || !inRange(cairoDateISO(o.cashReceivedAt), from, to))
+      continue;
     const row = dayRow(o.cashReceivedAt);
     row.deliveryIn += o.cashReceived;
     row.net = row.deliveryIn + row.rentIn + row.depositIn - row.depositOut;

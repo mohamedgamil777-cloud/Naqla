@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getDashboard } from "@/services/admin-service";
-import { repo } from "@/db/repo";
+import { driverEarnings, driverPayoutTotals } from "@/db/lib/drivers";
+import { totalExpenses } from "@/db/lib/expenses";
 import { requirePermission } from "@/lib/authz";
 import { can } from "@/lib/permissions";
 import { formatEgp } from "@/lib/money";
@@ -9,7 +10,11 @@ import { BookingStatusBadge } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ denied?: string }>;
+}) {
   const { role } = await requirePermission("dashboard:read");
   const { denied } = await searchParams;
   const d = await getDashboard();
@@ -17,14 +22,15 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
 
   let fin = { owed: 0, paid: 0, expenses: 0 };
   if (showFinance) {
-    const [orders, payouts, expenses] = await Promise.all([
-      repo.listDeliveryOrders(),
-      repo.listDriverPayouts(),
-      repo.listExpenses(),
+    // totals are summed in the database
+    const [earnings, paidTotals, expenses] = await Promise.all([
+      driverEarnings(),
+      driverPayoutTotals(),
+      totalExpenses(),
     ]);
-    const earned = orders.filter((o) => o.status === "completed").reduce((s, o) => s + (o.driverFee || 0), 0);
-    const paid = payouts.reduce((s, p) => s + p.amount, 0);
-    fin = { owed: Math.max(0, earned - paid), paid, expenses: expenses.reduce((s, e) => s + e.amount, 0) };
+    const earned = [...earnings.values()].reduce((s, n) => s + n, 0);
+    const paid = [...paidTotals.values()].reduce((s, n) => s + n, 0);
+    fin = { owed: Math.max(0, earned - paid), paid, expenses };
   }
 
   const tiles = [
@@ -60,7 +66,9 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
         <div className="rounded-2xl p-5 bg-primary text-white">
           <div className="text-sm text-white/80">المُحصّل النهاردة</div>
           <div className="text-3xl font-extrabold mt-1">{formatEgp(d.collectedToday)}</div>
-          <div className="text-xs text-white/70 mt-1">المتوقع من حجوزات اليوم: {formatEgp(d.expectedToday)}</div>
+          <div className="text-xs text-white/70 mt-1">
+            المتوقع من حجوزات اليوم: {formatEgp(d.expectedToday)}
+          </div>
         </div>
         <div className="rounded-2xl p-5 bg-panel border border-line">
           <div className="text-sm text-muted">إجمالي المُحصّل</div>
@@ -104,7 +112,9 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
       <div className="bg-panel border border-line rounded-card p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-extrabold text-lg">الحجوزات القادمة</h2>
-          <Link href="/admin/bookings" className="text-primary font-semibold text-sm">كل الحجوزات ›</Link>
+          <Link href="/admin/bookings" className="text-primary font-semibold text-sm">
+            كل الحجوزات ›
+          </Link>
         </div>
         {d.upcoming.length === 0 ? (
           <p className="text-muted">مفيش حجوزات قادمة.</p>
@@ -113,8 +123,12 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
             {d.upcoming.map((b) => (
               <div key={b.code} className="flex items-center justify-between py-3 gap-3">
                 <div className="min-w-0">
-                  <div className="font-bold truncate">{b.vehicleName} <span className="text-muted font-normal">#{b.code}</span></div>
-                  <div className="text-sm text-muted">{labelDateArabic(b.startsAt)} — {labelTime(b.startsAt)}</div>
+                  <div className="font-bold truncate">
+                    {b.vehicleName} <span className="text-muted font-normal">#{b.code}</span>
+                  </div>
+                  <div className="text-sm text-muted">
+                    {labelDateArabic(b.startsAt)} — {labelTime(b.startsAt)}
+                  </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="font-bold text-emph">{formatEgp(b.priceSnapshot.total)}</span>

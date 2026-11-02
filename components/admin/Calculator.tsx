@@ -4,7 +4,8 @@ import { PriceBreakdown } from "@/components/ui";
 import type { VehicleListItem } from "@/types";
 import type { Quote } from "@/engines/pricing";
 
-const inp = "w-full rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary";
+const inp =
+  "w-full rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary";
 const lbl = "block text-sm font-bold text-ink-2 mb-1.5";
 
 export function Calculator({ vehicles }: { vehicles: VehicleListItem[] }) {
@@ -43,7 +44,11 @@ export function Calculator({ vehicles }: { vehicles: VehicleListItem[] }) {
       if (j.quote) setQuote(j.quote);
       else {
         setQuote(null);
-        setErr(j.error === "BELOW_MIN_HOURS" ? "أقل مدة إيجار مسموحة أعلى من كده." : "مش قادر يحسب، راجع البيانات.");
+        setErr(
+          j.error === "BELOW_MIN_HOURS"
+            ? "أقل مدة إيجار مسموحة أعلى من كده."
+            : "مش قادر يحسب، راجع البيانات.",
+        );
       }
     })();
     return () => {
@@ -58,41 +63,80 @@ export function Calculator({ vehicles }: { vehicles: VehicleListItem[] }) {
           <span className={lbl}>العربية</span>
           <select className={inp} value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
             {vehicles.map((v) => (
-              <option key={v.id} value={v.id}>{v.name} — {v.categoryName}</option>
+              <option key={v.id} value={v.id}>
+                {v.name} — {v.categoryName}
+              </option>
             ))}
           </select>
         </label>
         <div className="grid grid-cols-2 gap-4">
           <label>
             <span className={lbl}>المدة (ساعات)</span>
-            <input className={inp} type="number" min="1" value={hours} onChange={(e) => setHours(Number(e.target.value) || 0)} />
+            <input
+              className={inp}
+              type="number"
+              min="1"
+              value={hours}
+              onChange={(e) => setHours(Number(e.target.value) || 0)}
+            />
           </label>
           <label>
             <span className={lbl}>المسافة (كيلومتر)</span>
-            <input className={inp} type="number" min="0" value={km} onChange={(e) => setKm(Number(e.target.value) || 0)} />
+            <input
+              className={inp}
+              type="number"
+              min="0"
+              value={km}
+              onChange={(e) => setKm(Number(e.target.value) || 0)}
+            />
           </label>
         </div>
         <div className="flex flex-wrap items-center gap-5">
           <label className="flex items-center gap-2 font-semibold">
-            <input type="checkbox" checked={withDriver} onChange={(e) => setWithDriver(e.target.checked)} className="w-5 h-5" /> مع سائق
+            <input
+              type="checkbox"
+              checked={withDriver}
+              onChange={(e) => setWithDriver(e.target.checked)}
+              className="w-5 h-5"
+            />{" "}
+            مع سائق
           </label>
           <label className="flex items-center gap-2 font-semibold">
-            <input type="checkbox" checked={delivery} onChange={(e) => setDelivery(e.target.checked)} className="w-5 h-5" /> توصيل
+            <input
+              type="checkbox"
+              checked={delivery}
+              onChange={(e) => setDelivery(e.target.checked)}
+              className="w-5 h-5"
+            />{" "}
+            توصيل
           </label>
           <label className="flex items-center gap-2 font-semibold">
             العمالة:
-            <input type="number" min="0" max="6" value={loaders} onChange={(e) => setLoaders(Number(e.target.value) || 0)} className="w-20 rounded-xl border border-line-2 bg-panel px-3 py-2" />
+            <input
+              type="number"
+              min="0"
+              max="6"
+              value={loaders}
+              onChange={(e) => setLoaders(Number(e.target.value) || 0)}
+              className="w-20 rounded-xl border border-line-2 bg-panel px-3 py-2"
+            />
           </label>
         </div>
-        <p className="text-sm text-muted">الحاسبة بتجمع سعر الوقت (حسب أسعار العربية) + سعر المسافة (سعر الكيلومتر) + الإضافات.</p>
+        <p className="text-sm text-muted">
+          الحاسبة بتجمع سعر الوقت (حسب أسعار العربية) + سعر المسافة (سعر الكيلومتر) + الإضافات.
+        </p>
       </div>
 
       <div>
-        {err && <div className="bg-booked-soft text-booked rounded-xl px-4 py-3 font-semibold mb-3">{err}</div>}
+        {err && (
+          <div className="bg-booked-soft text-booked rounded-xl px-4 py-3 font-semibold mb-3">{err}</div>
+        )}
         {quote ? (
           <PriceBreakdown quote={quote} />
         ) : (
-          <div className="bg-panel border border-line rounded-card p-8 text-center text-muted">اكتب البيانات على الشمال يظهرلك السعر.</div>
+          <div className="bg-panel border border-line rounded-card p-8 text-center text-muted">
+            اكتب البيانات على الشمال يظهرلك السعر.
+          </div>
         )}
       </div>
     </div>

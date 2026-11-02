@@ -7,7 +7,12 @@
 import type { StaffRole } from "@/types";
 
 /** Staff roles that can enter the admin area (drivers use the driver app instead). */
-export const ADMIN_ROLES = ["super_admin", "fleet_mgr", "agent", "finance"] as const satisfies readonly StaffRole[];
+export const ADMIN_ROLES = [
+  "super_admin",
+  "fleet_mgr",
+  "agent",
+  "finance",
+] as const satisfies readonly StaffRole[];
 export type AdminRole = (typeof ADMIN_ROLES)[number];
 
 export const PERMISSIONS = [

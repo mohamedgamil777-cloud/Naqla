@@ -1,5 +1,10 @@
 /** Arabic text for auth API error codes (website forms; the mobile app has its own copy in api.ts). */
-export function authErrorText(body: { error?: string; message?: string; retryAfterMinutes?: string; account?: string }): string {
+export function authErrorText(body: {
+  error?: string;
+  message?: string;
+  retryAfterMinutes?: string;
+  account?: string;
+}): string {
   switch (body.error) {
     case "INVALID_PHONE":
       return "رقم الموبايل مش صحيح. اكتبه كده: 01xxxxxxxxx";

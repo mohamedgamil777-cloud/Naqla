@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
-import { repo } from "@/db/repo";
+import { getBooking } from "@/db/lib/bookings";
+import { getAppContent } from "@/db/lib/settings";
 import { telHref, waDigits } from "@/lib/content";
 import { getSession } from "@/services/session";
-import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { durationLabel } from "@/lib/client-time";
 import { BookingStatusBadge, PriceBreakdown, LinkButton } from "@/components/ui";
@@ -13,13 +13,13 @@ export const dynamic = "force-dynamic";
 export default async function BookingDetailPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const session = await getSession();
-  const b = await repo.getBooking(code);
+  const b = await getBooking(code);
   if (!b) notFound();
   // Only the owner (by phone) may view.
   if (!session || session.phone !== b.contactPhone) redirect("/login");
 
   const canCancel = ["pending", "confirmed", "ready"].includes(b.status);
-  const content = await repo.getAppContent();
+  const content = await getAppContent();
   const wa = waDigits(content.whatsapp);
 
   return (
@@ -60,7 +60,9 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             💬 واتساب
           </a>
         </div>
-        <LinkButton href="/bookings" variant="ghost" full>كل حجوزاتي</LinkButton>
+        <LinkButton href="/bookings" variant="ghost" full>
+          كل حجوزاتي
+        </LinkButton>
       </div>
     </div>
   );

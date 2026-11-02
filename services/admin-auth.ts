@@ -8,7 +8,7 @@ import { timingSafeEqual } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { adminPasscode, authSecret } from "@/lib/env";
 import { getSession } from "./session";
-import { repo } from "@/db/repo";
+import { getStaffByPhone } from "@/db/lib/staff";
 import type { StaffRole } from "@/types";
 import { isAdminRole } from "@/lib/permissions";
 
@@ -62,7 +62,7 @@ export async function getAdminRole(): Promise<StaffRole | null> {
   }
   const session = await getSession();
   if (session) {
-    const staff = await repo.getStaffByPhone(session.phone);
+    const staff = await getStaffByPhone(session.phone);
     if (staff && isAdminRole(staff.role)) return staff.role;
   }
   return null;
@@ -71,7 +71,7 @@ export async function getAdminRole(): Promise<StaffRole | null> {
 /** Who is acting in the admin, for records like "taken by" / "received by". */
 export async function getAdminName(): Promise<string> {
   const session = await getSession();
-  const staff = session ? await repo.getStaffByPhone(session.phone) : null;
+  const staff = session ? await getStaffByPhone(session.phone) : null;
   return staff && isAdminRole(staff.role) ? staff.name : "المدير";
 }
 

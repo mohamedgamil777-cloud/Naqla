@@ -1,7 +1,8 @@
 "use client";
+import { saveCustomerDocument, deleteCustomerDocument } from "@/actions/customer/account";
+import type { ActionResult } from "@/lib/action-result";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { saveCustomerDocument, deleteCustomerDocument, type DocState } from "@/app/(customer)/account/actions";
 import type { DocumentDTO, DocumentType } from "@/types";
 
 function fileToDataUrl(file: File, maxW = 1400, quality = 0.8): Promise<string> {
@@ -32,8 +33,17 @@ function fileToDataUrl(file: File, maxW = 1400, quality = 0.8): Promise<string> 
 export function DocumentsUploader({ docs }: { docs: DocumentDTO[] }) {
   return (
     <div className="grid grid-cols-1 gap-4">
-      <DocUpload type="national_id" title="صوّر البطاقة الشخصية" existing={docs.find((d) => d.type === "national_id")} />
-      <DocUpload type="license" title="صوّر رخصة القيادة" withExpiry existing={docs.find((d) => d.type === "license")} />
+      <DocUpload
+        type="national_id"
+        title="صوّر البطاقة الشخصية"
+        existing={docs.find((d) => d.type === "national_id")}
+      />
+      <DocUpload
+        type="license"
+        title="صوّر رخصة القيادة"
+        withExpiry
+        existing={docs.find((d) => d.type === "license")}
+      />
     </div>
   );
 }
@@ -49,7 +59,7 @@ function DocUpload({
   existing?: DocumentDTO;
   withExpiry?: boolean;
 }) {
-  const [state, action] = useActionState<DocState, FormData>(saveCustomerDocument, { ok: false });
+  const [state, action] = useActionState<ActionResult, FormData>(saveCustomerDocument, { ok: false });
   const [url, setUrl] = useState<string>(existing?.url ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -112,7 +122,9 @@ function DocUpload({
       {existing && (
         <form action={deleteCustomerDocument}>
           <input type="hidden" name="id" value={existing.id} />
-          <button className="w-full rounded-2xl px-5 py-2.5 font-bold text-booked border-2 border-booked-soft">حذف المستند</button>
+          <button className="w-full rounded-2xl px-5 py-2.5 font-bold text-booked border-2 border-booked-soft">
+            حذف المستند
+          </button>
         </form>
       )}
     </div>
@@ -131,4 +143,3 @@ function SaveBtn({ disabled }: { disabled: boolean }) {
     </button>
   );
 }
-

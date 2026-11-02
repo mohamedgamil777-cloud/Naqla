@@ -1,14 +1,32 @@
-import { repo } from "@/db/repo";
-import { cairoDateISO, cairoDateTime } from "@/lib/time";
+import { getBusyForVehicles } from "@/db/lib/availability";
+import {
+  countActiveBookings,
+  countBookingsByStatus,
+  listBookingsStartingBetween,
+  listUpcomingBookings,
+} from "@/db/lib/bookings";
+import { defaultBranch } from "@/db/lib/branches";
+import { paymentTotals } from "@/db/lib/payments";
+import { getBusiness } from "@/db/lib/settings";
+import { listVehicles } from "@/db/lib/vehicles";
+import { cairoDateISO, cairoDateTime, nextDateISO } from "@/lib/time";
 import type { VehicleStatus } from "@/lib/constants";
-import type { BookingDTO } from "@/types";
 import type { SlotStatus } from "@/engines/availability";
 
 export async function getDashboard() {
-  const [vehicles, all, allPayments] = await Promise.all([
-    repo.listVehicles(),
-    repo.listAllBookings(),
-    repo.listAllPayments(),
+  const now = new Date();
+  const todayISO = cairoDateISO(now);
+  const todayStart = cairoDateTime(todayISO, 0);
+  const tomorrowStart = cairoDateTime(nextDateISO(todayISO), 0);
+
+  const [vehicles, activeRentals, todaysAll, upcoming, byStatus, money] = await Promise.all([
+    listVehicles(),
+    countActiveBookings(now),
+    listBookingsStartingBetween(todayStart, tomorrowStart),
+    listUpcomingBookings(now, 6),
+    countBookingsByStatus(),
+    // actual money collected (recorded payments), not expected booking totals
+    paymentTotals(todayStart),
   ]);
   const counts: Record<VehicleStatus, number> = {
     available: 0,
@@ -19,41 +37,21 @@ export async function getDashboard() {
   };
   for (const v of vehicles) counts[v.status]++;
 
-  const now = Date.now();
-  const todayISO = cairoDateISO(new Date());
-
-  const active = all.filter(
-    (b) => b.status !== "cancelled" && b.status !== "completed" && b.startsAt.getTime() <= now && b.endsAt.getTime() > now
-  );
-  const todays = all.filter((b) => cairoDateISO(b.startsAt) === todayISO && b.status !== "cancelled");
-  const upcoming = all
-    .filter((b) => ["pending", "confirmed", "ready"].includes(b.status) && b.startsAt.getTime() > now)
-    .slice(0, 6);
-  const cancellations = all.filter((b) => b.status === "cancelled").length;
-
-  // Actual money collected (from recorded payments), not expected booking totals.
-  const paidRent = allPayments.filter((p) => p.kind === "rent" && p.status === "paid");
-  const collectedTotal = paidRent.reduce((s, p) => s + p.amount, 0);
-  const collectedToday = paidRent
-    .filter((p) => cairoDateISO(p.createdAt) === todayISO)
-    .reduce((s, p) => s + p.amount, 0);
-  const depositsHeld = allPayments
-    .filter((p) => p.kind === "deposit" && p.status === "paid")
-    .reduce((s, p) => s + p.amount, 0);
+  const todays = todaysAll.filter((b) => b.status !== "cancelled");
   // Expected revenue from bookings starting today (for reference).
   const expectedToday = todays.reduce((sum, b) => sum + b.priceSnapshot.total, 0);
 
   return {
     counts,
     fleetSize: vehicles.length,
-    activeRentals: active.length,
+    activeRentals,
     todaysBookings: todays.length,
-    collectedToday,
-    collectedTotal,
-    depositsHeld,
+    collectedToday: money.collectedToday,
+    collectedTotal: money.collectedTotal,
+    depositsHeld: money.depositsHeld,
     expectedToday,
     upcoming,
-    cancellations,
+    cancellations: byStatus.cancelled ?? 0,
   };
 }
 
@@ -65,11 +63,7 @@ export interface BoardRow {
 }
 
 export async function getBoard(dateISO: string): Promise<{ hours: number[]; rows: BoardRow[] }> {
-  const [vehicles, business, branch] = await Promise.all([
-    repo.listVehicles(),
-    repo.getBusiness(),
-    repo.defaultBranch(),
-  ]);
+  const [vehicles, business, branch] = await Promise.all([listVehicles(), getBusiness(), defaultBranch()]);
   const { open, close } = branch.working;
   const bufferMs = business.bufferMinutes * 60 * 1000;
   const now = Date.now();
@@ -79,10 +73,18 @@ export async function getBoard(dateISO: string): Promise<{ hours: number[]; rows
 
   const overlaps = (aS: number, aE: number, bS: number, bE: number) => aS < bE && bS < aE;
 
+  // one query for every vehicle, only intervals touching this day (± the buffer)
+  const dayStart = cairoDateTime(dateISO, 0);
+  const busyByVehicle = await getBusyForVehicles(
+    vehicles.map((v) => v.id),
+    new Date(dayStart.getTime() - bufferMs),
+    new Date(cairoDateTime(nextDateISO(dateISO), 0).getTime() + bufferMs),
+  );
+
   const rows: BoardRow[] = [];
   for (const v of vehicles) {
     const bookable = v.status !== "inactive" && v.status !== "maintenance";
-    const raw = await repo.getBusy(v.id); // actual reservations/blocks, unpadded
+    const raw = busyByVehicle.get(v.id) ?? []; // actual reservations/blocks, unpadded
     const rawMs = raw.map((iv) => ({ s: iv.start.getTime(), e: iv.end.getTime() }));
     const cells = hours.map((h) => {
       const start = cairoDateTime(dateISO, h).getTime();
@@ -98,9 +100,4 @@ export async function getBoard(dateISO: string): Promise<{ hours: number[]; rows
     rows.push({ vehicleId: v.id, name: v.name, status: v.status, cells });
   }
   return { hours, rows };
-}
-
-export async function listBookingsForAdmin(): Promise<BookingDTO[]> {
-  const all = await repo.listAllBookings();
-  return all.slice().reverse(); // newest start first-ish
 }

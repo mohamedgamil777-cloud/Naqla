@@ -1,0 +1,13 @@
+node_modules
+.next
+graphify-out
+mobile
+db/generated
+db/migrations
+db/seeds/*.sql
+deploy
+public
+package-lock.json
+architecture-spec.html
+CLAUDE.md
+.claude

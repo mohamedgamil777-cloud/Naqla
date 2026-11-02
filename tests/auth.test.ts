@@ -1,12 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AuthError, LOCK_MS, MAX_FAILED_LOGINS, adminSetPassword, loginWithPassword, registerCustomer } from "@/services/auth";
+import {
+  AuthError,
+  LOCK_MS,
+  MAX_FAILED_LOGINS,
+  adminSetPassword,
+  loginWithPassword,
+  registerCustomer,
+} from "@/services/auth";
 import { ensureBootstrapAdmin } from "@/services/bootstrap";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { passwordProblem } from "@/lib/password-policy";
 import { resetEnvCache } from "@/lib/env";
-import { repo } from "@/db/repo";
+import { getLoginAccount, upsertUser } from "@/db/lib/accounts";
+import { createStaff } from "@/db/lib/staff";
 
-// Tests run on the in-memory store (no DATABASE_URL). Each test uses its own phone numbers.
+// Tests run on the local *_test database (tests/setup). Each test uses its own phone numbers.
 let n = 0;
 const phone = () => `0102${String(1000000 + ++n).slice(-7)}`;
 const code = async (p: Promise<unknown>) => {
@@ -57,7 +65,7 @@ describe("customer registration + login", () => {
   it("a new customer number starts unverified (agents confirm it)", async () => {
     const p = phone();
     await registerCustomer(p, "عميل", "my-pass-1");
-    const acct = await repo.getLoginAccount(`+20${p.slice(1)}`);
+    const acct = await getLoginAccount(`+20${p.slice(1)}`);
     expect(acct?.phoneVerifiedAt).toBeNull();
   });
 
@@ -70,7 +78,10 @@ describe("customer registration + login", () => {
 
   it("only one of two simultaneous registrations wins", async () => {
     const p = phone();
-    const results = await Promise.all([code(registerCustomer(p, "أحمد", "pass-aaa1")), code(registerCustomer(p, "بسمة", "pass-bbb2"))]);
+    const results = await Promise.all([
+      code(registerCustomer(p, "أحمد", "pass-aaa1")),
+      code(registerCustomer(p, "بسمة", "pass-bbb2")),
+    ]);
     expect(results.filter((x) => x === "OK")).toHaveLength(1);
     expect(results.filter((x) => x === "PHONE_TAKEN")).toHaveLength(1);
   });
@@ -89,14 +100,14 @@ describe("customer registration + login", () => {
 describe("old accounts without a password", () => {
   it("customer from the OTP era claims the account by registering", async () => {
     const p = phone();
-    await repo.upsertUser(`+20${p.slice(1)}`, "قديم");
+    await upsertUser(`+20${p.slice(1)}`, "قديم");
     expect(await code(loginWithPassword(p, "anything-1"))).toBe("PASSWORD_NOT_SET");
     await registerCustomer(p, "قديم", "new-pass-1");
     expect((await loginWithPassword(p, "new-pass-1")).role).toBe("customer");
   });
 
   it("drivers/staff cannot claim by registering — an admin sets their password", async () => {
-    const id = (await repo.createStaff({ name: "سواق جديد", phone: "+201077700001", role: "driver" })).id;
+    const id = (await createStaff({ name: "سواق جديد", phone: "+201077700001", role: "driver" })).id;
     expect(await code(loginWithPassword("01077700001", "anything-1"))).toBe("PASSWORD_NOT_SET");
     expect(await code(registerCustomer("01077700001", "سواق", "driver-pass-1"))).toBe("STAFF_ACCOUNT");
     expect(await adminSetPassword(id, "driver", "drv-pass-1")).toEqual({ ok: true });
@@ -104,7 +115,7 @@ describe("old accounts without a password", () => {
   });
 
   it("admin password reset enforces the staff minimum", async () => {
-    const id = (await repo.createStaff({ name: "موظفة", phone: "+201077700002", role: "agent" })).id;
+    const id = (await createStaff({ name: "موظفة", phone: "+201077700002", role: "agent" })).id;
     expect((await adminSetPassword(id, "agent", "short1")).ok).toBe(false);
     expect((await adminSetPassword(id, "agent", "agent-pass-1")).ok).toBe(true);
   });
@@ -114,7 +125,8 @@ describe("brute-force protection", () => {
   it(`locks after ${MAX_FAILED_LOGINS} wrong passwords, even for the right password`, async () => {
     const p = phone();
     await registerCustomer(p, "عميل", "right-pass-1");
-    for (let i = 0; i < MAX_FAILED_LOGINS - 1; i++) expect(await code(loginWithPassword(p, `wrong-${i}`))).toBe("INVALID_CREDENTIALS");
+    for (let i = 0; i < MAX_FAILED_LOGINS - 1; i++)
+      expect(await code(loginWithPassword(p, `wrong-${i}`))).toBe("INVALID_CREDENTIALS");
     expect(await code(loginWithPassword(p, "wrong-last"))).toBe("ACCOUNT_LOCKED");
     expect(await code(loginWithPassword(p, "right-pass-1"))).toBe("ACCOUNT_LOCKED");
   });
@@ -156,7 +168,7 @@ describe("bootstrap admin (never locked out)", () => {
   });
 
   it("promotes the owner's old password-less customer account", async () => {
-    await repo.upsertUser("+201099900003", "المالك");
+    await upsertUser("+201099900003", "المالك");
     env({ SEED_ADMIN_PHONE: "01099900003", SEED_ADMIN_PASSWORD: "owner-pass-123" });
     expect((await ensureBootstrapAdmin()).status).toBe("password-set");
     expect((await loginWithPassword("01099900003", "owner-pass-123")).role).toBe("super_admin");

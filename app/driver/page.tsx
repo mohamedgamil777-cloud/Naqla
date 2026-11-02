@@ -1,5 +1,7 @@
+import { toggleAvailability } from "@/actions/driver";
 import Link from "next/link";
-import { repo } from "@/db/repo";
+import { listOpenDeliveryOrders } from "@/db/lib/delivery-orders";
+import { getStaffByPhone } from "@/db/lib/staff";
 import { getSession } from "@/services/session";
 import { cairoDateISO, labelDateArabic, labelTime } from "@/lib/time";
 import { fullDateLabel } from "@/lib/client-time";
@@ -10,12 +12,11 @@ import { OrderActions } from "@/components/driver/OrderActions";
 import { DriverSwitch } from "@/components/driver/DriverSwitch";
 import { DriverTabs } from "@/components/driver/DriverTabs";
 import { Card, DriverNotice, Route, StatusPill, TripStats } from "@/components/driver/parts";
-import { toggleAvailability } from "@/app/driver/actions";
-import type { DeliveryOrderDTO, StaffDTO } from "@/types";
+import type { DeliveryOrderDTO, DeliveryOrderStatus, StaffDTO } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-const ACTIVE = new Set(["assigned", "en_route", "arrived"]);
+const ACTIVE: DeliveryOrderStatus[] = ["assigned", "en_route", "arrived"];
 
 export default async function DriverPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab } = await searchParams;
@@ -32,12 +33,16 @@ export default async function DriverPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const driver = await repo.getStaffByPhone(session.phone);
+  const driver = await getStaffByPhone(session.phone);
   if (!driver || driver.role !== "driver") {
     return (
       <DriverNotice icon="user" title="الرقم ده مش مسجّل كسائق">
         <p className="text-muted">
-          أنت داخل برقم: <span dir="ltr" className="font-bold">{session.phone}</span>. لو ده مش رقمك كسائق، ادخل برقمك الصح.
+          أنت داخل برقم:{" "}
+          <span dir="ltr" className="font-bold">
+            {session.phone}
+          </span>
+          . لو ده مش رقمك كسائق، ادخل برقمك الصح.
         </p>
         <DriverSwitch label="ادخل برقم السائق" />
         <p className="text-muted text-sm">لو رقمك مش متسجّل، كلّم إدارة الشركة عشان يضيفوك كسائق.</p>
@@ -46,9 +51,8 @@ export default async function DriverPage({ searchParams }: { searchParams: Promi
   }
 
   const todayISO = cairoDateISO(new Date());
-  const orders = (await repo.listDeliveryOrdersByDriver(driver.id))
-    .filter((o) => ACTIVE.has(o.status))
-    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+  // only the driver's active orders are loaded (soonest first)
+  const orders = await listOpenDeliveryOrders({ driverId: driver.id, statuses: ACTIVE });
   // "شغلي" = anything already started + everything due up to today; "القادمة" = later days.
   const now = orders.filter((o) => o.status !== "assigned" || cairoDateISO(o.scheduledAt) <= todayISO);
   const upcoming = orders.filter((o) => !now.includes(o));
@@ -76,7 +80,9 @@ export default async function DriverPage({ searchParams }: { searchParams: Promi
           <span className="w-16 h-16 rounded-full bg-primary-soft text-primary grid place-items-center">
             <Icon name="checkCircle" className="w-8 h-8" />
           </span>
-          <p className="text-lg font-extrabold">{showUpcoming ? "مفيش توصيلات جاية" : "مفيش توصيلات عليك دلوقتي"}</p>
+          <p className="text-lg font-extrabold">
+            {showUpcoming ? "مفيش توصيلات جاية" : "مفيش توصيلات عليك دلوقتي"}
+          </p>
           <p className="text-muted">هتلاقي الطلبات هنا أول ما الإدارة تكلّفك.</p>
           {!showUpcoming && upcoming.length > 0 && (
             <Link href="/driver?tab=upcoming" className="mt-2 font-bold text-primary">
@@ -87,7 +93,9 @@ export default async function DriverPage({ searchParams }: { searchParams: Promi
       ) : (
         <>
           {showUpcoming ? (
-            list.map((o) => <NextOrder key={o.code} o={o} label={dayLabelFor(cairoDateISO(o.scheduledAt), todayISO)} />)
+            list.map((o) => (
+              <NextOrder key={o.code} o={o} label={dayLabelFor(cairoDateISO(o.scheduledAt), todayISO)} />
+            ))
           ) : (
             <>
               <CurrentOrder o={current} todayISO={todayISO} />
@@ -105,26 +113,39 @@ export default async function DriverPage({ searchParams }: { searchParams: Promi
 }
 
 function Greeting({ driver }: { driver: StaffDTO }) {
-  const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone: "Africa/Cairo" }).format(new Date()));
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone: "Africa/Cairo" }).format(
+      new Date(),
+    ),
+  );
   const hello = hour < 12 ? "صباح الخير" : "مساء الخير";
   return (
     <div className="flex items-center gap-3">
       <span className="relative shrink-0">
         {driver.photo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={driver.photo} alt={driver.name} className="w-16 h-16 rounded-full object-cover border-2 border-panel shadow-sm" />
+          <img
+            src={driver.photo}
+            alt={driver.name}
+            className="w-16 h-16 rounded-full object-cover border-2 border-panel shadow-sm"
+          />
         ) : (
           <span className="w-16 h-16 rounded-full bg-primary-soft text-primary grid place-items-center">
             <Icon name="user" className="w-8 h-8" />
           </span>
         )}
-        <span className={`absolute bottom-0.5 left-0.5 w-4 h-4 rounded-full border-2 border-ground ${driver.available ? "bg-ok" : "bg-off"}`} aria-hidden />
+        <span
+          className={`absolute bottom-0.5 left-0.5 w-4 h-4 rounded-full border-2 border-ground ${driver.available ? "bg-ok" : "bg-off"}`}
+          aria-hidden
+        />
       </span>
       <div className="flex-1 min-w-0">
         <div className="text-sm text-muted">{hello}</div>
         <div className="text-xl font-extrabold truncate">{driver.name || "يا كابتن"}</div>
         <form action={toggleAvailability}>
-          <button className={`mt-0.5 flex items-center gap-1 text-sm font-bold ${driver.available ? "text-ok" : "text-muted"}`}>
+          <button
+            className={`mt-0.5 flex items-center gap-1 text-sm font-bold ${driver.available ? "text-ok" : "text-muted"}`}
+          >
             {driver.available ? "متاح للعمل" : "مش متاح دلوقتي"}
             <Icon name="chevronDown" className="w-4 h-4" />
             <span className="sr-only">— دوس للتغيير</span>
@@ -185,7 +206,9 @@ function NextOrder({ o, label }: { o: DeliveryOrderDTO; label: string }) {
     <Link href={`/driver/trip/${o.code}`} className="block">
       <Card className="p-4 flex flex-col gap-2.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="rounded-full bg-reserved-soft text-reserved px-3 py-1 text-sm font-bold">{label}</span>
+          <span className="rounded-full bg-reserved-soft text-reserved px-3 py-1 text-sm font-bold">
+            {label}
+          </span>
           <span className="text-2xl font-extrabold text-emph">{labelTime(o.scheduledAt)}</span>
         </div>
         <div className="flex items-center gap-2 font-bold text-lg">

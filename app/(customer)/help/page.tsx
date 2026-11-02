@@ -1,4 +1,4 @@
-import { repo } from "@/db/repo";
+import { getAppContent, getBusiness } from "@/db/lib/settings";
 import { formatEgp } from "@/lib/money";
 import { HelpCenter } from "@/components/HelpCenter";
 import { fillFaq, phoneLabel, telHref, waDigits } from "@/lib/content";
@@ -6,7 +6,7 @@ import { fillFaq, phoneLabel, telHref, waDigits } from "@/lib/content";
 export const dynamic = "force-dynamic";
 
 export default async function HelpPage() {
-  const [business, content] = await Promise.all([repo.getBusiness(), repo.getAppContent()]);
+  const [business, content] = await Promise.all([getBusiness(), getAppContent()]);
   const vars = { cancelHours: business.freeCancelHours, loaderFee: formatEgp(content.order.loaderFee) };
 
   return (

@@ -2,13 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createBooking } from "@/services/booking-service";
 import { getSession } from "@/services/session";
-import { repo } from "@/db/repo";
+import { getBooking } from "@/db/lib/bookings";
 import { getNotifier, bookingConfirmedMessage } from "@/services/notify";
+import { withErrorHandling } from "@/lib/route";
 
 const Body = z.object({
   vehicleId: z.string().uuid(),
   startISO: z.string().datetime(),
-  hours: z.number().int().min(1).max(24 * 30),
+  hours: z
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 30),
   withDriver: z.boolean(),
   withDelivery: z.boolean(),
   loaders: z.number().int().min(0).max(10).optional(),
@@ -17,7 +22,7 @@ const Body = z.object({
   contactName: z.string().min(2).max(80),
 });
 
-export async function POST(req: NextRequest) {
+export const POST = withErrorHandling("POST /api/bookings", async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "NEEDS_AUTH" }, { status: 401 });
 
@@ -38,12 +43,12 @@ export async function POST(req: NextRequest) {
   if (!("code" in result)) {
     return NextResponse.json(
       { error: "UNAVAILABLE", reason: result.reason, alternatives: result.alternatives },
-      { status: 409 }
+      { status: 409 },
     );
   }
 
   // Fire-and-forget confirmation (log adapter in MVP).
-  const booking = await repo.getBooking(result.code);
+  const booking = await getBooking(result.code);
   if (booking) {
     getNotifier()
       .notify("whatsapp", session.phone, bookingConfirmedMessage(booking))
@@ -51,4 +56,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ code: result.code, quote: result.quote });
-}
+});

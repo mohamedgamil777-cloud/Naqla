@@ -3,6 +3,7 @@ import { z } from "zod";
 import { estimateDelivery } from "@/services/delivery-service";
 import { getSession } from "@/services/session";
 import { companyContext } from "@/services/company-service";
+import { withErrorHandling } from "@/lib/route";
 
 const Body = z.object({
   categoryId: z.string().uuid(),
@@ -11,7 +12,7 @@ const Body = z.object({
   promoCode: z.string().max(40).optional().nullable(),
 });
 
-export async function POST(req: NextRequest) {
+export const POST = withErrorHandling("POST /api/estimate", async function POST(req: NextRequest) {
   let body: unknown;
   try {
     body = await req.json();
@@ -26,4 +27,4 @@ export async function POST(req: NextRequest) {
   const result = await estimateDelivery({ ...parsed.data, companyId: ctx?.company.id ?? null });
   if (!result) return NextResponse.json({ error: "SIZE_NOT_FOUND" }, { status: 400 });
   return NextResponse.json(result);
-}
+});

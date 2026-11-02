@@ -1,8 +1,8 @@
-import { repo } from "@/db/repo";
+import { deletePayoutAction } from "@/actions/admin/finance";
+import { driverEarnings, driverPayoutTotals, listDriverPayouts, listDrivers } from "@/db/lib/drivers";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic } from "@/lib/time";
 import { PayoutForm } from "@/components/admin/PayoutForm";
-import { deletePayoutAction } from "@/app/admin/actions";
 import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
@@ -11,21 +11,21 @@ const METHOD: Record<string, string> = { cash: "كاش", bank: "تحويل بن�
 
 export default async function SettlementsPage() {
   await requirePermission("payout:manage");
-  const [drivers, orders, payouts] = await Promise.all([
-    repo.listDrivers(),
-    repo.listDeliveryOrders(),
-    repo.listDriverPayouts(),
+  // balances are summed in the database; the list below shows the most recent payouts
+  const [drivers, earnings, paidTotals, payouts] = await Promise.all([
+    listDrivers(),
+    driverEarnings(),
+    driverPayoutTotals(),
+    listDriverPayouts(),
   ]);
 
   const rows = drivers.map((d) => {
-    const earned = orders
-      .filter((o) => o.driverId === d.id && o.status === "completed")
-      .reduce((s, o) => s + (o.driverFee || 0), 0);
-    const paid = payouts.filter((p) => p.driverId === d.id).reduce((s, p) => s + p.amount, 0);
+    const earned = earnings.get(d.id) ?? 0;
+    const paid = paidTotals.get(d.id) ?? 0;
     return { driver: d, earned, paid, owed: earned - paid };
   });
   const totalOwed = rows.reduce((s, r) => s + Math.max(0, r.owed), 0);
-  const totalPaid = payouts.reduce((s, p) => s + p.amount, 0);
+  const totalPaid = [...paidTotals.values()].reduce((s, p) => s + p, 0);
 
   return (
     <div className="flex flex-col gap-5">
@@ -46,8 +46,12 @@ export default async function SettlementsPage() {
           <div key={r.driver.id} className="p-4 flex items-center justify-between gap-2 flex-wrap">
             <div className="font-bold">🧑‍✈️ {r.driver.name}</div>
             <div className="flex gap-4 text-sm">
-              <span className="text-ink-2">كسب: <b>{formatEgp(r.earned)}</b></span>
-              <span className="text-ink-2">مدفوع: <b>{formatEgp(r.paid)}</b></span>
+              <span className="text-ink-2">
+                كسب: <b>{formatEgp(r.earned)}</b>
+              </span>
+              <span className="text-ink-2">
+                مدفوع: <b>{formatEgp(r.paid)}</b>
+              </span>
               <span className={r.owed > 0 ? "text-rented font-extrabold" : "text-ok font-extrabold"}>
                 متبقّي: {formatEgp(Math.max(0, r.owed))}
               </span>
@@ -63,14 +67,24 @@ export default async function SettlementsPage() {
         <div className="flex flex-col gap-2">
           <h2 className="font-extrabold">سجل التسديدات</h2>
           {payouts.map((p) => (
-            <div key={p.id} className="bg-panel border border-line rounded-card p-3 flex items-center justify-between gap-2">
+            <div
+              key={p.id}
+              className="bg-panel border border-line rounded-card p-3 flex items-center justify-between gap-2"
+            >
               <div className="min-w-0">
-                <div className="font-bold text-sm">{p.driverName ?? "—"} · {formatEgp(p.amount)}</div>
-                <div className="text-xs text-muted">{METHOD[p.method] ?? p.method} · {labelDateArabic(p.createdAt)}{p.note ? ` · ${p.note}` : ""}</div>
+                <div className="font-bold text-sm">
+                  {p.driverName ?? "—"} · {formatEgp(p.amount)}
+                </div>
+                <div className="text-xs text-muted">
+                  {METHOD[p.method] ?? p.method} · {labelDateArabic(p.createdAt)}
+                  {p.note ? ` · ${p.note}` : ""}
+                </div>
               </div>
               <form action={deletePayoutAction}>
                 <input type="hidden" name="id" value={p.id} />
-                <button className="text-booked text-sm font-bold border border-booked-soft rounded-lg px-3 py-1.5 tap">حذف</button>
+                <button className="text-booked text-sm font-bold border border-booked-soft rounded-lg px-3 py-1.5 tap">
+                  حذف
+                </button>
               </form>
             </div>
           ))}

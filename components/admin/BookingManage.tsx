@@ -1,6 +1,6 @@
 "use client";
+import { adminSetBookingStatus, adminAssignDriverAction } from "@/actions/admin/bookings";
 import { useRef } from "react";
-import { adminSetBookingStatus, adminAssignDriver } from "@/app/admin/actions";
 import { BOOKING_STATUS_LABEL, type BookingStatus } from "@/lib/constants";
 import type { StaffDTO } from "@/types";
 
@@ -55,7 +55,9 @@ export function BookingManage({
               <input type="hidden" name="status" value={a.status} />
               <button
                 className={`rounded-xl px-5 py-2.5 font-bold ${
-                  a.danger ? "text-booked border-2 border-booked-soft hover:bg-booked-soft" : "bg-primary text-white"
+                  a.danger
+                    ? "text-booked border-2 border-booked-soft hover:bg-booked-soft"
+                    : "bg-primary text-white"
                 }`}
               >
                 {a.label}
@@ -70,7 +72,7 @@ export function BookingManage({
       {/* Driver assignment */}
       <div className="border-t border-line pt-4">
         <div className="text-sm font-bold text-ink-2 mb-2">السائق المسؤول</div>
-        <form ref={driverRef} action={adminAssignDriver}>
+        <form ref={driverRef} action={adminAssignDriverAction}>
           <input type="hidden" name="code" value={code} />
           <select
             name="driverId"
@@ -80,7 +82,9 @@ export function BookingManage({
           >
             <option value="">— بدون سائق —</option>
             {drivers.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
             ))}
           </select>
         </form>

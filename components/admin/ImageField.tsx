@@ -72,7 +72,9 @@ export function ImageField({
       <span className="text-xs font-bold text-ink-2">{label}</span>
       <input type="hidden" name={name} value={value} />
       <div className="flex items-center gap-3">
-        <div className={`${wide ? "w-40 h-[5.3rem]" : "w-20 h-20"} shrink-0 rounded-xl bg-panel-2 border border-line-2 overflow-hidden grid place-items-center text-2xl text-muted`}>
+        <div
+          className={`${wide ? "w-40 h-[5.3rem]" : "w-20 h-20"} shrink-0 rounded-xl bg-panel-2 border border-line-2 overflow-hidden grid place-items-center text-2xl text-muted`}
+        >
           {value ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={value} alt={label} className="w-full h-full object-cover" />
@@ -82,7 +84,13 @@ export function ImageField({
         </div>
         <label className="rounded-xl bg-primary-soft text-primary-ink px-4 py-2 font-bold tap cursor-pointer">
           {busy ? "…" : value ? "تغيير الصورة" : "رفع صورة"}
-          <input type="file" accept="image/*" capture={camera ? "environment" : undefined} onChange={onFile} className="hidden" />
+          <input
+            type="file"
+            accept="image/*"
+            capture={camera ? "environment" : undefined}
+            onChange={onFile}
+            className="hidden"
+          />
         </label>
         {value && (
           <button type="button" onClick={() => setValue("")} className="text-booked text-sm font-bold tap">

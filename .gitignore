@@ -1,9 +1,10 @@
 node_modules
+graphify-out/
 .next
 out
 build
 .env
-.env.local
+.env*.local
 *.log
 .DS_Store
 coverage

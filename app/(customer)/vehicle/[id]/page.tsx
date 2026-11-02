@@ -1,6 +1,6 @@
 import { VehicleImage } from "@/components/VehicleImage";
 import { notFound } from "next/navigation";
-import { repo } from "@/db/repo";
+import { getVehicle } from "@/db/lib/vehicles";
 import { formatEgp } from "@/lib/money";
 import { LinkButton, VehicleStatusBadge } from "@/components/ui";
 import { durationLabel } from "@/lib/client-time";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function VehiclePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const v = await repo.getVehicle(id);
+  const v = await getVehicle(id);
   if (!v) notFound();
 
   const specs: { k: string; val: string }[] = [
@@ -18,7 +18,11 @@ export default async function VehiclePage({ params }: { params: Promise<{ id: st
     { k: "الركاب", val: v.seats ? `${v.seats}` : "-" },
     { k: "الحمولة", val: v.cargoKg ? `${(v.cargoKg / 1000).toLocaleString("en")} طن` : "-" },
     { k: "ناقل الحركة", val: v.transmission === "automatic" ? "أوتوماتيك" : "عادي" },
-    { k: "الوقود", val: v.fuel === "diesel" ? "سولار" : v.fuel === "gas" ? "غاز" : v.fuel === "electric" ? "كهرباء" : "بنزين" },
+    {
+      k: "الوقود",
+      val:
+        v.fuel === "diesel" ? "سولار" : v.fuel === "gas" ? "غاز" : v.fuel === "electric" ? "كهرباء" : "بنزين",
+    },
   ];
 
   const tiers = v.rule.tiers.slice().sort((a, b) => a.hours - b.hours);
@@ -33,7 +37,9 @@ export default async function VehiclePage({ params }: { params: Promise<{ id: st
       <div className="flex items-start justify-between gap-2">
         <div>
           <h1 className="text-2xl font-extrabold">{v.name}</h1>
-          <p className="text-muted">{v.categoryName} · {v.branchName}</p>
+          <p className="text-muted">
+            {v.categoryName} · {v.branchName}
+          </p>
         </div>
         <VehicleStatusBadge status={v.status} />
       </div>
@@ -80,9 +86,13 @@ export default async function VehiclePage({ params }: { params: Promise<{ id: st
       </div>
 
       {bookable ? (
-        <LinkButton href={`/book?vehicle=${v.id}`} variant="accent" full>احجز الآن</LinkButton>
+        <LinkButton href={`/book?vehicle=${v.id}`} variant="accent" full>
+          احجز الآن
+        </LinkButton>
       ) : (
-        <div className="bg-panel-2 rounded-2xl p-4 text-center text-muted font-semibold">العربية دي مش متاحة للحجز حالياً</div>
+        <div className="bg-panel-2 rounded-2xl p-4 text-center text-muted font-semibold">
+          العربية دي مش متاحة للحجز حالياً
+        </div>
       )}
     </div>
   );

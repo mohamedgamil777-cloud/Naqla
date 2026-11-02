@@ -12,7 +12,6 @@ export interface SmsProvider {
 
 const consoleProvider: SmsProvider = {
   async send(to, message) {
-    // eslint-disable-next-line no-console
     console.log(`\n[SMS → ${to}] ${message}\n`);
   },
 };

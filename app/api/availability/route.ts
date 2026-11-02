@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDaySlots } from "@/services/booking-service";
+import { withErrorHandling } from "@/lib/route";
 
 const Q = z.object({
   vehicle: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
-export async function GET(req: NextRequest) {
+export const GET = withErrorHandling("GET /api/availability", async function GET(req: NextRequest) {
   const parsed = Q.safeParse({
     vehicle: req.nextUrl.searchParams.get("vehicle"),
     date: req.nextUrl.searchParams.get("date"),
@@ -21,4 +22,4 @@ export async function GET(req: NextRequest) {
       status: s.status,
     })),
   });
-}
+});

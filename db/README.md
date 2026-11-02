@@ -1,11 +1,32 @@
 # Database
 
-| Folder | What |
-| --- | --- |
-| `migrations/` | The single tracked migration history, applied in order by `db/migrate.ts` |
-| `seeds/` | Development seed data (`npm run db:seed`) — never run by the migration command |
-| `schema/` | Drizzle table definitions (used by the app's queries and by `db:generate` for review) |
-| `client.ts`, `repo.ts`, `memory.ts` | Postgres client, data access, and the in-memory store used only outside production |
+| Folder        | What                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `migrations/` | The single tracked migration history, applied in order by `db/migrate.ts`                                                                                                                                                                                                                                                                                                           |
+| `seeds/`      | Development seed data (`npm run db:seed`) — never run by the migration command                                                                                                                                                                                                                                                                                                      |
+| `schema/`     | One Drizzle table per file (relations for `db.query` all in `schema/relations.ts`), each with its drizzle-zod `select…/insert…/update…Schema` (row types in `types/` are inferred from these)                                                                                                                                                                                       |
+| `client.ts`   | The Postgres client (opened on first use)                                                                                                                                                                                                                                                                                                                                           |
+| `lib/`        | Data access, one module per entity/feature (`delivery-orders`, `bookings`, `drivers`, `companies`, …), functions imported by name: `import { searchDeliveryOrders } from "@/db/lib/delivery-orders"`. `lib/shared.ts` holds the joins, row → DTO mappers and paging helpers. Lists are filtered and paginated in the database; only the CSV export reads whole tables (`listAll…`). |
+
+Postgres is the only data store — local development and tests use their own local databases.
+
+## Local setup
+
+```bash
+# one-time: two empty local databases
+createdb naqla_dev && createdb naqla_test
+
+# .env.local       (gitignored, read by `next dev` and the db:* scripts)
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/naqla_dev
+# .env.test.local  (gitignored, read by `npm test`)
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/naqla_test
+
+npm run db:migrate   # apply migrations to naqla_dev
+npm run db:seed      # sample fleet, prices, bookings and staff logins (local databases only)
+npm test             # migrates naqla_test, empties it, runs the suite
+```
+
+The test setup refuses any database whose name does not end in `_test`, because every run empties it. The seed script refuses any database that is not on this machine (its staff passwords are public, below).
 
 ## Migrations
 
@@ -19,7 +40,7 @@ npm run db:migrate               # apply pending files, each in its own transact
 Rules:
 
 1. **Forward-only.** Never edit a file that has been applied; the runner refuses a changed checksum. Add the next numbered file (`0015_….sql`).
-2. **Safe for existing data.** Add a column as nullable or with a default, backfill, *then* add `NOT NULL`. Keep `btree_gist`, generated range columns and the booking `EXCLUDE` constraint intact.
+2. **Safe for existing data.** Add a column as nullable or with a default, backfill, _then_ add `NOT NULL`. Keep `btree_gist`, generated range columns and the booking `EXCLUDE` constraint intact.
 3. **Review before applying.** `npm run db:generate` writes Drizzle's suggested SQL to `db/generated/` for review only. Copy the reviewed statements into the next numbered file. Never `drizzle-kit push` to a real database.
 4. **Seeds are separate.** Put sample data in `db/seeds/`, not in migrations.
 
@@ -34,10 +55,10 @@ Everyone signs in with **phone + password** (OTP is switched off for now and ret
 - **First super-admin:** set `SEED_ADMIN_PHONE` and `SEED_ADMIN_PASSWORD` in Vercel. The server creates the account at startup if missing. It never overwrites an existing password. To run it by hand: `npm run db:seed:admin` (needs `DATABASE_URL`).
 - **Lockout:** 5 wrong passwords lock an account for 15 minutes.
 
-Local development (in-memory store only, never production) has sample logins:
+`npm run db:seed` creates sample staff logins on a local database (never production):
 
-| Role | Phone | Password |
-| --- | --- | --- |
-| super_admin | 01000000001 | dev-admin-1234 |
-| agent | 01000000002 | dev-agent-1234 |
-| driver | 01000000003 | dev-driver-1234 |
+| Role        | Phone       | Password        |
+| ----------- | ----------- | --------------- |
+| super_admin | 01000000001 | dev-admin-1234  |
+| agent       | 01000000002 | dev-agent-1234  |
+| driver      | 01000000003 | dev-driver-1234 |

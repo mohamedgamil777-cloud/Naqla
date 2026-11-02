@@ -16,9 +16,11 @@ afterEach(() => {
 });
 
 describe("production fails closed", () => {
-  it("refuses to start without DATABASE_URL (no in-memory store in production)", () => {
-    withEnv({ NODE_ENV: "production", DATABASE_URL: "", AUTH_SECRET: STRONG });
-    expect(() => getEnv()).toThrow(/DATABASE_URL is required/);
+  it("refuses to start without DATABASE_URL in any environment (Postgres is the only store)", () => {
+    for (const NODE_ENV of ["production", "development", "test"]) {
+      withEnv({ NODE_ENV, DATABASE_URL: "", AUTH_SECRET: STRONG });
+      expect(() => getEnv()).toThrow(/DATABASE_URL is required/);
+    }
   });
 
   it("refuses sign-in with a missing, short or default AUTH_SECRET, without taking the site down", () => {
@@ -32,7 +34,11 @@ describe("production fails closed", () => {
   });
 
   it("accepts postgres connection strings a strict URL parser would reject", () => {
-    withEnv({ NODE_ENV: "production", DATABASE_URL: "postgresql://u:p#ss@word@db.example.com:6543/postgres", AUTH_SECRET: STRONG });
+    withEnv({
+      NODE_ENV: "production",
+      DATABASE_URL: "postgresql://u:p#ss@word@db.example.com:6543/postgres",
+      AUTH_SECRET: STRONG,
+    });
     expect(getEnv().DATABASE_URL).toMatch(/^postgresql:/);
     withEnv({ NODE_ENV: "production", DATABASE_URL: "mysql://u:p@h/db", AUTH_SECRET: STRONG });
     expect(() => getEnv()).toThrow(/DATABASE_URL/);
@@ -52,7 +58,12 @@ describe("production fails closed", () => {
   });
 
   it("does not block `next build` (secrets are enforced at runtime)", () => {
-    withEnv({ NODE_ENV: "production", NEXT_PHASE: "phase-production-build", DATABASE_URL: "", AUTH_SECRET: "" });
+    withEnv({
+      NODE_ENV: "production",
+      NEXT_PHASE: "phase-production-build",
+      DATABASE_URL: "",
+      AUTH_SECRET: "",
+    });
     expect(() => getEnv()).not.toThrow();
   });
 });
@@ -65,13 +76,18 @@ describe("admin passcode", () => {
       withEnv({ NODE_ENV: "production", DATABASE_URL: DB, AUTH_SECRET: STRONG, ADMIN_PASSCODE: pass });
       expect(adminPasscode()).toBeNull();
     }
-    withEnv({ NODE_ENV: "production", DATABASE_URL: DB, AUTH_SECRET: STRONG, ADMIN_PASSCODE: "a-strong-team-pass" });
+    withEnv({
+      NODE_ENV: "production",
+      DATABASE_URL: DB,
+      AUTH_SECRET: STRONG,
+      ADMIN_PASSCODE: "a-strong-team-pass",
+    });
     expect(adminPasscode()).toBe("a-strong-team-pass");
     err.mockRestore();
   });
 
   it("keeps the dev default outside production", () => {
-    withEnv({ NODE_ENV: "development", ADMIN_PASSCODE: "" });
+    withEnv({ NODE_ENV: "development", DATABASE_URL: DB, ADMIN_PASSCODE: "" });
     expect(adminPasscode()).toBe("naqla2026");
   });
 });

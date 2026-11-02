@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { repo } from "@/db/repo";
+import { addSavedAddress, deleteSavedAddress, listSavedAddresses } from "@/db/lib/addresses";
 import { getSession } from "@/services/session";
 import { addressOwner, companyContext } from "@/services/company-service";
+import { withErrorHandling } from "@/lib/route";
 
 /** Saved addresses of the logged-in customer (shared by the whole company for company members). */
 async function owner() {
@@ -11,11 +12,11 @@ async function owner() {
   return addressOwner(session.phone, await companyContext(session.phone));
 }
 
-export async function GET() {
+export const GET = withErrorHandling("GET /api/addresses", async function GET() {
   const o = await owner();
   if (!o) return NextResponse.json({ error: "LOGIN_REQUIRED" }, { status: 401 });
-  return NextResponse.json({ addresses: await repo.listSavedAddresses(o) });
-}
+  return NextResponse.json({ addresses: await listSavedAddresses(o) });
+});
 
 const Body = z.object({
   label: z.string().trim().min(1).max(40),
@@ -25,21 +26,29 @@ const Body = z.object({
   lng: z.number().min(-180).max(180).optional().nullable(),
 });
 
-export async function POST(req: NextRequest) {
+export const POST = withErrorHandling("POST /api/addresses", async function POST(req: NextRequest) {
   const o = await owner();
   if (!o) return NextResponse.json({ error: "LOGIN_REQUIRED" }, { status: 401 });
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "BAD_REQUEST" }, { status: 400 });
-  if ((await repo.listSavedAddresses(o)).length >= 50) return NextResponse.json({ error: "TOO_MANY" }, { status: 400 });
+  if ((await listSavedAddresses(o)).length >= 50)
+    return NextResponse.json({ error: "TOO_MANY" }, { status: 400 });
   const d = parsed.data;
-  const { id } = await repo.addSavedAddress({ owner: o, label: d.label, address: d.address, details: d.details || null, lat: d.lat ?? null, lng: d.lng ?? null });
+  const { id } = await addSavedAddress({
+    owner: o,
+    label: d.label,
+    address: d.address,
+    details: d.details || null,
+    lat: d.lat ?? null,
+    lng: d.lng ?? null,
+  });
   return NextResponse.json({ id });
-}
+});
 
-export async function DELETE(req: NextRequest) {
+export const DELETE = withErrorHandling("DELETE /api/addresses", async function DELETE(req: NextRequest) {
   const o = await owner();
   if (!o) return NextResponse.json({ error: "LOGIN_REQUIRED" }, { status: 401 });
   const id = req.nextUrl.searchParams.get("id") ?? "";
-  const ok = await repo.deleteSavedAddress(id, o); // only deletes inside the caller's own list
+  const ok = await deleteSavedAddress(id, o); // only deletes inside the caller's own list
   return NextResponse.json({ ok });
-}
+});

@@ -1,7 +1,8 @@
 "use client";
+import { driverAdvanceOrder } from "@/actions/driver";
+import type { ActionResult } from "@/lib/action-result";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { driverAdvanceOrder, type DriverActionState } from "@/app/driver/actions";
 import { fileToDataUrl } from "@/components/admin/ImageField";
 import { Icon } from "@/components/Icons";
 
@@ -13,8 +14,16 @@ const NEXT: Record<string, { to: string; label: string }> = {
   arrived: { to: "completed", label: "تم التوصيل" },
 };
 
-export function OrderActions({ code, status, openTrip = false }: { code: string; status: string; openTrip?: boolean }) {
-  const [state, action] = useActionState<DriverActionState, FormData>(driverAdvanceOrder, { ok: false });
+export function OrderActions({
+  code,
+  status,
+  openTrip = false,
+}: {
+  code: string;
+  status: string;
+  openTrip?: boolean;
+}) {
+  const [state, action] = useActionState<ActionResult, FormData>(driverAdvanceOrder, { ok: false });
   const next = NEXT[status];
   if (!next) return null;
   const finishing = next.to === "completed";
@@ -25,7 +34,11 @@ export function OrderActions({ code, status, openTrip = false }: { code: string;
       <input type="hidden" name="to" value={next.to} />
       {openTrip && <input type="hidden" name="open" value="trip" />}
       {finishing && <ProofOfDelivery />}
-      {state.error && <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 font-bold text-center">{state.error}</div>}
+      {state.error && (
+        <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 font-bold text-center">
+          {state.error}
+        </div>
+      )}
       <SubmitBtn label={next.label} />
     </form>
   );

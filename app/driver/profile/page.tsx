@@ -1,7 +1,9 @@
-import { repo } from "@/db/repo";
+import { searchDeliveryOrders } from "@/db/lib/delivery-orders";
+import { getStaffByPhone } from "@/db/lib/staff";
 import { getSession } from "@/services/session";
 import { formatEgp } from "@/lib/money";
-import { driverRatings, ratingLabel } from "@/services/ratings";
+import { ratingLabel } from "@/services/ratings";
+import { driverStats } from "@/db/lib/drivers";
 import { labelDateArabic } from "@/lib/time";
 import { DriverSwitch } from "@/components/driver/DriverSwitch";
 import { LinkButton } from "@/components/ui";
@@ -13,21 +15,23 @@ export default async function DriverProfilePage() {
   if (!session) {
     return (
       <Centered emoji="🔑" title="سجّل دخولك الأول">
-        <LinkButton href="/login?next=/driver/profile" full>الدخول</LinkButton>
+        <LinkButton href="/login?next=/driver/profile" full>
+          الدخول
+        </LinkButton>
       </Centered>
     );
   }
-  const driver = await repo.getStaffByPhone(session.phone);
+  const driver = await getStaffByPhone(session.phone);
   if (!driver || driver.role !== "driver") {
     return <Centered emoji="🚫" title="الصفحة دي للسواقين بس" />;
   }
 
-  const orders = await repo.listDeliveryOrdersByDriver(driver.id);
-  const completed = orders.filter((o) => o.status === "completed");
-  const totalEarned = completed.reduce((s, o) => s + (o.driverFee || 0), 0);
-  const activeCount = orders.filter((o) => o.status === "assigned" || o.status === "en_route" || o.status === "arrived").length;
-  const firstName = (driver.name || "").split(" ")[0] || "يا كابتن";
-  const myRating = driverRatings(orders)[driver.id];
+  // totals are summed in the database; the list shows the latest deliveries only
+  const [stats, recent] = await Promise.all([
+    driverStats(driver.id),
+    searchDeliveryOrders({ driverId: driver.id, status: "completed" }, 1, 10, "recent"),
+  ]);
+  const completed = recent.rows;
 
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -39,11 +43,15 @@ export default async function DriverProfilePage() {
       {/* Earnings */}
       <div className="bg-primary text-white rounded-card p-5 shadow-sm">
         <div className="text-sm font-bold opacity-90">💵 إجمالي أرباحي</div>
-        <div className="text-4xl font-extrabold mt-1">{formatEgp(totalEarned)}</div>
+        <div className="text-4xl font-extrabold mt-1">{formatEgp(stats.earned)}</div>
         <div className="flex flex-wrap gap-2 mt-3 text-sm">
-          <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold">✅ {completed.length} توصيلة مكتملة</span>
-          <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold">🚚 {activeCount} شغل حالي</span>
-          <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold" title="متوسط تقييم العملاء">{ratingLabel(myRating)}</span>
+          <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold">
+            ✅ {stats.completed} توصيلة مكتملة
+          </span>
+          <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold">🚚 {stats.active} شغل حالي</span>
+          <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold" title="متوسط تقييم العملاء">
+            {ratingLabel(stats.rating ?? undefined)}
+          </span>
         </div>
         <p className="text-xs opacity-80 mt-2">الأرباح بتتحسب حسب الأجر المتفق عليه لكل توصيلة.</p>
       </div>
@@ -61,7 +69,7 @@ export default async function DriverProfilePage() {
       <div className="bg-panel border border-line rounded-card p-4 flex flex-col gap-3">
         <h2 className="font-extrabold">مستنداتي</h2>
         {driver.nationalId && <Row k="الرقم القومي" v={driver.nationalId} ltr />}
-        {(driver.photo || driver.drivingLicense || driver.vehicleLicense) ? (
+        {driver.photo || driver.drivingLicense || driver.vehicleLicense ? (
           <div className="grid grid-cols-3 gap-3">
             <DocThumb label="الصورة" url={driver.photo} />
             <DocThumb label="رخصة القيادة" url={driver.drivingLicense} />
@@ -76,14 +84,23 @@ export default async function DriverProfilePage() {
       {completed.length > 0 && (
         <div className="flex flex-col gap-2">
           <h2 className="font-extrabold">آخر التوصيلات</h2>
-          {completed.slice(0, 10).map((o) => (
-            <div key={o.code} className="bg-panel border border-line rounded-card p-3 flex items-center justify-between">
+          {completed.map((o) => (
+            <div
+              key={o.code}
+              className="bg-panel border border-line rounded-card p-3 flex items-center justify-between"
+            >
               <div className="min-w-0">
-                <div className="font-bold text-sm truncate">#{o.code} · {o.sizeName}</div>
-                <div className="text-xs text-muted truncate">{o.pickupAddress || "من الخريطة"} ← {o.dropoffAddress || "للخريطة"}</div>
+                <div className="font-bold text-sm truncate">
+                  #{o.code} · {o.sizeName}
+                </div>
+                <div className="text-xs text-muted truncate">
+                  {o.pickupAddress || "من الخريطة"} ← {o.dropoffAddress || "للخريطة"}
+                </div>
                 <div className="text-xs text-ink-2">{labelDateArabic(o.scheduledAt)}</div>
               </div>
-              <span className="font-extrabold text-emph whitespace-nowrap">{formatEgp(o.driverFee || 0)}</span>
+              <span className="font-extrabold text-emph whitespace-nowrap">
+                {formatEgp(o.driverFee || 0)}
+              </span>
             </div>
           ))}
         </div>
@@ -112,7 +129,9 @@ function Row({ k, v, ltr }: { k: string; v: string; ltr?: boolean }) {
   return (
     <div className="flex justify-between gap-2">
       <span className="text-muted">{k}</span>
-      <span className="font-semibold text-end" dir={ltr ? "ltr" : undefined}>{v}</span>
+      <span className="font-semibold text-end" dir={ltr ? "ltr" : undefined}>
+        {v}
+      </span>
     </div>
   );
 }

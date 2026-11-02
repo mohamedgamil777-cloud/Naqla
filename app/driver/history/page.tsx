@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { repo } from "@/db/repo";
+import { z } from "zod";
+import { Pagination } from "@/components/Pagination";
+import { searchDeliveryOrders } from "@/db/lib/delivery-orders";
+import { getStaffByPhone } from "@/db/lib/staff";
 import { getSession } from "@/services/session";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { DriverTabs } from "@/components/driver/DriverTabs";
@@ -18,33 +21,46 @@ interface HistItem {
   done: boolean; // true = completed, false = cancelled
 }
 
-export default async function DriverHistoryPage() {
+const PAGE_SIZE = 20;
+const Query = z.object({ page: z.coerce.number().int().min(1).max(10_000).catch(1) });
+
+export default async function DriverHistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const { page } = Query.parse(await searchParams);
   const session = await getSession();
   if (!session) {
     return (
       <Centered emoji="🔑" title="سجّل دخولك الأول">
-        <LinkButton href="/login?next=/driver/history" full>الدخول</LinkButton>
+        <LinkButton href="/login?next=/driver/history" full>
+          الدخول
+        </LinkButton>
       </Centered>
     );
   }
-  const driver = await repo.getStaffByPhone(session.phone);
+  const driver = await getStaffByPhone(session.phone);
   if (!driver || driver.role !== "driver") {
     return <Centered emoji="🚫" title="الصفحة دي للسواقين بس" />;
   }
 
-  const orders = await repo.listDeliveryOrdersByDriver(driver.id);
+  // finished orders, latest pickup first, one page at a time
+  const result = await searchDeliveryOrders(
+    { driverId: driver.id, status: "closed" },
+    page,
+    PAGE_SIZE,
+    "recent",
+  );
 
-  const items: HistItem[] = orders
-    .filter((o) => o.status === "completed" || o.status === "cancelled")
-    .map((o) => ({
-      kind: "order" as const,
-      code: o.code,
-      when: o.scheduledAt,
-      title: `${o.sizeName}${o.sizeCode ? ` · ${o.sizeCode}` : ""}`,
-      sub: `${o.pickupAddress || "من الخريطة"} ← ${o.dropoffAddress || "للخريطة"}`,
-      done: o.status === "completed",
-    }))
-    .sort((a, b) => b.when.getTime() - a.when.getTime());
+  const items: HistItem[] = result.rows.map((o) => ({
+    kind: "order" as const,
+    code: o.code,
+    when: o.scheduledAt,
+    title: `${o.sizeName}${o.sizeCode ? ` · ${o.sizeCode}` : ""}`,
+    sub: `${o.pickupAddress || "من الخريطة"} ← ${o.dropoffAddress || "للخريطة"}`,
+    done: o.status === "completed",
+  }));
 
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -65,30 +81,44 @@ export default async function DriverHistoryPage() {
           {items.map((it) => {
             const card = (
               <div className="bg-panel border border-line rounded-card p-4 flex items-center gap-3">
-                <span className={`w-11 h-11 shrink-0 rounded-full grid place-items-center ${it.done ? "bg-ok-soft text-ok" : "bg-booked-soft text-booked"}`} aria-hidden>
+                <span
+                  className={`w-11 h-11 shrink-0 rounded-full grid place-items-center ${it.done ? "bg-ok-soft text-ok" : "bg-booked-soft text-booked"}`}
+                  aria-hidden
+                >
                   <Icon name={it.done ? "checkCircle" : "xCircle"} className="w-6 h-6" />
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-extrabold">{it.title}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${it.done ? "bg-ok-soft text-ok" : "bg-booked-soft text-booked"}`}>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-bold ${it.done ? "bg-ok-soft text-ok" : "bg-booked-soft text-booked"}`}
+                    >
                       {it.done ? "تمّت" : "ملغية"}
                     </span>
                   </div>
                   <div className="text-sm text-muted truncate">{it.sub}</div>
-                  <div className="text-xs text-ink-2 mt-0.5">{labelDateArabic(it.when)} — {labelTime(it.when)}</div>
+                  <div className="text-xs text-ink-2 mt-0.5">
+                    {labelDateArabic(it.when)} — {labelTime(it.when)}
+                  </div>
                 </div>
                 {it.kind === "order" && <Icon name="chevronLeft" className="w-5 h-5 text-muted" />}
               </div>
             );
             return it.kind === "order" ? (
-              <Link key={`o-${it.code}`} href={`/driver/trip/${it.code}`} className="tap">{card}</Link>
+              <Link key={`o-${it.code}`} href={`/driver/trip/${it.code}`} className="tap">
+                {card}
+              </Link>
             ) : (
               <div key={`t-${it.code}`}>{card}</div>
             );
           })}
         </div>
       )}
+      <Pagination
+        page={result.page}
+        totalPages={result.totalPages}
+        href={(p) => `/driver/history?page=${p}`}
+      />
     </div>
   );
 }

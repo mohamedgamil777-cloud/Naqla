@@ -1,17 +1,13 @@
-import { repo } from "@/db/repo";
-import { CategoryManager, type CategoryUsage } from "@/components/admin/CategoryManager";
+import { categoryUsage, listCategories } from "@/db/lib/categories";
+import { CategoryManager } from "@/components/admin/CategoryManager";
 import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminCategories() {
   await requirePermission("category:manage");
-  const [categories, vehicles, orders] = await Promise.all([repo.listCategories(), repo.listVehicles(), repo.listDeliveryOrders()]);
-  // how many vehicles / orders use each type → used types can be hidden, not deleted
-  const usage: Record<string, CategoryUsage> = {};
-  const bump = (id: string, k: keyof CategoryUsage) => ((usage[id] ??= { vehicles: 0, orders: 0 })[k] += 1);
-  vehicles.forEach((v) => bump(v.categoryId, "vehicles"));
-  orders.forEach((o) => bump(o.categoryId, "orders"));
+  // how many vehicles / orders use each type (counted in the database) → used types can be hidden, not deleted
+  const [categories, usage] = await Promise.all([listCategories(), categoryUsage()]);
   return (
     <div className="flex flex-col gap-5">
       <h1 className="text-2xl font-extrabold">أنواع العربيات</h1>

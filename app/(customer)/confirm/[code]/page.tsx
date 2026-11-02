@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { canViewBooking } from "@/lib/authz";
-import { repo } from "@/db/repo";
+import { getBooking } from "@/db/lib/bookings";
+import { getAppContent } from "@/db/lib/settings";
 import { waDigits } from "@/lib/content";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
@@ -11,12 +12,12 @@ export const dynamic = "force-dynamic";
 
 export default async function ConfirmPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
-  const b = await repo.getBooking(code);
+  const b = await getBooking(code);
   // A booking code alone is not authorization: only its customer (by session phone)
   // or staff allowed to read bookings may see it. Others get the same 404 as a wrong code.
   if (!b || !(await canViewBooking(b.contactPhone))) notFound();
 
-  const wa = waDigits((await repo.getAppContent()).whatsapp);
+  const wa = waDigits((await getAppContent()).whatsapp);
   const waMsg = encodeURIComponent(`مرحباً، بخصوص حجز رقم ${b.code} (${b.vehicleName})`);
 
   return (
@@ -46,7 +47,9 @@ export default async function ConfirmPage({ params }: { params: Promise<{ code: 
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <LinkButton href={`/bookings/${b.code}`} variant="secondary">تفاصيل الحجز</LinkButton>
+        <LinkButton href={`/bookings/${b.code}`} variant="secondary">
+          تفاصيل الحجز
+        </LinkButton>
         <a
           href={`https://wa.me/${wa}?text=${waMsg}`}
           target="_blank"
@@ -56,7 +59,9 @@ export default async function ConfirmPage({ params }: { params: Promise<{ code: 
           💬 واتساب
         </a>
       </div>
-      <LinkButton href="/" variant="ghost" full>الرجوع للرئيسية</LinkButton>
+      <LinkButton href="/" variant="ghost" full>
+        الرجوع للرئيسية
+      </LinkButton>
     </div>
   );
 }

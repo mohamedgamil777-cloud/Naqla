@@ -1,8 +1,8 @@
+import { adminLogout } from "@/actions/admin-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminRole } from "@/services/admin-auth";
 import { can, type Permission } from "@/lib/permissions";
-import { adminLogout } from "@/app/admin-login/actions";
 import type { StaffRole } from "@/types";
 import { Logo } from "@/components/Logo";
 
@@ -46,7 +46,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="min-h-dvh md:flex bg-ground">
       <aside className="md:w-60 md:min-h-dvh bg-bar-ink text-white/90 md:sticky md:top-0 print:hidden">
         <div className="px-5 py-4 flex items-center gap-2 font-extrabold text-xl border-b border-white/10">
-          <Logo className="h-9" surface="dark" /> <span className="text-xs font-normal text-white/60 bg-white/10 rounded-full px-2 py-0.5">إدارة</span>
+          <Logo className="h-9" surface="dark" />{" "}
+          <span className="text-xs font-normal text-white/60 bg-white/10 rounded-full px-2 py-0.5">
+            إدارة
+          </span>
         </div>
         <nav className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1">
           {items.map((n) => (

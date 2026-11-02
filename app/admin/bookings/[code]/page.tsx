@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { repo } from "@/db/repo";
-import { formatEgp } from "@/lib/money";
+import { getBooking } from "@/db/lib/bookings";
+import { listDocuments } from "@/db/lib/documents";
+import { listDrivers } from "@/db/lib/drivers";
+import { listPayments } from "@/db/lib/payments";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { durationLabel } from "@/lib/client-time";
 import { BookingStatusBadge, PriceBreakdown } from "@/components/ui";
@@ -15,13 +17,13 @@ export const dynamic = "force-dynamic";
 export default async function AdminBookingDetail({ params }: { params: Promise<{ code: string }> }) {
   await requirePermission("booking:read");
   const { code } = await params;
-  const b = await repo.getBooking(code);
+  const b = await getBooking(code);
   if (!b) notFound();
 
   const [payments, drivers, docs] = await Promise.all([
-    repo.listPayments(code),
-    repo.listDrivers(),
-    b.contactPhone ? repo.listDocuments(b.contactPhone) : Promise.resolve([]),
+    listPayments(code),
+    listDrivers(),
+    b.contactPhone ? listDocuments(b.contactPhone) : Promise.resolve([]),
   ]);
 
   const idDoc = docs.find((d) => d.type === "national_id");
@@ -30,7 +32,9 @@ export default async function AdminBookingDetail({ params }: { params: Promise<{
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 text-sm">
-        <Link href="/admin/bookings" className="text-primary font-semibold">الحجوزات</Link>
+        <Link href="/admin/bookings" className="text-primary font-semibold">
+          الحجوزات
+        </Link>
         <span className="text-muted">/ #{b.code}</span>
       </div>
       <div className="flex items-center justify-between">
@@ -64,7 +68,12 @@ export default async function AdminBookingDetail({ params }: { params: Promise<{
 
       <ExtendTrip code={b.code} currentHours={b.hours} status={b.status} />
 
-      <PaymentsPanel code={b.code} payments={payments} dueTotal={b.priceSnapshot.total} depositDue={b.priceSnapshot.deposit} />
+      <PaymentsPanel
+        code={b.code}
+        payments={payments}
+        dueTotal={b.priceSnapshot.total}
+        depositDue={b.priceSnapshot.deposit}
+      />
 
       {/* Customer documents (for verification at handover) */}
       <div className="bg-panel border border-line rounded-card p-5">
@@ -89,7 +98,9 @@ function DocView({ title, url, expiry }: { title: string; url?: string; expiry?:
           {expiry && <div className="text-sm text-muted mt-2">تنتهي: {expiry}</div>}
         </>
       ) : (
-        <div className="h-44 grid place-items-center text-muted bg-panel-2 rounded-lg text-sm">لسه مترفعتش</div>
+        <div className="h-44 grid place-items-center text-muted bg-panel-2 rounded-lg text-sm">
+          لسه مترفعتش
+        </div>
       )}
     </div>
   );
@@ -99,7 +110,9 @@ function Row({ k, v, ltr }: { k: string; v: string; ltr?: boolean }) {
   return (
     <div className="flex justify-between gap-2">
       <span className="text-muted">{k}</span>
-      <span className="font-semibold text-end" dir={ltr ? "ltr" : undefined}>{v}</span>
+      <span className="font-semibold text-end" dir={ltr ? "ltr" : undefined}>
+        {v}
+      </span>
     </div>
   );
 }

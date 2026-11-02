@@ -5,10 +5,20 @@ import { BOOKING_STATUS_LABEL, DELIVERY_STATUS_LABEL } from "@/lib/constants";
 import { cairoDateISO } from "@/lib/time";
 import { toCsv } from "@/lib/csv";
 import { authorizeRequest } from "@/lib/authz";
+import { withErrorHandling } from "@/lib/route";
 
 const egp = (piastres: number) => (piastres / 100).toFixed(2);
 
-const REPORTING_KEYS = ["delivery-orders", "bookings-full", "payments", "fleet", "customers", "staff", "categories", "blocks"];
+const REPORTING_KEYS = [
+  "delivery-orders",
+  "bookings-full",
+  "payments",
+  "fleet",
+  "customers",
+  "staff",
+  "categories",
+  "blocks",
+];
 
 function csvResponse(csv: string, name: string, from: string, to: string) {
   const suffix = from && to ? `-${from}_${to}` : "";
@@ -27,7 +37,7 @@ const MAX_RANGE_DAYS = 366;
 
 const bad = (error: string) => NextResponse.json({ error }, { status: 400 });
 
-export async function GET(req: NextRequest) {
+export const GET = withErrorHandling("GET /api/admin/export", async function GET(req: NextRequest) {
   // Company data (customers, phones, money): 401 when not signed in, 403 without export permission.
   const auth = await authorizeRequest("export:read");
   if (!auth.ok) return auth.response;
@@ -70,31 +80,79 @@ export async function GET(req: NextRequest) {
   if (report === "deliveries") {
     name = "deliveries";
     const d = fin.deliveries;
-    rows = [[
-      "رقم الطلب", "التاريخ", "الحجم", "العميل", "الموبايل", "الشركة", "المصدر", "السواق", "الحالة",
-      "الدفع", "الإيراد", "كاش اتسلّم", "لسه مع السواق", "على الحساب", "قيمة طلب لم يُنفّذ",
-    ]];
+    rows = [
+      [
+        "رقم الطلب",
+        "التاريخ",
+        "الحجم",
+        "العميل",
+        "الموبايل",
+        "الشركة",
+        "المصدر",
+        "السواق",
+        "الحالة",
+        "الدفع",
+        "الإيراد",
+        "كاش اتسلّم",
+        "لسه مع السواق",
+        "على الحساب",
+        "قيمة طلب لم يُنفّذ",
+      ],
+    ];
     for (const r of d.rows) {
       rows.push([
-        r.code, r.dateLabel, r.size, r.customer, r.phone, r.company ?? "",
+        r.code,
+        r.dateLabel,
+        r.size,
+        r.customer,
+        r.phone,
+        r.company ?? "",
         r.source === "agent" ? `تليفون${r.agentName ? " - " + r.agentName : ""}` : "الموقع",
-        r.driver ?? "", DELIVERY_STATUS_LABEL[r.status], r.billing === "account" ? "على الحساب" : "كاش",
-        egp(r.total), egp(r.cashReceived), egp(r.cashPending), egp(r.onAccount), egp(r.open),
+        r.driver ?? "",
+        DELIVERY_STATUS_LABEL[r.status],
+        r.billing === "account" ? "على الحساب" : "كاش",
+        egp(r.total),
+        egp(r.cashReceived),
+        egp(r.cashPending),
+        egp(r.onAccount),
+        egp(r.open),
       ]);
     }
     rows.push([]);
     rows.push([
-      "الإجمالي", "", "", "", "", "", "", "", "", "",
-      egp(d.summary.earned), egp(d.summary.cashReceived), egp(d.summary.cashPending), egp(d.summary.onAccount), egp(d.summary.open),
+      "الإجمالي",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      egp(d.summary.earned),
+      egp(d.summary.cashReceived),
+      egp(d.summary.cashPending),
+      egp(d.summary.onAccount),
+      egp(d.summary.open),
     ]);
   } else if (report === "deliveries-by-driver") {
     name = "deliveries-by-driver";
     rows = [["السواق", "توصيلات مكتملة", "الإيراد", "كاش اتسلّم", "كاش لسه معاه"]];
-    for (const r of fin.deliveries.byDriver) rows.push([r.name, r.orders, egp(r.earned), egp(r.cashReceived), egp(r.cashPending)]);
+    for (const r of fin.deliveries.byDriver)
+      rows.push([r.name, r.orders, egp(r.earned), egp(r.cashReceived), egp(r.cashPending)]);
   } else if (report === "cashflow") {
     name = "cashflow";
     rows = [["التاريخ", "كاش توصيلات", "تحصيل إيجار", "تأمين وارد", "تأمين مسترد", "صافي النقدية"]];
-    for (const c of fin.cashflow) rows.push([c.dateLabel, egp(c.deliveryIn), egp(c.rentIn), egp(c.depositIn), egp(c.depositOut), egp(c.net)]);
+    for (const c of fin.cashflow)
+      rows.push([
+        c.dateLabel,
+        egp(c.deliveryIn),
+        egp(c.rentIn),
+        egp(c.depositIn),
+        egp(c.depositOut),
+        egp(c.net),
+      ]);
     rows.push([]);
     rows.push([
       "الإجمالي",
@@ -110,24 +168,54 @@ export async function GET(req: NextRequest) {
     for (const v of fin.byVehicle) rows.push([v.name, v.trips, egp(v.collected)]);
   } else {
     name = "bookings";
-    rows = [[
-      "رقم الرحلة", "تاريخ الرحلة", "العربية", "العميل", "الموبايل", "الحالة", "المصدر",
-      "الإجمالي المطلوب", "المدفوع", "المتبقي", "التأمين المحتجز", "التأمين المسترد",
-    ]];
+    rows = [
+      [
+        "رقم الرحلة",
+        "تاريخ الرحلة",
+        "العربية",
+        "العميل",
+        "الموبايل",
+        "الحالة",
+        "المصدر",
+        "الإجمالي المطلوب",
+        "المدفوع",
+        "المتبقي",
+        "التأمين المحتجز",
+        "التأمين المسترد",
+      ],
+    ];
     for (const r of fin.rows) {
       rows.push([
-        r.code, r.dateLabel, r.vehicle, r.customer, r.phone, BOOKING_STATUS_LABEL[r.status],
+        r.code,
+        r.dateLabel,
+        r.vehicle,
+        r.customer,
+        r.phone,
+        BOOKING_STATUS_LABEL[r.status],
         r.source === "agent" ? `موظف${r.agentName ? " - " + r.agentName : ""}` : "عميل",
-        egp(r.total), egp(r.paid), egp(r.remaining), egp(r.depositHeld), egp(r.depositRefunded),
+        egp(r.total),
+        egp(r.paid),
+        egp(r.remaining),
+        egp(r.depositHeld),
+        egp(r.depositRefunded),
       ]);
     }
     rows.push([]);
     rows.push([
-      "الإجمالي", "", "", "", "", "", "",
-      egp(fin.summary.totalDue), egp(fin.summary.totalPaid), egp(fin.summary.totalRemaining),
-      egp(fin.summary.depositsHeld), egp(fin.summary.depositsRefunded),
+      "الإجمالي",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      egp(fin.summary.totalDue),
+      egp(fin.summary.totalPaid),
+      egp(fin.summary.totalRemaining),
+      egp(fin.summary.depositsHeld),
+      egp(fin.summary.depositsRefunded),
     ]);
   }
 
   return csvResponse(toCsv(rows), name, from, to);
-}
+});
