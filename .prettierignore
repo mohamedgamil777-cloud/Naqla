@@ -1,7 +1,6 @@
 node_modules
 .next
 graphify-out
-mobile
 db/generated
 db/migrations
 db/seeds/*.sql
