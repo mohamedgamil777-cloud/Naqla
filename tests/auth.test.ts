@@ -36,7 +36,7 @@ describe("password hashing + policy", () => {
     const a = await hashPassword("secret-123");
     const b = await hashPassword("secret-123");
     expect(a).not.toBe(b);
-    expect(a.startsWith("scrypt$")).toBe(true);
+    expect(a.startsWith("$argon2id$v=19$m=65536,p=4,t=3$")).toBe(true);
     expect(await verifyPassword("secret-123", a)).toBe(true);
     expect(await verifyPassword("secret-124", a)).toBe(false);
     expect(await verifyPassword("x", null)).toBe(false);

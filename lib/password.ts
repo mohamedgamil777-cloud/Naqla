@@ -1,40 +1,29 @@
 /**
- * Password hashing with Node's built-in scrypt (memory-hard; no extra dependency).
- * Stored format: scrypt$N$r$p$<salt base64>$<hash base64> — parameters travel with the hash so
- * they can be raised later without breaking existing passwords.
+ * Password hashing with Argon2id. Stored format is the standard PHC string
+ * ($argon2id$v=19$m=…,t=…,p=…$<salt>$<hash>), so the parameters travel with the hash and can be
+ * raised later without breaking existing passwords.
  */
 import "server-only";
-import { randomBytes, scrypt as scryptCb, timingSafeEqual, type ScryptOptions } from "node:crypto";
+import { argon2id, hash, verify, type HashOptions } from "argon2";
+import { randomBytes } from "node:crypto";
 
-const N = 16384;
-const R = 8;
-const P = 1;
-const KEYLEN = 32;
+const OPTIONS: HashOptions = { type: argon2id, memoryCost: 64 * 1024, timeCost: 3, parallelism: 4 }; // 64 MiB
 
-function scrypt(password: string, salt: Buffer, keylen: number, opts: ScryptOptions): Promise<Buffer> {
-  return new Promise((resolve, reject) =>
-    scryptCb(password.normalize("NFKC"), salt, keylen, opts, (err, key) =>
-      err ? reject(err) : resolve(key),
-    ),
-  );
+function normalize(password: string): string {
+  return password.normalize("NFKC");
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16);
-  const key = await scrypt(password, salt, KEYLEN, { N, r: R, p: P, maxmem: 64 * 1024 * 1024 });
-  return `scrypt$${N}$${R}$${P}$${salt.toString("base64")}$${key.toString("base64")}`;
+  return hash(normalize(password), OPTIONS);
 }
 
 export async function verifyPassword(password: string, stored: string | null | undefined): Promise<boolean> {
-  if (!stored) return false;
-  const parts = stored.split("$");
-  if (parts.length !== 6 || parts[0] !== "scrypt") return false;
-  const [n, r, p] = parts.slice(1, 4).map(Number);
-  const salt = Buffer.from(parts[4], "base64");
-  const expected = Buffer.from(parts[5], "base64");
-  if (!n || !r || !p || !salt.length || !expected.length) return false;
-  const key = await scrypt(password, salt, expected.length, { N: n, r, p, maxmem: 64 * 1024 * 1024 });
-  return key.length === expected.length && timingSafeEqual(key, expected);
+  if (!stored?.startsWith("$argon2")) return false;
+  try {
+    return await verify(stored, normalize(password));
+  } catch {
+    return false; // malformed hash
+  }
 }
 
 /** A real hash of a random password: compared against when the phone is unknown, so a wrong
