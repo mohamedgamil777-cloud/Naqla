@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: Cairo; font-weight: 600; src: url(cairo600.ttf); }
+@font-face { font-family: Cairo; font-weight: 800; src: url(cairo800.ttf); }
+html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #F7F4EE; }
+svg { display: block; }
+text { font-family: Cairo; font-weight: 800; }
+.cap { paint-order: stroke; stroke: #F7F4EE; stroke-width: 16px; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<svg id="root" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D4E6E2"/><stop offset="1" stop-color="#F7F4EE"/></linearGradient>
+  <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#CFE3DF"/><stop offset="1" stop-color="#EEF3EF"/></linearGradient>
+  <linearGradient id="floorG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E6DBCA"/><stop offset="1" stop-color="#EFE7DA"/></linearGradient>
+  <radialGradient id="soft" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#111" stop-opacity=".22"/><stop offset="1" stop-color="#111" stop-opacity="0"/></radialGradient>
+  <filter id="shadowF" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#064E49" flood-opacity=".18"/></filter>
+  <clipPath id="avClip"><circle r="62"/></clipPath>
+  <clipPath id="avClip2"><circle r="52"/></clipPath>
+  <clipPath id="mapClip"><rect x="282" y="1110" width="516" height="520" rx="26"/></clipPath>
+  <clipPath id="screenClip"><rect width="1080" height="1920"/></clipPath>
+  <symbol id="box" overflow="visible">
+    <rect x="0" y="0" width="150" height="120" rx="5" fill="#E7B888"/><rect x="0" y="0" width="38" height="120" rx="5" fill="#D29C68"/>
+    <rect x="58" y="0" width="30" height="34" fill="#F7F4EE" opacity=".75"/><path d="M0 30 L150 30" stroke="#C88F5A" stroke-width="3"/>
+  </symbol>
+  <symbol id="pin" overflow="visible">
+    <path d="M0 0 Q-60 -70 -60 -110 A60 60 0 1 1 60 -110 Q60 -70 0 0 Z" fill="#FF6A00"/><circle cx="0" cy="-110" r="24" fill="#F7F4EE"/>
+  </symbol>
+  <symbol id="star" overflow="visible"><path d="M0 -16 L4.7 -5 L16 -4.9 L7.4 2.6 L10 14 L0 8 L-10 14 L-7.4 2.6 L-16 -4.9 L-4.7 -5 Z" fill="#FF6A00"/></symbol>
+  <!-- small flat van icon for UI -->
+  <symbol id="vanIcon" overflow="visible">
+    <rect x="150" y="-10" width="300" height="140" rx="12" fill="#FBFAF7" stroke="#064E49" stroke-width="8"/>
+    <rect x="150" y="92" width="300" height="14" fill="#FF6A00"/>
+    <path d="M150 130 L150 30 L76 30 Q60 30 52 44 L22 92 L8 96 Q0 98 0 106 L0 130 Z" fill="#064E49"/>
+    <path d="M134 46 L82 46 L52 90 L134 90 Z" fill="#CFE3DF"/>
+    <circle cx="78" cy="138" r="34" fill="#111"/><circle cx="372" cy="138" r="34" fill="#111"/>
+  </symbol>
+</defs>
+
+<rect width="1080" height="1920" fill="#F7F4EE"/>
+
+<!-- ================= HOME (scenes 1 and 4) ================= -->
+<g id="home">
+  <g id="hBack">
+    <rect x="-500" y="-200" width="2100" height="1460" fill="#F1EAE0"/>
+    <rect x="-500" y="140" width="2100" height="10" fill="#E3D8C8"/>
+    <rect x="-500" y="1010" width="2100" height="250" fill="#E8DECF"/><rect x="-500" y="1000" width="2100" height="14" fill="#DACDBB"/>
+    <!-- arched window with a Cairo view -->
+    <g transform="translate(70 470)">
+      <path d="M0 520 L0 175 A175 175 0 0 1 350 175 L350 520 Z" fill="#064E49"/>
+      <path d="M22 500 L22 178 A153 153 0 0 1 328 178 L328 500 Z" fill="url(#glass)"/>
+      <g fill="#B5D1CB"><rect x="40" y="330" width="60" height="170"/><rect x="110" y="380" width="70" height="120"/><circle cx="215" cy="370" r="40"/><rect x="175" y="370" width="80" height="130"/><rect x="262" y="250" width="16" height="250"/><path d="M262 250 L270 222 L278 250 Z"/><rect x="285" y="360" width="45" height="140"/></g>
+      <path d="M175 24 L175 500 M22 300 L328 300" stroke="#064E49" stroke-width="12"/>
+      <g fill="none" stroke="#064E49" stroke-width="5" opacity=".5"><path d="M60 120 L120 60 M120 120 L60 60 M230 120 L290 60 M290 120 L230 60"/></g>
+      <rect x="-24" y="512" width="398" height="26" rx="6" fill="#0B5A54"/>
+    </g>
+    <!-- wall clock -->
+    <g id="clock" transform="translate(640 760)">
+      <circle r="78" fill="#064E49"/><circle r="64" fill="#FBFAF7"/>
+      <g stroke="#064E49" stroke-width="5" stroke-linecap="round"><path d="M0 -54 L0 -44 M54 0 L44 0 M0 54 L0 44 M-54 0 L-44 0"/></g>
+      <path id="clockH" d="M0 0 L0 -30" stroke="#111" stroke-width="8" stroke-linecap="round"/>
+      <path id="clockM" d="M0 0 L0 -48" stroke="#111" stroke-width="5" stroke-linecap="round"/>
+      <path id="clockS" d="M0 8 L0 -52" stroke="#FF6A00" stroke-width="3" stroke-linecap="round"/>
+      <circle r="6" fill="#FF6A00"/>
+    </g>
+    <!-- door (right) -->
+    <g transform="translate(810 470)">
+      <rect x="-24" y="-24" width="318" height="814" rx="8" fill="#DCCFBC"/>
+      <rect x="0" y="0" width="270" height="790" fill="#2E3D3B"/>
+      <g id="doorLeaf">
+        <rect x="0" y="0" width="270" height="790" fill="#0B5A54"/>
+        <rect x="0" y="0" width="70" height="790" fill="#064E49"/>
+        <rect x="34" y="40" width="200" height="300" rx="6" fill="none" stroke="#064E49" stroke-width="10"/>
+        <rect x="34" y="400" width="200" height="340" rx="6" fill="none" stroke="#064E49" stroke-width="10"/>
+        <circle cx="40" cy="420" r="13" fill="#FF6A00"/>
+      </g>
+      <g id="bell" opacity="0" transform="translate(-70 330)"><circle r="40" fill="#FBFAF7" stroke="#064E49" stroke-width="5"/><path d="M0 -22 Q-16 -22 -16 -4 L-16 8 L-22 16 L22 16 L16 8 L16 -4 Q16 -22 0 -22 Z" fill="#FF6A00"/><circle cy="22" r="5" fill="#FF6A00"/></g>
+    </g>
+    <!-- floor -->
+    <rect x="-500" y="1260" width="2100" height="900" fill="url(#floorG)"/>
+    <g stroke="#DDD0BD" stroke-width="4"><path d="M-500 1340 L1600 1340 M-500 1460 L1600 1460 M-500 1620 L1600 1620 M-500 1820 L1600 1820"/>
+      <path d="M540 1260 L-600 2100 M540 1260 L-100 2100 M540 1260 L380 2100 M540 1260 L860 2100 M540 1260 L1340 2100 M540 1260 L1800 2100"/></g>
+    <path d="M110 1270 L440 1270 L620 1900 L-120 1900 Z" fill="#FFFFFF" opacity=".28"/>
+    <!-- covered sofa + stacked boxes + plant (midground furniture) -->
+    <g transform="translate(150 1010)">
+      <path d="M0 260 L-10 110 Q-6 60 50 56 L370 56 Q420 60 424 110 L414 260 Z" fill="#E2D9CB"/>
+      <path d="M-10 110 Q-6 60 50 56 L120 56 Q60 120 70 260 L0 260 Z" fill="#D3C8B7"/>
+      <path d="M150 90 Q180 180 160 250 M290 80 Q270 170 300 250" stroke="#D3C8B7" stroke-width="6" fill="none"/>
+      <rect x="40" y="70" width="110" height="70" rx="22" fill="#064E49" transform="rotate(-8 95 105)"/>
+      <rect x="270" y="74" width="100" height="64" rx="22" fill="#FF6A00" transform="rotate(7 320 106)"/>
+      <ellipse cx="207" cy="268" rx="230" ry="14" fill="#111" opacity=".07"/>
+    </g>
+    <g transform="translate(600 890)">
+      <use href="#box" x="0" y="250"/><use href="#box" x="10" y="130"/><use href="#box" x="-6" y="10" transform="rotate(-3 70 70)"/>
+      <ellipse cx="75" cy="372" rx="100" ry="10" fill="#111" opacity=".07"/>
+    </g>
+  </g>
+  <g id="hMid">
+    <g id="drvHomeWrap"></g>
+    <g id="custWrap"></g>
+  </g>
+  <g id="hFront">
+    <g transform="translate(-60 1690)"><use href="#box" transform="scale(2.1)"/></g>
+    <g transform="translate(1010 2000)" fill="#064E49">
+      <path d="M0 0 Q-120 -150 -60 -330 Q-10 -180 0 0 Z"/><path d="M0 0 Q20 -200 130 -300 Q90 -120 0 0 Z" fill="#0B5A54"/><path d="M0 0 Q-180 -60 -230 -190 Q-80 -150 0 0 Z" fill="#0B5A54"/>
+    </g>
+  </g>
+</g>
+
+<!-- ================= APP ================= -->
+<g id="app" style="display:none">
+  <rect width="1080" height="1920" fill="#F7F4EE"/>
+  <circle cx="900" cy="420" r="420" fill="#064E49" opacity=".05"/><circle cx="120" cy="1650" r="380" fill="#FF6A00" opacity=".05"/>
+  <g id="appCam">
+    <g id="phone" filter="url(#shadowF)">
+      <rect x="240" y="560" width="600" height="1140" rx="76" fill="#111"/>
+      <rect x="262" y="582" width="556" height="1096" rx="58" fill="#F7F4EE"/>
+      <rect x="470" y="598" width="140" height="26" rx="13" fill="#111"/>
+      <path d="M262 640 Q262 582 320 582 L760 582 Q818 582 818 640 L818 690 L262 690 Z" fill="#064E49"/>
+      <text x="540" y="672" text-anchor="middle" style="font-size:38px;fill:#F7F4EE">حالة طلبك</text>
+      <g class="card" data-t="15.0">
+        <rect x="282" y="706" width="516" height="190" rx="26" fill="#FFFFFF"/>
+        <circle cx="712" cy="801" r="64" fill="#DCEAE6"/>
+        <g clip-path="url(#avClip)" transform="translate(712 801)"><g id="avApp" transform="translate(-8 470) scale(1.1)"></g></g>
+        <text x="630" y="785" style="font-size:42px;fill:#111">كابتن محمود</text>
+        <use href="#star" transform="translate(612 832)"/>
+        <text x="588" y="846" style="font-size:32px;font-weight:600;fill:#5B5B5B">4.9 • ١٢٤٠ نقلة</text>
+      </g>
+      <g class="card" data-t="18.0">
+        <rect x="282" y="912" width="516" height="180" rx="26" fill="#FFFFFF"/>
+        <use href="#vanIcon" transform="translate(594 958) scale(0.42)"/>
+        <text x="575" y="975" style="font-size:40px;fill:#111">فان مقفول</text>
+        <g transform="translate(300 1010)"><rect width="270" height="62" rx="10" fill="#FFFFFF" stroke="#111" stroke-width="3"/><rect width="270" height="16" rx="6" fill="#064E49"/><text x="135" y="54" text-anchor="middle" style="font-size:34px;fill:#111">ن ق ل ١٢٣٤</text></g>
+        <text x="775" y="1060" style="font-size:30px;font-weight:600;fill:#5B5B5B">رقم اللوحة</text>
+      </g>
+      <g class="card" data-t="21.0">
+        <rect x="282" y="1110" width="516" height="520" rx="26" fill="#E7EFEC"/>
+        <g clip-path="url(#mapClip)">
+          <g stroke="#FFFFFF" stroke-width="22" fill="none"><path d="M260 1240 L820 1180"/><path d="M260 1430 L820 1470"/><path d="M380 1100 L430 1650"/><path d="M640 1100 L600 1650"/><path d="M260 1580 L820 1560"/></g>
+          <g fill="#D3E3DE"><rect x="460" y="1260" width="110" height="140" rx="10"/><rect x="300" y="1270" width="60" height="130" rx="10"/><rect x="640" y="1240" width="140" height="80" rx="10"/><rect x="460" y="1480" width="110" height="60" rx="10"/></g>
+          <path id="route" d="M410 1620 L420 1450 L605 1462 L626 1215 L720 1205" fill="none" stroke="#FF6A00" stroke-width="8" stroke-dasharray="4 18" stroke-linecap="round" opacity=".6"/>
+          <path id="routeDone" d="M410 1620 L420 1450 L605 1462 L626 1215 L720 1205" fill="none" stroke="#FF6A00" stroke-width="12" stroke-linecap="round"/>
+        </g>
+        <use href="#pin" transform="translate(722 1205) scale(0.55)"/>
+        <g id="mapVan"><circle r="30" fill="#064E49" stroke="#FFFFFF" stroke-width="6"/><use href="#vanIcon" transform="translate(-24 -12) scale(0.11)"/></g>
+        <g transform="translate(300 1556)"><rect width="480" height="60" rx="30" fill="#064E49"/><text id="eta" x="455" y="42" style="font-size:32px;fill:#F7F4EE">السائق في الطريق • ٨ دقايق</text></g>
+      </g>
+    </g>
+  </g>
+</g>
+
+<!-- ================= STREET ================= -->
+<g id="street" style="display:none">
+  <rect width="1080" height="1920" fill="url(#sky)"/>
+  <g id="sFar" fill="#C3DAD4">
+    <rect x="-300" y="760" width="200" height="500"/><rect x="-80" y="700" width="160" height="560"/><rect x="120" y="820" width="140" height="440"/><circle cx="330" cy="760" r="60"/><rect x="270" y="760" width="120" height="500"/>
+    <rect x="420" y="560" width="22" height="700"/><path d="M420 560 L431 520 L442 560 Z"/><rect x="470" y="780" width="190" height="480"/><rect x="1000" y="700" width="200" height="560"/><rect x="1220" y="820" width="220" height="440"/>
+  </g>
+  <g id="sMid">
+    <!-- apartment building -->
+    <rect x="300" y="300" width="760" height="1000" fill="#EFE3CF"/>
+    <rect x="300" y="300" width="120" height="1000" fill="#E3D4BC"/>
+    <g id="floors"></g>
+    <rect x="560" y="1050" width="200" height="250" rx="8" fill="#064E49"/><rect x="580" y="1070" width="160" height="230" fill="#0B5A54"/><path d="M660 1070 L660 1300" stroke="#064E49" stroke-width="6"/>
+    <path d="M530 1040 L790 1040 L770 1000 L550 1000 Z" fill="#FF6A00"/>
+    <rect x="-400" y="1300" width="1900" height="120" fill="#E2D6C3"/><rect x="-400" y="1410" width="1900" height="18" fill="#CDBFA9"/>
+    <g transform="translate(220 1300)"><rect x="-40" y="-90" width="80" height="90" rx="6" fill="#0B5A54"/><circle cx="0" cy="-130" r="70" fill="#064E49"/><circle cx="-40" cy="-110" r="50" fill="#0B5A54"/></g>
+  </g>
+  <g id="sRoad">
+    <rect x="-400" y="1428" width="1900" height="600" fill="#3B4245"/>
+    <g id="dashes" fill="#F7F4EE" opacity=".8"></g>
+    <g id="vanWrap"></g>
+    <g id="drvStWrap"></g>
+  </g>
+  <g id="sFront">
+    <rect x="1000" y="700" width="26" height="1300" fill="#064E49"/><path d="M1013 700 Q1013 650 950 650 L930 650" fill="none" stroke="#064E49" stroke-width="14"/><rect x="900" y="640" width="60" height="22" rx="8" fill="#064E49"/>
+  </g>
+  <g id="notif" opacity="0" filter="url(#shadowF)">
+    <rect x="80" y="210" width="920" height="150" rx="36" fill="#FFFFFF"/>
+    <image href="logo-full.png" x="110" y="238" width="230" height="92"/>
+    <text x="960" y="272" style="font-size:44px;fill:#064E49">السائق وصل</text>
+    <text x="960" y="330" style="font-size:36px;font-weight:600;fill:#111">كابتن محمود قدام البيت</text>
+  </g>
+</g>
+
+<!-- ================= END ================= -->
+<g id="end" style="display:none">
+  <rect width="1080" height="1920" fill="#F7F4EE"/>
+  <g id="endLogo"><image href="logo-full.png" x="170" y="560" width="740" height="295"/></g>
+  <path id="endLine" d="M880 1215 L200 1215" stroke="#FF6A00" stroke-width="12" stroke-linecap="round" fill="none"/>
+  <circle id="endDot" cx="200" cy="1215" r="18" fill="#FF6A00"/>
+</g>
+
+<!-- ================= SCREEN-SPACE OVERLAYS ================= -->
+<g id="thoughts">
+  <g id="tDots" opacity="0" fill="#FFFFFF" filter="url(#shadowF)"><circle r="12"/><circle r="18"/><circle r="24"/></g>
+  <g id="th1" class="th" data-a="5.2" data-b="6.8" opacity="0" filter="url(#shadowF)">
+    <rect x="180" y="500" width="720" height="250" rx="60" fill="#FFFFFF"/>
+    <g id="ringPhone" transform="translate(780 625)"><rect x="-44" y="-76" width="88" height="152" rx="16" fill="#111"/><rect x="-34" y="-62" width="68" height="114" rx="6" fill="#CFE3DF"/><text x="0" y="16" text-anchor="middle" style="font-size:60px;fill:#FF6A00">؟</text></g>
+    <path d="M840 580 Q856 600 840 620 M720 580 Q704 600 720 620" stroke="#FF6A00" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <text x="680" y="610" style="font-size:52px;fill:#111">رقم غريب</text>
+    <text x="680" y="680" style="font-size:52px;fill:#FF6A00">بيتصل ..</text>
+  </g>
+  <g id="th2" class="th" data-a="6.8" data-b="9.3" opacity="0" filter="url(#shadowF)">
+    <rect x="150" y="470" width="780" height="360" rx="60" fill="#FFFFFF"/>
+    <g class="say" data-t="6.95"><rect x="250" y="510" width="580" height="84" rx="42" fill="#F1ECE3"/><text x="540" y="568" text-anchor="middle" style="font-size:44px;fill:#111">أنا قريب يا باشا</text></g>
+    <g class="say" data-t="7.65"><rect x="230" y="608" width="580" height="84" rx="42" fill="#F1ECE3"/><text x="520" y="666" text-anchor="middle" style="font-size:44px;fill:#111">أنا قريب يا باشا</text></g>
+    <g class="say" data-t="8.35"><rect x="270" y="706" width="600" height="84" rx="42" fill="#FFE6D3"/><text x="570" y="764" text-anchor="middle" style="font-size:44px;fill:#FF6A00">أنا قريب يا باشا!!</text></g>
+  </g>
+  <g id="th3" class="th" data-a="9.3" data-b="11.0" opacity="0" filter="url(#shadowF)">
+    <rect x="200" y="500" width="680" height="280" rx="60" fill="#FFFFFF"/>
+    <g transform="translate(320 560) scale(0.62)">
+      <rect x="150" y="-10" width="300" height="160" rx="12" fill="#B8BCBF"/><path d="M150 150 L150 30 L76 30 Q60 30 52 44 L22 92 L8 96 Q0 98 0 106 L0 150 Z" fill="#8E9396"/>
+      <path d="M134 46 L82 46 L52 90 L134 90 Z" fill="#DDE2E4"/><circle cx="78" cy="158" r="34" fill="#111"/><circle cx="372" cy="158" r="34" fill="#111"/>
+      <text x="300" y="110" text-anchor="middle" style="font-size:120px;fill:#FFFFFF">؟</text>
+    </g>
+  </g>
+  <g id="match" opacity="0" filter="url(#shadowF)">
+    <rect x="250" y="520" width="580" height="190" rx="40" fill="#FFFFFF"/>
+    <circle cx="745" cy="615" r="64" fill="#DCEAE6"/>
+    <g clip-path="url(#avClip)" transform="translate(745 615)"><g id="avMatch" transform="translate(-8 470) scale(1.1)"></g></g>
+    <text x="655" y="600" style="font-size:44px;fill:#111">كابتن محمود</text>
+    <text x="655" y="660" style="font-size:34px;font-weight:600;fill:#5B5B5B">نفس السواق ✓</text>
+    <circle cx="320" cy="615" r="40" fill="#064E49"/><path d="M302 616 L316 630 L340 602" fill="none" stroke="#FF6A00" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</g>
+
+<g id="texts">
+  <text class="tx cap" data-t="0.4" data-s="0" data-e="2.6" x="540" y="300" text-anchor="middle" style="font-size:84px;fill:#064E49">يوم النقل ..</text>
+  <text class="tx cap" data-t="0.9" data-s="0" data-e="2.6" x="540" y="410" text-anchor="middle" style="font-size:64px;fill:#111">والكراتين جاهزة</text>
+  <text class="tx cap" data-t="3.0" data-s="2.8" data-e="13.0" x="540" y="320" text-anchor="middle" style="font-size:130px;fill:#FF6A00">مين جاي؟</text>
+  <text class="tx cap" data-t="5.3" data-s="5.0" data-e="13.0" x="540" y="430" text-anchor="middle" style="font-size:58px;fill:#111">ومش عارف هو فين .. ولا جاي بإيه</text>
+  <g class="tx" data-t="13.15" data-s="13.0" data-e="24.0" filter="url(#shadowF)">
+    <rect x="215" y="240" width="650" height="200" rx="44" fill="#FFFFFF"/>
+    <text x="820" y="374" style="font-size:96px;fill:#064E49">مع</text>
+    <image href="logo-full.png" x="245" y="260" width="400" height="159"/>
+  </g>
+  <text class="tx" data-t="15.2" data-s="15.0" data-e="18.0" x="540" y="1820" text-anchor="middle" style="font-size:84px;fill:#064E49">بتعرف مين جاي</text>
+  <text class="tx" data-t="18.2" data-s="18.0" data-e="21.0" x="540" y="1820" text-anchor="middle" style="font-size:84px;fill:#064E49">وجاي بإيه</text>
+  <text class="tx" data-t="21.2" data-s="21.0" data-e="24.0" x="540" y="1820" text-anchor="middle" style="font-size:84px;fill:#FF6A00">وتتابعه لحد بابك</text>
+  <text class="tx cap" data-t="27.6" data-s="26.5" data-e="29.5" x="540" y="330" text-anchor="middle" style="font-size:76px;fill:#064E49">نفس اللي شفته</text>
+  <text class="tx cap" data-t="28.0" data-s="26.5" data-e="29.5" x="540" y="440" text-anchor="middle" style="font-size:72px;fill:#FF6A00">في التطبيق ✓</text>
+  <text class="tx" data-t="30.4" data-s="29.5" data-e="34.5" x="540" y="1060" text-anchor="middle" style="font-size:88px;fill:#111">عارف مين جاي ..</text>
+  <text class="tx" data-t="31.0" data-s="29.5" data-e="34.5" x="540" y="1170" text-anchor="middle" style="font-size:88px;fill:#FF6A00">وعارف هو فين</text>
+</g>
+<!-- signature transition: an orange route band sweeps right → left -->
+<rect id="sweep" x="0" y="0" width="420" height="1920" fill="#FF6A00" opacity="0"/>
+</svg>
+<script src="rig3.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const eo = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const eio = (x) => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const prog = (t, t0, d) => clamp((t - t0) / d);
+const blinkAt = (t, s) => { const p = (t + s) % 3.3; return p < 0.13 ? 1 : 0; };
+function draw(path, k) { const L = path.getTotalLength(); path.style.strokeDasharray = `${L} ${L}`; path.style.strokeDashoffset = L * (1 - k); }
+
+// ---- scene construction ----
+// building floors with balconies and shutters
+(() => { const f = $('floors');
+  for (let i = 0; i < 4; i++) { const y = 360 + i * 170;
+    for (const x of [460, 640, 840]) { mk('rect', { x, y, width: 110, height: 120, rx: 6, fill: '#0B5A54' }, f); mk('rect', { x: x + 8, y: y + 8, width: 94, height: 104, fill: '#CFE3DF' }, f); mk('path', { d: `M${x + 55} ${y + 8} L${x + 55} ${y + 112}`, stroke: '#0B5A54', 'stroke-width': 5 }, f); }
+    if (i % 2 === 0) { mk('rect', { x: 600, y: y + 120, width: 200, height: 10, fill: '#064E49' }, f); for (let k = 0; k < 9; k++) mk('rect', { x: 604 + k * 23, y: y + 84, width: 4, height: 38, fill: '#064E49' }, f); mk('rect', { x: 600, y: y + 80, width: 200, height: 6, fill: '#064E49' }, f); }
+  }
+  const d = $('dashes'); for (let i = -4; i < 14; i++) mk('rect', { x: i * 160, y: 1640, width: 90, height: 14, rx: 7 }, d);
+})();
+
+// van (side view, facing left)
+function Van(parent) {
+  const root = mk('g', {}, parent);
+  mk('ellipse', { cx: 260, cy: 4, rx: 300, ry: 22, fill: '#111', opacity: 0.25 }, root);
+  const body = mk('g', {}, root);
+  mk('rect', { x: 0, y: -66, width: 530, height: 24, rx: 8, fill: '#1C1F21' }, body);
+  mk('rect', { x: 160, y: -310, width: 370, height: 250, rx: 14, fill: '#FBFAF7' }, body);
+  mk('rect', { x: 160, y: -120, width: 370, height: 60, fill: '#064E49' }, body);
+  mk('rect', { x: 160, y: -132, width: 370, height: 12, fill: '#FF6A00' }, body);
+  mk('rect', { x: 160, y: -310, width: 370, height: 30, rx: 14, fill: '#EDE7DC' }, body);
+  mk('path', { d: 'M520 -300 L520 -66', stroke: '#E1D9CC', 'stroke-width': 4 }, body);
+  const lbl = mk('text', { x: 380, y: -192, 'text-anchor': 'middle', style: 'font-size:58px;font-weight:800;fill:#064E49' }, body); lbl.textContent = 'انقلي';
+  const pinG = mk('g', { transform: 'translate(250 -182) scale(0.32)' }, body);
+  mk('path', { d: 'M0 0 Q-60 -70 -60 -110 A60 60 0 1 1 60 -110 Q60 -70 0 0 Z', fill: '#FF6A00' }, pinG); mk('circle', { cx: 0, cy: -110, r: 24, fill: '#FBFAF7' }, pinG);
+  // cab
+  mk('path', { d: 'M168 -60 L168 -262 Q168 -276 154 -276 L90 -276 Q70 -276 60 -258 L22 -176 L8 -168 Q0 -164 0 -150 L0 -60 Z', fill: '#064E49' }, body);
+  mk('path', { d: 'M150 -258 L94 -258 Q82 -258 76 -246 L44 -180 L150 -180 Z', fill: '#CFE3DF' }, body);
+  mk('path', { d: 'M126 -258 L104 -180', stroke: '#FFFFFF', 'stroke-width': 10, opacity: 0.5 }, body);
+  const seat = mk('g', {}, body);                   // driver silhouette in the cab
+  mk('circle', { cx: 116, cy: -222, r: 20, fill: '#043A36' }, seat); mk('path', { d: 'M90 -180 Q92 -204 116 -204 Q140 -204 142 -180 Z', fill: '#043A36' }, seat);
+  mk('path', { d: 'M150 -168 L150 -64', stroke: '#043A36', 'stroke-width': 4 }, body);
+  mk('rect', { x: 120, y: -150, width: 22, height: 7, rx: 3, fill: '#043A36' }, body);
+  mk('rect', { x: 0, y: -150, width: 24, height: 26, rx: 6, fill: '#FBFAF7' }, body);
+  mk('rect', { x: 0, y: -100, width: 30, height: 14, rx: 4, fill: '#FF6A00' }, body);
+  mk('path', { d: 'M64 -250 L50 -250 L46 -226 L60 -226', fill: '#043A36' }, body);
+  const wheels = [92, 430].map((cx) => { const g = mk('g', { transform: `translate(${cx} -44)` }, root);
+    mk('path', { d: 'M-66 0 A66 66 0 0 1 66 0 Z', fill: '#1C1F21' }, g);
+    const w = mk('g', {}, g); mk('circle', { r: 50, fill: '#111' }, w); mk('circle', { r: 30, fill: '#D9D3C8' }, w);
+    for (let k = 0; k < 5; k++) mk('rect', { x: -4, y: -28, width: 8, height: 26, rx: 3, fill: '#9C968C', transform: `rotate(${k * 72})` }, w);
+    mk('circle', { r: 8, fill: '#6E6A63' }, w); return w; });
+  return { root, body, seat, set(x, y, sc, dist, pitch, bounce, seated) {
+    root.setAttribute('transform', `translate(${x} ${y}) scale(${sc})`);
+    body.setAttribute('transform', `translate(0 ${bounce}) rotate(${pitch} 260 -40)`);
+    const a = -(dist / 50) * 180 / Math.PI;  // rolling left
+    for (const w of wheels) w.setAttribute('transform', `rotate(${a})`);
+    seat.setAttribute('opacity', seated ? 1 : 0);
+  } };
+}
+
+const cust = Person($('custWrap'), 'customer');
+const drvH = Person($('drvHomeWrap'), 'driver');
+const drvS = Person($('drvStWrap'), 'driver');
+const avA = Person($('avApp'), 'driver');
+const avM = Person($('avMatch'), 'driver');
+const van = Van($('vanWrap'));
+
+// walk cycle: phase advances with distance travelled (in character units)
+function walkPose(p) {
+  return { legs: { nh: 22 * Math.sin(p), fh: -22 * Math.sin(p), nk: -(6 + 36 * Math.max(0, Math.sin(p + 2.2))), fk: -(6 + 36 * Math.max(0, Math.sin(p + 2.2 + Math.PI))), nf: 6 * Math.sin(p - 0.6), ff: -6 * Math.sin(p - 0.6) },
+    arms: { ns: -16 * Math.sin(p), fs: 16 * Math.sin(p), ne: 14 + 6 * Math.sin(p), fe: 14 - 6 * Math.sin(p) }, bob: -Math.abs(Math.cos(p)) * 7 + 3, tilt: Math.sin(p * 2) * 1.2 };
+}
+const idle = (t, s = 0) => ({ bob: Math.sin(t * 1.9 + s) * 1.4, arms: { ns: 5 + Math.sin(t * 1.9 + s) * 1.2, fs: -4, ne: 10, fe: 10 } });
+// travel along a timed path → x position and walking phase
+function travel(t, keys, scale) { // keys: [t, x]
+  if (t <= keys[0][0]) return { x: keys[0][1], moving: false, p: 0, dir: Math.sign(keys[1][1] - keys[0][1]) };
+  let dist = 0;
+  for (let i = 1; i < keys.length; i++) {
+    const [t0, x0] = keys[i - 1], [t1, x1] = keys[i];
+    if (t <= t1) { const k = eio((t - t0) / (t1 - t0)); const x = lerp(x0, x1, k); dist += Math.abs(x - x0);
+      return { x, moving: x0 !== x1 && k > 0.02 && k < 0.98, p: dist / scale / 150 * Math.PI, dir: Math.sign(x1 - x0) || 1 }; }
+    dist += Math.abs(x1 - x0);
+  }
+  const last = keys[keys.length - 1]; return { x: last[1], moving: false, p: dist / scale / 150 * Math.PI, dir: 0 };
+}
+function blend(a, b, k) { // blend two poses (numbers inside legs/arms/top level)
+  const o = {}; for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    const va = a[key], vb = b[key];
+    if (typeof va === 'number' || typeof vb === 'number') o[key] = lerp(va || 0, vb || 0, k);
+    else if (va && vb && typeof va === 'object' && !Array.isArray(va)) o[key] = blend(va, vb, k);
+    else o[key] = k < 0.5 ? va : vb;
+  } return o;
+}
+
+// camera: [t, cx, cy, zoom]
+function camAt(keys, t) { if (t <= keys[0][0]) return keys[0].slice(1); for (let i = 1; i < keys.length; i++) if (t <= keys[i][0]) { const a = keys[i - 1], b = keys[i], k = eio((t - a[0]) / (b[0] - a[0])); return [lerp(a[1], b[1], k), lerp(a[2], b[2], k), lerp(a[3], b[3], k)]; } return keys[keys.length - 1].slice(1); }
+function layer(el, cx, cy, z, par) { el.setAttribute('transform', `translate(540 960) scale(${z * (1 + (par - 1) * 0.15)}) translate(${-(540 + (cx - 540) * par)} ${-(960 + (cy - 960) * par)})`); }
+
+const HOME_CAM = [[0, 540, 1080, 1.0], [2.5, 560, 1060, 1.04], [3.3, 630, 900, 1.55], [4.7, 640, 890, 1.6], [5.4, 560, 1060, 1.05], [7.0, 640, 1060, 1.08], [9.0, 610, 1040, 1.08], [10.6, 470, 1060, 1.08], [13, 430, 980, 1.3],
+  [26.5, 600, 1060, 1.0], [27.2, 640, 1070, 1.0], [29.5, 560, 1040, 1.08]];
+const STREET_CAM = [[24.0, 760, 1180, 1.0], [25.1, 520, 1200, 1.04], [26.5, 480, 1220, 1.1]];
+
+const S2 = 13.0, S3 = 24.0, S4 = 26.5, SE = 29.5;
+const route = $('route'), routeLen = route.getTotalLength();
+const ARD = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+
+function homeScene(t) {
+  const late = t >= S4;
+  const [cx, cy, z] = camAt(HOME_CAM, t);
+  layer($('hBack'), cx, cy, z, 0.85); layer($('hMid'), cx, cy, z, 1.0); layer($('hFront'), cx, cy, z, 1.25);
+  // clock hands race while he waits
+  const spin = clamp(t - 2.4, 0, 3.2), ang = late ? 40 : 210 + spin * spin * 120;
+  $('clockM').setAttribute('transform', `rotate(${ang})`); $('clockH').setAttribute('transform', `rotate(${ang / 12 + 280})`); $('clockS').setAttribute('transform', `rotate(${t * 360})`);
+
+  // ----- customer -----
+  const S = 2.1;
+  let st;
+  if (!late) {
+    const tr = travel(t, [[5.0, 330], [6.7, 600], [8.8, 600], [10.4, 360]], S);
+    const face = t < 8.75 ? 'right' : 'left';
+    if (t < 2.4) st = { ...idle(t), prop: 'phone', arms: { ns: 26, ne: 98, fs: -4, fe: 10, nw: 10 }, look: [0.4, 0.8], brow: 'neutral', mouth: 'smile' };
+    else if (t < 5.0) { const k = eo(prog(t, 2.4, 0.5)); st = blend({ ...idle(t), prop: 'phone', arms: { ns: 26, ne: 98, fs: -4, fe: 10 }, look: [0.4, 0.8] }, { ...idle(t), prop: 'phone', arms: { ns: 10, ne: 60, fs: -4, fe: 10 }, look: [0.6, -1], tilt: -7 }, k); st.brow = 'worried'; st.mouth = 'worried'; }
+    else if (tr.moving) { st = { ...walkPose(tr.p), look: [1, 0], brow: 'worried', mouth: 'neutral' }; }
+    else if (t < 8.8) { const k = eo(prog(t, 6.7, 0.4)); st = blend({ ...idle(t), arms: { ns: 5, ne: 10 } }, { ...idle(t), prop: 'phone', arms: { ns: 26, ne: 98, fs: -4, fe: 10 }, look: [0.4, 0.8] }, k); st.prop = k > 0.3 ? 'phone' : null; st.brow = 'worried'; st.mouth = t > 8.3 ? 'open' : 'worried'; }
+    else if (t < 10.8) { st = { ...idle(t), brow: 'worried', mouth: 'worried', look: [1, 0] }; }
+    else { const k = eo(prog(t, 10.8, 0.45)); st = blend({ ...idle(t), look: [1, 0] }, { ...idle(t), arms: { ns: 150, ne: 105, fs: -4, fe: 10 }, tilt: -6, look: [0.3, 0.6], lean: 2 }, k); st.brow = 'worried'; st.mouth = 'open'; st.sigh = 1; st.bob = Math.sin(t * 1.4) * 2; }
+    st.face = face; st.base = `translate(${tr.x} 1830) scale(${S})`;
+  } else {
+    const k = eo(prog(t, S4 + 1.3, 0.4));
+    st = blend({ ...idle(t), look: [1, 0] }, { ...idle(t), prop: 'phone', arms: { ns: 40, ne: 80, fs: -4, fe: 10 }, look: [1, 0] }, k);
+    st.prop = k > 0.3 ? 'phone' : null; st.brow = t > S4 + 0.4 ? 'up' : 'neutral'; st.mouth = t > S4 + 1.0 ? 'grin' : 'smile'; st.eyes = t > S4 + 2.2 ? 'happy' : null; st.face = 'right'; st.base = `translate(300 1830) scale(${S})`;
+    if (t > S4 + 0.3 && t < S4 + 0.8) st.tilt = 4 * Math.sin((t - S4 - 0.3) * Math.PI / 0.5);
+  }
+  st.blink = st.eyes ? 0 : blinkAt(t, 0.6); cust.set(st);
+
+  // ----- door + driver -----
+  const open = late ? eio(prog(t, S4 + 0.35, 0.5)) : 0;
+  $('doorLeaf').setAttribute('transform', `translate(270 0) scale(${1 - open * 0.78} 1) translate(-270 0)`);
+  const bk = late ? eo(prog(t, S4 + 0.05, 0.3)) : 0, bout = late ? clamp((S4 + 1.0 - t) / 0.25) : 0;
+  $('bell').setAttribute('opacity', Math.min(bk, bout)); $('bell').setAttribute('transform', `translate(-70 330) rotate(${Math.sin(t * 38) * 10 * bk})`);
+  if (late) {
+    const wk = prog(t, S4 + 0.7, 1.3), k = eio(wk);
+    const x = lerp(950, 770, k), y = lerp(1262, 1840, k), sc = lerp(1.25, 2.15, k);
+    const walking = wk > 0 && wk < 1;
+    const p = k * 7.2;
+    let d = walking ? { ...walkPose(p), look: [1, 0], brow: 'happy', mouth: 'smile' } : { ...idle(t, 1), brow: 'happy', mouth: 'grin', look: [1, 0] };
+    if (t > S4 + 2.05) { const kw = eo(prog(t, S4 + 2.05, 0.35)); d = blend(d, { ...idle(t, 1), arms: { ns: 150 + Math.sin(t * 9) * 8, ne: -35, fs: -4, fe: 10 } }, kw); d.brow = 'happy'; d.mouth = 'grin'; }
+    d.face = 'left'; d.base = `translate(${x} ${y}) scale(${sc})`; d.blink = blinkAt(t, 0.2);
+    $('drvHomeWrap').style.display = t > S4 + 0.55 ? '' : 'none'; drvH.set(d);
+  } else $('drvHomeWrap').style.display = 'none';
+}
+
+function appScene(t) {
+  const k = eo(prog(t, S2 + 0.15, 0.7));
+  const fy = t < 15 ? 1130 : t < 18 ? 800 : t < 21 ? 1000 : 1360;
+  const [cx, cy, z] = camAt([[S2, 540, 960, 1.0], [15.0, 540, 960, 1.0], [24, 540, 1010, 1.06]], t);
+  $('appCam').setAttribute('transform', `translate(540 960) scale(${z}) translate(${-cx} ${-cy})`);
+  $('phone').setAttribute('transform', `translate(0 ${(1 - k) * 700})`);
+  for (const c of document.querySelectorAll('#phone .card')) { const kk = eo(prog(t, +c.dataset.t, 0.55)); c.setAttribute('opacity', clamp(kk * 2)); c.setAttribute('transform', `translate(${(1 - kk) * 120} 0)`); }
+  avA.set({ ...idle(t), mouth: 'smile', brow: 'happy', look: [0.2, 0], blink: blinkAt(t, 0.9), face: 'right' });
+  const p = eio(prog(t, 21.6, 2.4)), pt = route.getPointAtLength(p * routeLen);
+  $('mapVan').setAttribute('transform', `translate(${pt.x} ${pt.y})`);
+  $('routeDone').setAttribute('stroke-dasharray', `${p * routeLen} ${routeLen}`);
+  $('eta').textContent = `السائق في الطريق • ${ARD[Math.max(2, Math.round(8 - p * 6))]} دقايق`;
+}
+
+function streetScene(t) {
+  const [cx, cy, z] = camAt(STREET_CAM, t);
+  layer($('sFar'), cx, cy, z, 0.35); layer($('sMid'), cx, cy, z, 0.75); layer($('sRoad'), cx, cy, z, 1.0); layer($('sFront'), cx, cy, z, 1.3);
+  // van: decelerates to a stop, nose dips, then settles
+  const kv = prog(t, S3, 1.25), e = 1 - Math.pow(1 - kv, 2.4);
+  const x = lerp(1350, 40, e), dist = 1350 - x;
+  const after = t - (S3 + 1.25);
+  const pitch = after > 0 ? -2.2 * Math.exp(-after * 5) * Math.cos(after * 14) : -0.4 * (1 - kv);
+  const bounce = kv < 1 ? Math.sin(t * 26) * 1.6 * (1 - kv) : 3 * Math.exp(-after * 6) * Math.sin(after * 18);
+  van.set(x, 1720, 1.85, dist, pitch, bounce, t < S3 + 1.55);
+  // driver steps out from the cab and walks toward the house, then waves
+  const S = 1.75, tr = travel(t, [[S3 + 1.5, 150], [S3 + 2.25, 360]], S);
+  let d = tr.moving ? { ...walkPose(tr.p), look: [1, 0], brow: 'happy', mouth: 'smile' } : { ...idle(t), brow: 'happy', mouth: 'grin', look: [0.6, 0] };
+  if (t > S3 + 2.25) { const kw = eo(prog(t, S3 + 2.25, 0.3)); d = blend(d, { ...idle(t), arms: { ns: 150 + Math.sin(t * 9) * 8, ne: -35, fs: -4, fe: 10 } }, kw); d.brow = 'happy'; d.mouth = 'grin'; }
+  d.face = 'right'; d.base = `translate(${tr.x} 1830) scale(${S})`; d.blink = blinkAt(t, 0.3);
+  $('drvStWrap').style.display = t > S3 + 1.5 ? '' : 'none';
+  $('drvStWrap').setAttribute('opacity', clamp((t - S3 - 1.5) / 0.15)); drvS.set(d);
+  const nk = eo(prog(t, S3 + 0.6, 0.5));
+  $('notif').setAttribute('opacity', clamp(nk * 2)); $('notif').setAttribute('transform', `translate(0 ${(1 - nk) * -240})`);
+}
+
+function endScene(t) {
+  const k = eo(prog(t, SE + 0.2, 0.8));
+  $('endLogo').setAttribute('opacity', k); $('endLogo').setAttribute('transform', `translate(540 707) scale(${0.94 + 0.06 * k}) translate(-540 -707)`);
+  draw($('endLine'), eo(prog(t, 31.6, 0.8)));
+  const dk = eo(prog(t, 32.3, 0.3)); $('endDot').setAttribute('opacity', dk); $('endDot').setAttribute('r', 18 * dk);
+}
+
+function thoughts(t) {
+  const on = t < S2;
+  for (const th of document.querySelectorAll('.th')) {
+    const a = +th.dataset.a, b = +th.dataset.b, k = eo(prog(t, a, 0.45)), out = clamp((b - t) / 0.3);
+    const vis = on && t >= a && t < b; th.setAttribute('opacity', vis ? Math.min(clamp(k * 2), out) : 0);
+    th.setAttribute('transform', `translate(0 ${(1 - k) * 40})`);
+  }
+  for (const s of document.querySelectorAll('.say')) { const k = eo(prog(t, +s.dataset.t, 0.4)); s.setAttribute('opacity', clamp(k * 2)); s.setAttribute('transform', `translate(${(1 - k) * 80} 0)`); }
+  $('ringPhone').setAttribute('transform', `translate(780 625) rotate(${t > 5.2 && t < 6.8 ? Math.sin(t * 46) * 6 : 0})`);
+  const dOn = on && t > 5.2 && t < 11.0;
+  $('tDots').setAttribute('opacity', dOn ? clamp((t - 5.2) / 0.3) * clamp((11.0 - t) / 0.3) : 0);
+  [...$('tDots').children].forEach((c, i) => { c.setAttribute('cx', 470 + i * 34); c.setAttribute('cy', 880 - i * 40); });
+  const mk2 = eo(prog(t, S4 + 1.9, 0.5)), mon = t >= S4 + 1.9 && t < SE;
+  $('match').setAttribute('opacity', mon ? clamp(mk2 * 2) : 0); $('match').setAttribute('transform', `translate(0 ${(1 - mk2) * 50})`);
+  avM.set({ ...idle(t), mouth: 'grin', brow: 'happy', look: [0.2, 0], blink: blinkAt(t, 0.4), face: 'right' });
+}
+
+const texts = [...document.querySelectorAll('.tx')];
+const CUTS = [S2, S3, S4, SE];
+window.render = (t) => {
+  const scene = t < S2 ? 'home' : t < S3 ? 'app' : t < S4 ? 'street' : t < SE ? 'home' : 'end';
+  for (const id of ['home', 'app', 'street', 'end']) $(id).style.display = id === scene ? '' : 'none';
+  if (scene === 'home') homeScene(t);
+  if (scene === 'app') appScene(t);
+  if (scene === 'street') streetScene(t);
+  if (scene === 'end') endScene(t);
+  thoughts(t);
+  for (const x of texts) { const on = t >= +x.dataset.s && t < +x.dataset.e; const k = eo(prog(t, +x.dataset.t, 0.55)), out = clamp((+x.dataset.e - t) / 0.2);
+    x.setAttribute('opacity', on ? Math.min(clamp(k * 1.8), out) : 0); x.setAttribute('transform', `translate(${(1 - k) * 140} 0)`); }
+  // orange sweep across each cut (right → left)
+  let sw = null; for (const c of CUTS) if (t > c - 0.28 && t < c + 0.28) sw = (t - (c - 0.28)) / 0.56;
+  const s = $('sweep');
+  if (sw === null) s.setAttribute('opacity', 0); else { const x = lerp(1180, -1400, eio(sw)); s.setAttribute('opacity', 1); s.setAttribute('x', x); s.setAttribute('width', 1300); }
+};
+window.ready = document.fonts.ready.then(() => window.render(0));
+</script>
+</body>
+</html>
