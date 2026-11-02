@@ -1,6 +1,7 @@
 node_modules
 graphify-out/
 .next
+.claude
 out
 build
 .env

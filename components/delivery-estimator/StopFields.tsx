@@ -1,37 +1,29 @@
 "use client";
 import type { ReactNode } from "react";
-import { Icon, type IconName } from "@/components/Icons";
+import { Icon } from "@/components/Icons";
 import { addrField, detailField, type SavedAddr, type Stop } from "./model";
 
-/** "مطلوب" until filled, then a green check. */
+/** "مطلوب" until filled, then a check. */
 function RequiredTag({ done }: { done: boolean }) {
   if (done) {
-    return (
-      <span className="w-5 h-5 rounded-full bg-ok text-white grid place-items-center" aria-label="تم">
-        <Icon name="check" className="w-3 h-3" strokeWidth={3.5} />
-      </span>
-    );
+    return <Icon name="check" className="w-4 h-4 text-ok" strokeWidth={3} aria-label="تم" role="img" aria-hidden={false} />;
   }
-  return (
-    <span className="text-[11px] font-bold text-booked bg-booked-soft rounded-full px-2 py-0.5">مطلوب</span>
-  );
+  return <span className="text-xs font-medium text-muted">مطلوب</span>;
 }
 
 const STOP_LOOK: Record<
   Stop,
-  { title: string; icon: IconName; iconClass: string; label: string; detailsLabel: string }
+  { title: string; marker: string; label: string; detailsLabel: string }
 > = {
   a: {
     title: "مكان الاستلام",
-    icon: "mapPin",
-    iconClass: "bg-booked-soft text-booked",
+    marker: "rounded-full border-[3px] border-booked bg-panel",
     label: "عنوان الاستلام",
     detailsLabel: "تفاصيل الاستلام",
   },
   b: {
     title: "مكان التسليم",
-    icon: "flag",
-    iconClass: "bg-primary-soft text-primary",
+    marker: "rounded-[4px] bg-primary",
     label: "عنوان التسليم",
     detailsLabel: "تفاصيل التسليم",
   },
@@ -68,10 +60,9 @@ export function StopFields({
   return (
     <div className="p-4 flex flex-col gap-2">
       <div className="flex items-center gap-3">
-        <span className={`w-10 h-10 shrink-0 rounded-full grid place-items-center ${look.iconClass}`}>
-          <Icon name={look.icon} className="w-5 h-5" />
-        </span>
-        <span className="flex-1 min-w-0 flex items-center gap-2 font-extrabold text-lg whitespace-nowrap">
+        {/* same stop markers as the map pins and the home-page form */}
+        <span className={`w-4 h-4 shrink-0 ${look.marker}`} aria-hidden />
+        <span className="flex-1 min-w-0 flex items-center gap-2 font-semibold whitespace-nowrap">
           {look.title} <RequiredTag done={!!address.trim()} />
         </span>
         {action}
@@ -120,7 +111,7 @@ export function SavedAddressChips({ saved, value, message, onPick, onSave }: Sav
           onClick={() => onPick(a)}
           className="shrink-0 rounded-full border border-line-2 bg-panel px-3 py-1.5 text-sm font-bold text-ink-2 hover:border-primary hover:text-primary"
         >
-          📍 {a.label}
+          <Icon name="mapPin" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{a.label}
         </button>
       ))}
       {typed && !alreadySaved && (

@@ -3,6 +3,7 @@ import { companyBalances, countCompanyMembers, listCompanies } from "@/db/lib/co
 import { formatEgp } from "@/lib/money";
 import { CompanyForm } from "@/components/admin/CompanyForms";
 import { requirePermission } from "@/lib/authz";
+import { Icon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export default async function AdminCompanies() {
               className="bg-panel border border-line rounded-card p-4 flex flex-col gap-2 hover:border-primary"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-extrabold text-lg">🏢 {c.name}</span>
+                <span className="font-extrabold text-lg"><Icon name="building" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{c.name}</span>
                 {!c.active && (
                   <span className="rounded-full bg-off-soft text-off px-2.5 py-0.5 text-xs font-bold">
                     موقوف

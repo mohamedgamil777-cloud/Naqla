@@ -29,14 +29,15 @@ export default async function VehiclePage({ params }: { params: Promise<{ id: st
   const bookable = v.status === "available";
 
   return (
-    <div className="p-4 flex flex-col gap-4">
-      <div className="relative aspect-[16/9] rounded-card overflow-hidden bg-panel-2">
-        <VehicleImage src={v.primaryImage} alt={v.name} sizes="512px" priority />
+    // tablet / desktop: photo pinned beside the details
+    <div className="p-4 flex flex-col gap-4 md:grid md:grid-cols-2 md:gap-x-8 md:items-start">
+      <div className="relative aspect-[16/9] rounded-card overflow-hidden bg-panel-2 md:col-start-2 md:row-start-1 md:row-span-4 md:sticky md:top-24">
+        <VehicleImage src={v.primaryImage} alt={v.name} sizes="(max-width:768px) 100vw, 560px" priority />
       </div>
 
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-extrabold">{v.name}</h1>
+          <h1 className="text-2xl md:text-3xl font-extrabold">{v.name}</h1>
           <p className="text-muted">
             {v.categoryName} · {v.branchName}
           </p>

@@ -38,11 +38,11 @@ export default async function AccountPage() {
   const wa = waDigits(content.whatsapp);
 
   return (
-    <div className="p-4 flex flex-col gap-5">
+    <div className="p-4 flex flex-col gap-5 w-full max-w-3xl mx-auto">
       <h1 className="text-[1.7rem] font-extrabold leading-tight">حسابي</h1>
 
       {/* Profile */}
-      <section className="bg-panel border border-line rounded-card shadow-sm p-4 flex flex-col gap-4">
+      <section className="bg-panel border border-line rounded-card p-4 flex flex-col gap-4">
         <div className="flex items-center gap-3.5">
           <span className="w-16 h-16 shrink-0 rounded-full bg-primary-soft text-primary grid place-items-center">
             <Icon name="user" className="w-8 h-8" />
@@ -70,7 +70,7 @@ export default async function AccountPage() {
             className="w-12 h-12 shrink-0 rounded-2xl bg-panel grid place-items-center text-2xl"
             aria-hidden
           >
-            🏢
+           <Icon name="building" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
           </span>
           <span className="flex-1 min-w-0">
             <span className="block text-xs text-muted">حساب شركة</span>
@@ -82,13 +82,13 @@ export default async function AccountPage() {
       )}
 
       {!ctx && saved.length > 0 && (
-        <section className="bg-panel border border-line rounded-card shadow-sm p-4 flex flex-col gap-2">
+        <section className="bg-panel border border-line rounded-card p-4 flex flex-col gap-2">
           <h2 className="font-extrabold">عناويني المحفوظة</h2>
           <div className="flex flex-col divide-y divide-line">
             {saved.map((a) => (
               <div key={a.id} className="py-2.5 flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="font-bold">📍 {a.label}</div>
+                  <div className="font-bold"><Icon name="mapPin" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{a.label}</div>
                   <div className="text-sm text-muted truncate">{a.address}</div>
                 </div>
                 <form action={deleteSavedAddressAction}>
@@ -103,7 +103,7 @@ export default async function AccountPage() {
       )}
 
       {/* Menu */}
-      <nav className="bg-panel border border-line rounded-card shadow-sm divide-y divide-line overflow-hidden">
+      <nav className="bg-panel border border-line rounded-card divide-y divide-line overflow-hidden">
         <Item href="/bookings" icon="orders" label="طلباتي" hint="تابع حالة توصيلاتك" />
         <Item href="/estimate" icon="truck" label="اطلب توصيلة جديدة" hint="السعر قدامك قبل ما تطلب" />
         <Item href="/help" icon="help" label="المساعدة والأسئلة الشائعة" />

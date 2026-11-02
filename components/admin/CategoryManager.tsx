@@ -147,7 +147,7 @@ export function CategoryManager({
           </div>
         )}
         {state.ok && (
-          <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تم الحفظ ✅</div>
+          <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تم الحفظ</div>
         )}
         <Fields />
         <AddBtn />
@@ -200,7 +200,7 @@ function CategoryRow({ c, use }: { c: CategoryDTO; use: CategoryUsage }) {
         </div>
       )}
       {state.ok && (
-        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">اتحفظ ✅</div>
+        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">اتحفظ</div>
       )}
       <Fields c={c} />
       <div className="flex gap-2">

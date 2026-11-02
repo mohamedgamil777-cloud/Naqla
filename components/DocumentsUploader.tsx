@@ -4,6 +4,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { DocumentDTO, DocumentType } from "@/types";
+import { Icon } from "@/components/Icons";
 
 function fileToDataUrl(file: File, maxW = 1400, quality = 0.8): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -82,7 +83,7 @@ function DocUpload({
     <div className="bg-panel border border-line rounded-card p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="font-extrabold">{title}</h3>
-        {existing && <span className="text-ok text-sm font-bold">مرفوعة ✅</span>}
+        {existing && <span className="text-ok text-sm font-bold">مرفوعة</span>}
       </div>
 
       <div className="relative w-full aspect-[16/10] rounded-xl overflow-hidden bg-panel-2 border border-line-2">
@@ -90,16 +91,16 @@ function DocUpload({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={url} alt={title} className="absolute inset-0 w-full h-full object-cover" />
         ) : (
-          <div className="absolute inset-0 grid place-items-center text-muted">📷 لسه مفيش صورة</div>
+          <div className="absolute inset-0 grid place-items-center text-muted"><Icon name="camera" className="w-4 h-4 inline-block align-[-3px] me-1.5" />لسه مفيش صورة</div>
         )}
       </div>
 
       {err && <span className="text-booked text-sm font-semibold">{err}</span>}
       {state.error && <span className="text-booked text-sm font-semibold">{state.error}</span>}
-      {state.ok && <span className="text-ok text-sm font-semibold">تم الحفظ ✅</span>}
+      {state.ok && <span className="text-ok text-sm font-semibold">تم الحفظ</span>}
 
       <label className="tap bg-panel-2 border-2 border-line-2 rounded-2xl py-3 text-center font-bold cursor-pointer">
-        {busy ? "بيحمّل…" : url ? "📷 صوّر تاني" : "📷 صوّر / اختار صورة"}
+        {busy ? "بيحمّل…" : url ? "صوّر تاني" : "صوّر / اختار صورة"}
         <input type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />
       </label>
 

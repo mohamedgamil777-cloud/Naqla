@@ -7,6 +7,7 @@ import { labelDateArabic, labelTime } from "@/lib/time";
 import { durationLabel } from "@/lib/client-time";
 import { BookingStatusBadge, PriceBreakdown, LinkButton } from "@/components/ui";
 import { CancelButton } from "@/components/CancelButton";
+import { Icon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
   const wa = waDigits(content.whatsapp);
 
   return (
-    <div className="p-4 flex flex-col gap-4">
+    <div className="p-4 flex flex-col gap-4 w-full max-w-3xl mx-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold">حجز #{b.code}</h1>
         <BookingStatusBadge status={b.status} />
@@ -49,7 +50,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             href={telHref(content.supportPhone)}
             className="tap inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-lg font-bold bg-panel border-2 border-line-2"
           >
-            📞 اتصل بنا
+            <Icon name="phone" className="w-4 h-4 inline-block align-[-3px] me-1.5" />اتصل بنا
           </a>
           <a
             href={`https://wa.me/${wa}?text=${encodeURIComponent(`بخصوص حجز ${b.code}`)}`}
@@ -57,7 +58,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             rel="noopener noreferrer"
             className="tap inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-lg font-bold bg-[#25D366] text-white"
           >
-            💬 واتساب
+            <Icon name="whatsapp" className="w-4 h-4 inline-block align-[-3px] me-1.5" />واتساب
           </a>
         </div>
         <LinkButton href="/bookings" variant="ghost" full>

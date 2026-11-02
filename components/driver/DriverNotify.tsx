@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Icon } from "@/components/Icons";
 
 export interface NotifyTrip {
   code: string;
@@ -56,7 +57,7 @@ export function DriverNotify({ trips, banner = true }: { trips: NotifyTrip[]; ba
       if (soon > nowMs && soon - nowMs < 24 * 60 * 60 * 1000) {
         timers.push(
           setTimeout(
-            () => notify(`${t.code}-soon`, "🔔 رحلة قربت", `بعد نص ساعة: ${t.vehicleName} الساعة ${t.timeLabel} — ${t.place}`),
+            () => notify(`${t.code}-soon`, "رحلة قربت", `بعد نص ساعة: ${t.vehicleName} الساعة ${t.timeLabel} — ${t.place}`),
             soon - nowMs
           )
         );
@@ -64,7 +65,7 @@ export function DriverNotify({ trips, banner = true }: { trips: NotifyTrip[]; ba
       if (t.startMs > nowMs && t.startMs - nowMs < 24 * 60 * 60 * 1000) {
         timers.push(
           setTimeout(
-            () => notify(`${t.code}-now`, "🚦 معاد الرحلة دلوقتي", `${t.vehicleName} — ${t.place}`),
+            () => notify(`${t.code}-now`, "معاد الرحلة دلوقتي", `${t.vehicleName} — ${t.place}`),
             t.startMs - nowMs
           )
         );
@@ -82,8 +83,8 @@ export function DriverNotify({ trips, banner = true }: { trips: NotifyTrip[]; ba
   return (
     <div className="flex flex-col gap-3">
       {!banner ? null : next ? (
-        <div className="bg-primary text-white rounded-card p-4 shadow-sm">
-          <div className="text-sm font-bold opacity-90">{started ? "🚗 رحلتك دلوقتي" : "🔔 رحلتك الجاية"}</div>
+        <div className="bg-primary text-white rounded-card p-4">
+          <div className="text-sm font-bold opacity-90">{started ? "رحلتك دلوقتي" : "رحلتك الجاية"}</div>
           <div className="text-2xl font-extrabold mt-1">
             {next.dayLabel} — {next.timeLabel}
           </div>
@@ -92,7 +93,7 @@ export function DriverNotify({ trips, banner = true }: { trips: NotifyTrip[]; ba
         </div>
       ) : (
         <div className="bg-ok-soft text-ok rounded-card p-4 text-center font-bold text-lg">
-          مفيش رحلات جاية دلوقتي 👍
+          مفيش رحلات جاية دلوقتي
         </div>
       )}
 
@@ -105,11 +106,11 @@ export function DriverNotify({ trips, banner = true }: { trips: NotifyTrip[]; ba
           }}
           className="w-full rounded-2xl border-2 border-primary text-primary bg-panel py-3 text-base font-extrabold tap hover:bg-primary-soft"
         >
-          🔔 شغّل التنبيهات عشان نفكّرك بالرحلة
+          <Icon name="bell" className="w-4 h-4 inline-block align-[-3px] me-1.5" />شغّل التنبيهات عشان نفكّرك بالرحلة
         </button>
       )}
       {perm === "granted" && (
-        <div className="text-center text-sm text-ok font-bold">✅ التنبيهات شغّالة — هنفكّرك قبل كل رحلة</div>
+        <div className="text-center text-sm text-ok font-bold">التنبيهات شغّالة — هنفكّرك قبل كل رحلة</div>
       )}
       {perm === "denied" && (
         <div className="text-center text-sm text-muted">التنبيهات مقفولة. افتح إعدادات الموبايل لو عايز تشغّلها.</div>

@@ -11,8 +11,8 @@ export function KindStep({ onPick, onBack }: { onPick: (kind: VehicleKind) => vo
   return (
     <StepCard title="محتاج نوع إيه؟" onBack={onBack}>
       <div className="grid grid-cols-2 gap-3">
-        <BigChoice icon="🚚" label="بيك أب" onClick={() => onPick("pickup")} />
-        <BigChoice icon="🚐" label="فان" onClick={() => onPick("van")} />
+        <BigChoice icon="truck" label="بيك أب" onClick={() => onPick("pickup")} />
+        <BigChoice icon="van" label="فان" onClick={() => onPick("van")} />
       </div>
     </StepCard>
   );
@@ -27,7 +27,7 @@ type VehicleStepProps = {
 export function VehicleStep({ vehicles, onPick, onBack }: VehicleStepProps) {
   return (
     <StepCard title="اختار العربية" onBack={onBack}>
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col md:grid md:grid-cols-2 gap-3">
         {vehicles.map((v) => (
           <button
             key={v.id}
@@ -82,9 +82,9 @@ export function WhenStep({ onPick, onBack }: { onPick: (dateISO: string) => void
 }
 
 const SLOT_LOOK: Record<SlotDTO["status"], { cls: string; label: string }> = {
-  available: { cls: "bg-panel border-2 border-line-2 hover:border-primary", label: "🟢 متاح" },
-  booked: { cls: "bg-booked-soft text-booked border-2 border-transparent", label: "🔴 محجوز" },
-  unavailable: { cls: "bg-off-soft text-off border-2 border-transparent", label: "⚪ مش متاح" },
+  available: { cls: "bg-panel border-2 border-line-2 hover:border-primary", label: "متاح" },
+  booked: { cls: "bg-booked-soft text-booked border-2 border-transparent", label: "محجوز" },
+  unavailable: { cls: "bg-off-soft text-off border-2 border-transparent", label: "مش متاح" },
 };
 
 type TimeStepProps = {
@@ -101,7 +101,7 @@ export function TimeStep({ slots, loading, onPick, onBack }: TimeStepProps) {
     <StepCard title="اختار الوقت" onBack={onBack}>
       {loading && <p className="text-muted text-center py-6">بنحمّل المواعيد…</p>}
       {slots && (
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-3 md:grid-cols-4 gap-2.5">
           {slots.map((s) => (
             <button
               key={s.hour24}

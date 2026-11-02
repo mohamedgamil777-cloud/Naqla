@@ -137,7 +137,7 @@ export function ScreenHead({ title, back = "/driver" }: { title: string; back?: 
 }
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <section className={`bg-panel border border-line rounded-card shadow-sm ${className}`}>{children}</section>;
+  return <section className={`bg-panel border border-line rounded-card ${className}`}>{children}</section>;
 }
 
 /** Full-screen notice (not logged in, not a driver, not found). */

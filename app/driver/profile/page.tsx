@@ -7,6 +7,7 @@ import { driverStats } from "@/db/lib/drivers";
 import { labelDateArabic } from "@/lib/time";
 import { DriverSwitch } from "@/components/driver/DriverSwitch";
 import { LinkButton } from "@/components/ui";
+import { Icon, type IconName } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export default async function DriverProfilePage() {
   const session = await getSession();
   if (!session) {
     return (
-      <Centered emoji="🔑" title="سجّل دخولك الأول">
+      <Centered icon="key" title="سجّل دخولك الأول">
         <LinkButton href="/login?next=/driver/profile" full>
           الدخول
         </LinkButton>
@@ -23,7 +24,7 @@ export default async function DriverProfilePage() {
   }
   const driver = await getStaffByPhone(session.phone);
   if (!driver || driver.role !== "driver") {
-    return <Centered emoji="🚫" title="الصفحة دي للسواقين بس" />;
+    return <Centered icon="ban" title="الصفحة دي للسواقين بس" />;
   }
 
   // totals are summed in the database; the list shows the latest deliveries only
@@ -41,14 +42,14 @@ export default async function DriverProfilePage() {
       </div>
 
       {/* Earnings */}
-      <div className="bg-primary text-white rounded-card p-5 shadow-sm">
-        <div className="text-sm font-bold opacity-90">💵 إجمالي أرباحي</div>
+      <div className="bg-primary text-white rounded-card p-5">
+        <div className="text-sm font-bold opacity-90"><Icon name="banknote" className="w-4 h-4 inline-block align-[-3px] me-1.5" />إجمالي أرباحي</div>
         <div className="text-4xl font-extrabold mt-1">{formatEgp(stats.earned)}</div>
         <div className="flex flex-wrap gap-2 mt-3 text-sm">
           <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold">
-            ✅ {stats.completed} توصيلة مكتملة
+            {stats.completed} توصيلة مكتملة
           </span>
-          <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold">🚚 {stats.active} شغل حالي</span>
+          <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold"><Icon name="truck" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{stats.active} شغل حالي</span>
           <span className="bg-white/15 rounded-xl px-3 py-1.5 font-bold" title="متوسط تقييم العملاء">
             {ratingLabel(stats.rating ?? undefined)}
           </span>
@@ -136,11 +137,13 @@ function Row({ k, v, ltr }: { k: string; v: string; ltr?: boolean }) {
   );
 }
 
-function Centered({ emoji, title, children }: { emoji: string; title: string; children?: React.ReactNode }) {
+function Centered({ icon, title, children }: { icon: IconName; title: string; children?: React.ReactNode }) {
   return (
     <div className="p-6 min-h-[60vh] flex flex-col items-center justify-center text-center gap-3">
-      <div className="text-6xl">{emoji}</div>
-      <h1 className="text-2xl font-extrabold">{title}</h1>
+      <span className="w-14 h-14 rounded-full bg-primary-soft text-primary grid place-items-center">
+        <Icon name={icon} className="w-7 h-7" />
+      </span>
+      <h1 className="text-xl font-bold">{title}</h1>
       <div className="flex flex-col gap-3 w-full max-w-xs">{children}</div>
     </div>
   );

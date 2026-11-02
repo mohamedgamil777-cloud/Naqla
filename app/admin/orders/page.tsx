@@ -15,6 +15,7 @@ import { Pagination, listHref } from "@/components/Pagination";
 import { CashPendingSummary } from "@/components/admin/orders/CashPendingSummary";
 import { OrderCard } from "@/components/admin/orders/OrderCard";
 import { OrdersFilter } from "@/components/admin/orders/OrdersFilter";
+import { Icon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +69,7 @@ export default async function AdminOrdersPage({
           </p>
         </div>
         <Link href="/admin/new-order" className="rounded-xl bg-primary text-white px-4 py-2 font-bold tap">
-          ☎️ طلب جديد بالتليفون
+          <Icon name="phone" className="w-4 h-4 inline-block align-[-3px] me-1.5" />طلب جديد بالتليفون
         </Link>
       </div>
 

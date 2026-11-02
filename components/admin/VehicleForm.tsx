@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { VEHICLE_STATUS_LABEL, VEHICLE_STATUSES } from "@/lib/constants";
 import type { CategoryDTO, VehicleEditData, VehiclePricingInput } from "@/types";
+import { Icon } from "@/components/Icons";
 
 const PRESET_IMAGES = [
   { url: "/vehicles/pickup-double.svg", label: "بيك أب دبل" },
@@ -102,7 +103,7 @@ export function VehicleForm({
           </div>
           <div className="flex flex-col gap-3">
             <label className="rounded-xl px-4 py-2.5 font-bold bg-primary text-white cursor-pointer inline-flex items-center gap-2 w-fit">
-              📷 {imgBusy ? "بيرفع…" : "ارفع صورة من جهازك"}
+              <Icon name="camera" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{imgBusy ? "بيرفع…" : "ارفع صورة من جهازك"}
               <input type="file" accept="image/*" onChange={onFile} className="hidden" />
             </label>
             {imgErr && <span className="text-booked text-sm font-semibold">{imgErr}</span>}

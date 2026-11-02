@@ -14,7 +14,7 @@ export function CompanyUserForm() {
       )}
       {s.ok && (
         <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-bold">
-          اتضاف ✅ يقدر يدخل برقمه ويطلب باسم الشركة
+          اتضاف يقدر يدخل برقمه ويطلب باسم الشركة
         </div>
       )}
       <div className="grid grid-cols-[1fr_1fr_auto] gap-2">

@@ -28,13 +28,13 @@ export function PlaceStep(props: PlaceStepProps) {
           label="من الفرع"
           active={props.place === "branch"}
           onClick={() => props.onPlace("branch")}
-          icon="🏢"
+          icon="building"
         />
         <BigChoice
           label="توصيل لعندي"
           active={props.place === "delivery"}
           onClick={() => props.onPlace("delivery")}
-          icon="📍"
+          icon="mapPin"
         />
       </div>
 

@@ -13,15 +13,15 @@ import {
 type Variant = "primary" | "accent" | "secondary" | "ghost" | "danger";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-white hover:brightness-110 shadow-sm",
-  accent: "bg-accent text-on-accent hover:brightness-105 shadow-sm",
-  secondary: "bg-panel text-ink border-2 border-line-2 hover:border-primary",
+  primary: "bg-primary text-white hover:bg-primary-ink",
+  accent: "bg-accent text-on-accent hover:brightness-95",
+  secondary: "bg-panel text-ink border border-line-2 hover:border-ink-2 hover:bg-panel-2",
   ghost: "bg-transparent text-primary hover:bg-primary-soft",
   danger: "bg-booked text-white hover:brightness-110",
 };
 
 const base =
-  "tap inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-lg font-bold text-center transition disabled:opacity-40 disabled:pointer-events-none select-none";
+  "tap inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-base font-semibold text-center cursor-pointer transition disabled:opacity-40 disabled:pointer-events-none select-none";
 
 export function Button({
   children,
@@ -64,7 +64,7 @@ export function LinkButton({
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`bg-panel border border-line rounded-card shadow-sm ${className}`}>
+    <div className={`bg-panel border border-line rounded-card ${className}`}>
       {children}
     </div>
   );
@@ -148,10 +148,10 @@ export function EmptyState({
 }) {
   return (
     <div className="text-center py-16 px-6 flex flex-col items-center">
-      <div className="w-28 h-28 rounded-full bg-primary-soft grid place-items-center mb-5">
-        <LogoMark className="w-20" />
+      <div className="w-16 h-16 rounded-full bg-primary-soft grid place-items-center mb-4">
+        <LogoMark className="w-10" />
       </div>
-      <h3 className="text-xl font-bold">{title}</h3>
+      <h3 className="text-lg font-bold">{title}</h3>
       {subtitle && <p className="text-muted mt-2">{subtitle}</p>}
       {action && <div className="mt-6 flex justify-center">{action}</div>}
     </div>
@@ -169,7 +169,7 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="block mb-2 font-bold text-ink">{label}</span>
+      <span className="block mb-1.5 text-sm font-semibold text-ink">{label}</span>
       {children}
       {hint && <span className="block mt-1.5 text-sm text-muted">{hint}</span>}
     </label>
@@ -177,4 +177,4 @@ export function Field({
 }
 
 export const inputClass =
-  "w-full rounded-2xl border-2 border-line-2 bg-panel px-4 py-3.5 text-lg outline-none focus:border-primary tap";
+  "w-full rounded-xl border border-line-2 bg-panel px-3.5 py-2.5 text-base outline-none hover:border-ink-2/40 focus:border-primary focus:ring-3 focus:ring-primary/15 tap";

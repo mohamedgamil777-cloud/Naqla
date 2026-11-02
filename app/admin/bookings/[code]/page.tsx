@@ -11,6 +11,7 @@ import { BookingManage } from "@/components/admin/BookingManage";
 import { PaymentsPanel } from "@/components/admin/PaymentsPanel";
 import { ExtendTrip } from "@/components/admin/ExtendTrip";
 import { requirePermission } from "@/lib/authz";
+import { Icon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export default async function AdminBookingDetail({ params }: { params: Promise<{
         <div className="bg-panel border border-line rounded-card p-5 flex flex-col gap-2">
           {b.source === "agent" && (
             <div className="bg-accent-soft text-accent-ink rounded-xl px-3 py-2 text-sm font-bold mb-1">
-              📝 حجز بواسطة الموظف{b.agentName ? `: ${b.agentName}` : ""}
+              <Icon name="pencil" className="w-4 h-4 inline-block align-[-3px] me-1.5" />حجز بواسطة الموظف{b.agentName ? `: ${b.agentName}` : ""}
             </div>
           )}
           <Row k="العميل" v={b.contactName ?? "-"} />

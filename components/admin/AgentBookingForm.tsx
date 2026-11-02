@@ -7,6 +7,7 @@ import { PriceBreakdown } from "@/components/ui";
 import { cairoDateISO, hourLabel, durationLabel, fullDateLabel } from "@/lib/client-time";
 import type { StaffDTO, VehicleListItem } from "@/types";
 import type { Quote } from "@/engines/pricing";
+import { Icon } from "@/components/Icons";
 
 const inp =
   "w-full rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary";
@@ -90,7 +91,7 @@ export function AgentBookingForm({ vehicles, staff }: { vehicles: VehicleListIte
   return (
     <form action={action} className="flex flex-col gap-6">
       <div className="bg-accent-soft rounded-xl px-4 py-3 text-sm font-semibold text-ink-2">
-        📝 الحجز ده هيتسجّل باسم «الموظف» — واضح إنه اتعمل من الإدارة نيابة عن العميل.
+        <Icon name="pencil" className="w-4 h-4 inline-block align-[-3px] me-1.5" />الحجز ده هيتسجّل باسم «الموظف» — واضح إنه اتعمل من الإدارة نيابة عن العميل.
       </div>
       {state.error && (
         <div className="bg-booked-soft text-booked rounded-xl px-4 py-3 font-semibold">{state.error}</div>

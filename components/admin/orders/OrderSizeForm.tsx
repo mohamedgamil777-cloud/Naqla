@@ -1,6 +1,7 @@
 import { changeOrderSizeAction } from "@/actions/admin/delivery-orders";
 import { formatEgp } from "@/lib/money";
 import type { CategoryDTO, DeliveryOrderDTO } from "@/types";
+import { Icon } from "@/components/Icons";
 
 type OrderSizeFormProps = { order: DeliveryOrderDTO; sizes: CategoryDTO[] };
 
@@ -14,7 +15,7 @@ export function OrderSizeForm({ order, sizes }: OrderSizeFormProps) {
       className="bg-panel-2 rounded-xl p-3 flex flex-wrap gap-2 items-center"
     >
       <input type="hidden" name="code" value={order.code} />
-      <span className="font-bold text-sm">🚚 حجم العربية:</span>
+      <span className="font-bold text-sm"><Icon name="truck" className="w-4 h-4 inline-block align-[-3px] me-1.5" />حجم العربية:</span>
       <select
         key={order.categoryId}
         name="categoryId"

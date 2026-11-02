@@ -127,7 +127,7 @@ function Greeting({ driver }: { driver: StaffDTO }) {
           <img
             src={driver.photo}
             alt={driver.name}
-            className="w-16 h-16 rounded-full object-cover border-2 border-panel shadow-sm"
+            className="w-16 h-16 rounded-full object-cover border-2 border-panel"
           />
         ) : (
           <span className="w-16 h-16 rounded-full bg-primary-soft text-primary grid place-items-center">
@@ -189,7 +189,7 @@ function CurrentOrder({ o, todayISO }: { o: DeliveryOrderDTO; todayISO: string }
         {started ? (
           <Link
             href={`/driver/trip/${o.code}`}
-            className="w-full min-h-[60px] rounded-2xl bg-accent text-on-accent text-xl font-extrabold flex items-center justify-center gap-2 shadow-[0_6px_16px_rgba(242,165,65,0.35)]"
+            className="w-full min-h-[60px] rounded-2xl bg-accent text-on-accent text-xl font-extrabold flex items-center justify-center gap-2"
           >
             كمّل الرحلة <Icon name="chevronLeft" className="w-6 h-6" strokeWidth={2.6} />
           </Link>

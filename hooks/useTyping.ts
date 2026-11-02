@@ -11,13 +11,15 @@ function isTextField(el: EventTarget | null): boolean {
 }
 
 /**
- * True while the user is typing in a text field (i.e. the phone keyboard is up).
+ * True while the user is typing in a text field on a touch device (i.e. the on-screen keyboard is up).
  * Fixed bottom bars use it to slide away so they never sit on top of the field
  * being typed in. A short delay on blur avoids flicker when hopping between fields.
+ * With a mouse there is no on-screen keyboard, so it stays false.
  */
 export function useTyping(): boolean {
   const [typing, setTyping] = useState(false);
   useEffect(() => {
+    if (!window.matchMedia("(pointer: coarse)").matches) return;
     let t: ReturnType<typeof setTimeout> | undefined;
     const onIn = (e: FocusEvent) => {
       if (!isTextField(e.target)) return;

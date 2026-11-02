@@ -63,7 +63,7 @@ export default async function AdminCustomers({
                 <span
                   className={`rounded-full px-2.5 py-1 ${c.phoneVerifiedAt ? "bg-ok-soft text-ok" : "bg-reserved-soft text-reserved"}`}
                 >
-                  {c.phoneVerifiedAt ? "✔ رقم مؤكد" : "رقم غير مؤكد"}
+                  {c.phoneVerifiedAt ? "رقم مؤكد" : "رقم غير مؤكد"}
                 </span>
                 <span
                   className={`rounded-full px-2.5 py-1 ${c.hasPassword ? "bg-primary-soft text-primary-ink" : "bg-panel-2 text-muted"}`}

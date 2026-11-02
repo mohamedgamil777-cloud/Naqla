@@ -31,7 +31,7 @@ export function HelpCenter({
   const shown = faqs.filter((f) => (!topic || f.topic === topic) && (!q || f.q.includes(q) || f.a.includes(q)));
 
   return (
-    <div className="p-4 flex flex-col gap-5">
+    <div className="p-4 flex flex-col gap-5 w-full max-w-3xl mx-auto">
       <header className="text-center pt-2">
         <h1 className="text-[1.9rem] font-extrabold leading-tight">محتاج مساعدة؟</h1>
         <p className="text-muted mt-1">إحنا معاك خطوة بخطوة</p>
@@ -39,7 +39,7 @@ export function HelpCenter({
 
       {/* Contact */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-panel border border-line rounded-card shadow-sm p-3 flex flex-col items-center text-center gap-1.5">
+        <div className="bg-panel border border-line rounded-card p-3 flex flex-col items-center text-center gap-1.5">
           <span className="w-14 h-14 rounded-full bg-primary-soft text-primary grid place-items-center">
             <Icon name="whatsapp" className="w-7 h-7" />
           </span>
@@ -58,7 +58,7 @@ export function HelpCenter({
             <span className="mt-auto w-full rounded-xl bg-panel-2 text-muted text-sm font-bold py-3">الرقم هيتضاف قريباً</span>
           )}
         </div>
-        <div className="bg-panel border border-line rounded-card shadow-sm p-3 flex flex-col items-center text-center gap-1.5">
+        <div className="bg-panel border border-line rounded-card p-3 flex flex-col items-center text-center gap-1.5">
           <span className="w-14 h-14 rounded-full bg-primary-soft text-primary grid place-items-center">
             <Icon name="phone" className="w-7 h-7" />
           </span>
@@ -79,7 +79,7 @@ export function HelpCenter({
       </div>
 
       {/* Search */}
-      <label className="flex items-center gap-3 bg-panel border border-line rounded-2xl px-4 py-3.5 shadow-sm focus-within:border-primary">
+      <label className="flex items-center gap-3 bg-panel border border-line rounded-2xl px-4 py-3.5 focus-within:border-primary">
         <Icon name="search" className="w-5 h-5 text-ink-2 shrink-0" />
         <input
           value={query}
@@ -107,7 +107,7 @@ export function HelpCenter({
                 aria-pressed={on}
                 onClick={() => setTopic(on ? null : t.id)}
                 className={`rounded-2xl border-2 py-3 flex flex-col items-center gap-1.5 ${
-                  on ? "border-primary bg-primary-soft" : "border-transparent bg-panel shadow-sm"
+                  on ? "border-primary bg-primary-soft" : "border-transparent bg-panel"
                 }`}
               >
                 <Icon name={t.icon} className="w-6 h-6 text-primary" />
@@ -130,7 +130,7 @@ export function HelpCenter({
             {shown.map((f) => {
               const isOpen = open === f.id;
               return (
-                <div key={f.id} className="bg-panel rounded-2xl shadow-sm border border-line overflow-hidden">
+                <div key={f.id} className="bg-panel rounded-2xl border border-line overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setOpen(isOpen ? null : f.id)}

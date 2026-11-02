@@ -4,6 +4,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import type { StaffDTO } from "@/types";
+import { Icon } from "@/components/Icons";
 
 const inp =
   "rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary";
@@ -12,7 +13,7 @@ export function PayoutForm({ drivers }: { drivers: StaffDTO[] }) {
   const [state, action] = useActionState<ActionResult, FormData>(addDriverPayoutAction, { ok: false });
   return (
     <form action={action} className="bg-panel border border-line rounded-card p-4 flex flex-col gap-3">
-      <h2 className="font-extrabold">💵 تسجيل تسديد لسائق</h2>
+      <h2 className="font-extrabold"><Icon name="banknote" className="w-4 h-4 inline-block align-[-3px] me-1.5" />تسجيل تسديد لسائق</h2>
       {state.error && (
         <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">
           {state.error}
@@ -20,7 +21,7 @@ export function PayoutForm({ drivers }: { drivers: StaffDTO[] }) {
       )}
       {state.ok && (
         <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">
-          تم تسجيل التسديد ✅
+          تم تسجيل التسديد
         </div>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

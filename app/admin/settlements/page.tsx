@@ -4,6 +4,7 @@ import { formatEgp } from "@/lib/money";
 import { labelDateArabic } from "@/lib/time";
 import { PayoutForm } from "@/components/admin/PayoutForm";
 import { requirePermission } from "@/lib/authz";
+import { Icon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export default async function SettlementsPage() {
         {rows.length === 0 && <div className="p-4 text-muted text-center">مفيش سواقين.</div>}
         {rows.map((r) => (
           <div key={r.driver.id} className="p-4 flex items-center justify-between gap-2 flex-wrap">
-            <div className="font-bold">🧑‍✈️ {r.driver.name}</div>
+            <div className="font-bold"><Icon name="user" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{r.driver.name}</div>
             <div className="flex gap-4 text-sm">
               <span className="text-ink-2">
                 كسب: <b>{formatEgp(r.earned)}</b>

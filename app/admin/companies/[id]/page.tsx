@@ -9,6 +9,7 @@ import { labelDateArabic, labelTime } from "@/lib/time";
 import { toLocal } from "@/lib/phone";
 import { CompanyForm, MemberForm, PaymentForm } from "@/components/admin/CompanyForms";
 import { requirePermission } from "@/lib/authz";
+import { Icon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -103,7 +104,7 @@ export default async function AdminCompany({ params }: { params: Promise<{ id: s
               href={`/admin/companies/${company.id}/statement?month=${m}`}
               className="rounded-xl border-2 border-primary text-primary px-4 py-2 font-bold hover:bg-primary-soft"
             >
-              📄 {monthLabel(m)}
+              <Icon name="file" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{monthLabel(m)}
             </Link>
           ))}
         </div>

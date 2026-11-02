@@ -24,9 +24,13 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/naqla_test
 npm run db:migrate   # apply migrations to naqla_dev
 npm run db:seed      # sample fleet, prices, bookings and staff logins (local databases only)
 npm test             # migrates naqla_test, empties it, runs the suite
+
+# start over on a clean database
+npm run db:reset     # drop everything in naqla_dev and re-apply all migrations
+npm run db:fresh     # db:reset + db:seed
 ```
 
-The test setup refuses any database whose name does not end in `_test`, because every run empties it. The seed script refuses any database that is not on this machine (its staff passwords are public, below).
+The test setup refuses any database whose name does not end in `_test`, because every run empties it. The seed and reset scripts refuse any database that is not on this machine (the seed's staff passwords are public, below; a reset deletes all data).
 
 ## Migrations
 

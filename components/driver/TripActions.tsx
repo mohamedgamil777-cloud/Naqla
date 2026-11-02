@@ -23,8 +23,8 @@ export function TripActions({ code, status }: { code: string; status: BookingSta
           {state.error}
         </div>
       )}
-      {canStart && <Btn to="active" className="bg-ok text-white" label="🚦 بدأت الرحلة" />}
-      {canFinish && <Btn to="completed" className="bg-primary text-white" label="✅ سلّمت العربية وخلّصت" />}
+      {canStart && <Btn to="active" className="bg-ok text-white" label="بدأت الرحلة" />}
+      {canFinish && <Btn to="completed" className="bg-primary text-white" label="سلّمت العربية وخلّصت" />}
     </form>
   );
 }

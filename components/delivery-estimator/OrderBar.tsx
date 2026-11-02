@@ -16,22 +16,28 @@ type OrderBarProps = {
   onOrder: () => void;
 };
 
-/** Sticky bar above the bottom nav: total, price details and the order button. */
+/** Phone / tablet: sticky bar above the bottom nav (total, price details, order button).
+ *  Desktop: a summary card in the side column with the breakdown always open. */
 export function OrderBar({ quote, pricing, ordering, error, hidden, onOrder }: OrderBarProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   return (
     <div
       aria-hidden={hidden || undefined}
-      className={`fixed inset-x-0 bottom-[calc(4.4rem+env(safe-area-inset-bottom))] z-30 transition-[transform,opacity] duration-200 ${
+      className={`fixed inset-x-0 bottom-[calc(4.4rem+env(safe-area-inset-bottom))] md:bottom-0 lg:static z-30 transition-[transform,opacity] duration-200 ${
         hidden ? "translate-y-[calc(100%+5rem)] opacity-0 pointer-events-none" : ""
       }`}
     >
-      <div className="max-w-lg mx-auto bg-panel border-t border-line shadow-[0_-8px_24px_rgba(16,32,28,0.08)] rounded-t-3xl">
-        {detailsOpen && quote && (
-          <div className="px-4 pt-4 max-h-[45vh] overflow-y-auto">
+      <div className="max-w-lg md:max-w-2xl lg:max-w-none mx-auto bg-panel border-t border-line shadow-[0_-8px_24px_rgba(16,32,28,0.08)] rounded-t-3xl md:pb-[env(safe-area-inset-bottom)] lg:pb-0 lg:border lg:rounded-card lg:shadow-none">
+        <h2 className="hidden lg:block px-4 pt-4 text-lg font-extrabold">ملخص الطلب</h2>
+        {quote ? (
+          <div
+            className={`px-4 pt-4 max-h-[45vh] overflow-y-auto lg:pt-3 lg:max-h-none ${detailsOpen ? "" : "hidden lg:block"}`}
+          >
             <PriceBreakdown quote={quote} />
           </div>
+        ) : (
+          <p className="hidden lg:block px-4 pt-2 text-muted">السعر هيظهر هنا أول ما تختار العربية.</p>
         )}
         {error && (
           <div className="mx-4 mt-3 bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-bold text-center">
@@ -43,12 +49,12 @@ export function OrderBar({ quote, pricing, ordering, error, hidden, onOrder }: O
             type="button"
             onClick={onOrder}
             disabled={ordering || !quote}
-            className="tap flex-1 whitespace-nowrap rounded-2xl bg-accent text-on-accent px-3 text-lg font-extrabold flex items-center justify-center gap-2 shadow-[0_6px_16px_rgba(242,165,65,0.35)] hover:brightness-105 disabled:opacity-50"
+            className="tap flex-1 whitespace-nowrap rounded-2xl bg-accent text-on-accent px-3 text-lg font-extrabold flex items-center justify-center gap-2 hover:brightness-105 disabled:opacity-50"
           >
             {ordering ? "بنبعت الطلب…" : "اطلب التوصيلة"}
             <Icon name="chevronLeft" className="w-5 h-5" strokeWidth={2.6} />
           </button>
-          <div className="text-center shrink-0">
+          <div className={`text-center shrink-0 ${quote ? "lg:hidden" : ""}`}>
             <div className={`text-2xl font-extrabold leading-none ${pricing ? "opacity-50" : ""}`}>
               {quote ? formatEgp(quote.total, { withUnit: false }) : "—"}
             </div>
@@ -59,7 +65,7 @@ export function OrderBar({ quote, pricing, ordering, error, hidden, onOrder }: O
             onClick={() => setDetailsOpen((o) => !o)}
             disabled={!quote}
             aria-expanded={detailsOpen}
-            className="shrink-0 text-xs font-bold text-primary flex flex-col items-center leading-tight disabled:opacity-40"
+            className="lg:hidden shrink-0 text-xs font-bold text-primary flex flex-col items-center leading-tight disabled:opacity-40"
           >
             <Icon name={detailsOpen ? "chevronDown" : "chevronUp"} className="w-4 h-4" />
             تفاصيل السعر

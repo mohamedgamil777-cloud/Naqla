@@ -6,6 +6,7 @@ import { waDigits } from "@/lib/content";
 import { formatEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import { LinkButton } from "@/components/ui";
+import { Icon } from "@/components/Icons";
 import { durationLabel } from "@/lib/client-time";
 
 export const dynamic = "force-dynamic";
@@ -21,9 +22,11 @@ export default async function ConfirmPage({ params }: { params: Promise<{ code: 
   const waMsg = encodeURIComponent(`مرحباً، بخصوص حجز رقم ${b.code} (${b.vehicleName})`);
 
   return (
-    <div className="p-4 flex flex-col gap-4">
+    <div className="p-4 flex flex-col gap-4 w-full max-w-2xl mx-auto">
       <div className="bg-ok-soft text-ok rounded-card p-6 text-center">
-        <div className="text-5xl mb-2">✅</div>
+        <span className="mx-auto mb-2 w-14 h-14 rounded-full bg-ok-soft text-ok grid place-items-center">
+          <Icon name="check" className="w-7 h-7" strokeWidth={2.6} />
+        </span>
         <h1 className="text-2xl font-extrabold">تم الحجز بنجاح</h1>
         <p className="mt-1 text-ink-2">رقم الحجز</p>
         <p className="text-4xl font-extrabold tracking-wider text-ink">#{b.code}</p>
@@ -56,7 +59,7 @@ export default async function ConfirmPage({ params }: { params: Promise<{ code: 
           rel="noopener noreferrer"
           className="tap inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-lg font-bold bg-[#25D366] text-white"
         >
-          💬 واتساب
+          <Icon name="whatsapp" className="w-4 h-4 inline-block align-[-3px] me-1.5" />واتساب
         </a>
       </div>
       <LinkButton href="/" variant="ghost" full>

@@ -29,7 +29,7 @@ function Ok({ state }: { state: ActionResult }) {
       </div>
     );
   if (state.ok)
-    return <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تم الحفظ ✅</div>;
+    return <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تم الحفظ</div>;
   return null;
 }
 

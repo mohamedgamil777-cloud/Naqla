@@ -232,7 +232,7 @@ export function BookingWizard({
       if (r.ok && j.code) {
         router.push(`/confirm/${j.code}`);
       } else if (r.status === 409) {
-        setErr("العربية دي مش متاحة في الوقت ده. جرب ميعاد تاني 👇");
+        setErr("العربية دي مش متاحة في الوقت ده. جرب ميعاد تاني");
         setAlts(j.alternatives ?? []);
       } else if (r.status === 401) {
         setAuthed(false);
@@ -262,7 +262,7 @@ export function BookingWizard({
   }
 
   return (
-    <div className="p-4 flex flex-col gap-4">
+    <div className="p-4 flex flex-col gap-4 w-full max-w-2xl mx-auto">
       <Stepper step={step} />
       <ChosenSummary vehicle={selected} kind={kind} dateISO={dateISO} startHour={startHour} hours={hours} />
 

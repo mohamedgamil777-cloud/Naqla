@@ -32,7 +32,7 @@ export function ExtrasSection(props: ExtrasSectionProps) {
       {props.showPromo && (
         <PromoField initial={props.initialPromo} message={props.promoMessage} onApply={props.onApplyPromo} />
       )}
-      <label className="bg-panel border border-line rounded-card shadow-sm p-4 flex flex-col gap-2">
+      <label className="bg-panel border border-line rounded-card p-4 flex flex-col gap-2">
         <span className="flex items-center gap-3 font-extrabold">
           <Icon name="file" className="w-7 h-7 text-ink-2 shrink-0" /> ملاحظات للسواق
           <span className="text-sm text-muted font-normal">(اختياري)</span>
@@ -43,7 +43,7 @@ export function ExtrasSection(props: ExtrasSectionProps) {
           maxLength={500}
           rows={2}
           placeholder="مثلاً: في أسانسير، اتصل قبل ما توصل بـ 10 دقايق"
-          className="rounded-xl bg-panel-2 border border-line px-3 py-2.5 text-base outline-none focus:border-primary resize-none"
+          className="rounded-xl bg-panel border border-line-2 px-3.5 py-2.5 text-base outline-none focus:border-primary focus:ring-3 focus:ring-primary/15 resize-none"
         />
       </label>
       {props.disclaimer && <p className="text-xs text-muted text-center">{props.disclaimer}</p>}
@@ -54,10 +54,11 @@ export function ExtrasSection(props: ExtrasSectionProps) {
 type LoadersCounterProps = { value: number; max: number; fee?: number; onChange: (n: number) => void };
 
 function LoadersCounter({ value, max, fee, onChange }: LoadersCounterProps) {
-  const roundButton = "w-10 h-10 rounded-full bg-panel-2 text-xl font-bold hover:bg-primary-soft";
+  const roundButton =
+    "w-10 h-10 rounded-lg border border-line-2 bg-panel text-xl font-semibold cursor-pointer hover:bg-panel-2 disabled:opacity-40";
 
   return (
-    <div className="bg-panel border border-line rounded-card shadow-sm p-4 flex items-center justify-between gap-3">
+    <div className="bg-panel border border-line rounded-card p-4 flex items-center justify-between gap-3">
       <div className="flex items-center gap-3">
         <Icon name="user" className="w-7 h-7 text-ink-2" />
         <div>
@@ -100,7 +101,7 @@ function PromoField({ initial, message, onApply }: PromoFieldProps) {
   const [code, setCode] = useState(initial);
 
   return (
-    <div className="bg-panel border border-line rounded-card shadow-sm p-4 flex flex-col gap-2">
+    <div className="bg-panel border border-line rounded-card p-4 flex flex-col gap-2">
       <span className="flex items-center gap-3 font-extrabold">
         <Icon name="ticket" className="w-7 h-7 text-ink-2 shrink-0" /> كود الخصم
       </span>
@@ -109,13 +110,13 @@ function PromoField({ initial, message, onApply }: PromoFieldProps) {
           value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder="اكتب كود الخصم هنا"
-          className="flex-1 min-w-0 rounded-xl bg-panel-2 border border-line px-3 py-2.5 text-base outline-none focus:border-primary"
+          className="flex-1 min-w-0 rounded-xl bg-panel border border-line-2 px-3.5 py-2.5 text-base outline-none focus:border-primary focus:ring-3 focus:ring-primary/15"
         />
         <button
           type="button"
           onClick={() => onApply(code.trim())}
           disabled={!code.trim()}
-          className="shrink-0 rounded-xl border-2 border-primary text-primary px-4 py-2 font-bold hover:bg-primary-soft disabled:opacity-40"
+          className="shrink-0 rounded-xl border border-line-2 bg-panel text-ink px-4 py-2 font-semibold cursor-pointer hover:bg-panel-2 disabled:opacity-40"
         >
           تطبيق
         </button>

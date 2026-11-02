@@ -8,6 +8,7 @@ import { useFormStatus } from "react-dom";
 import { minPasswordFor } from "@/lib/password-policy";
 import { ImageField } from "@/components/admin/ImageField";
 import type { StaffDTO, StaffRole } from "@/types";
+import { Icon } from "@/components/Icons";
 
 const ROLES: { value: StaffRole; label: string }[] = [
   { value: "super_admin", label: "مدير عام" },
@@ -92,7 +93,7 @@ function StaffForm({ staff, rating }: { staff?: StaffDTO; rating?: RatingStat })
         </div>
       )}
       {state.ok && (
-        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تم الحفظ ✅</div>
+        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تم الحفظ</div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -145,12 +146,12 @@ function StaffForm({ staff, rating }: { staff?: StaffDTO; rating?: RatingStat })
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
-        <ImageField name="photo" label="📷 الصورة الشخصية" defaultValue={staff?.photo} />
+        <ImageField name="photo" label="الصورة الشخصية" defaultValue={staff?.photo} />
         {role === "driver" && (
-          <ImageField name="drivingLicense" label="🪪 رخصة القيادة" defaultValue={staff?.drivingLicense} />
+          <ImageField name="drivingLicense" label="رخصة القيادة" defaultValue={staff?.drivingLicense} />
         )}
         {role === "driver" && (
-          <ImageField name="vehicleLicense" label="🚗 رخصة العربية" defaultValue={staff?.vehicleLicense} />
+          <ImageField name="vehicleLicense" label="رخصة العربية" defaultValue={staff?.vehicleLicense} />
         )}
       </div>
 
@@ -183,7 +184,7 @@ function PasswordForm({ staff }: { staff: StaffDTO }) {
     >
       <input type="hidden" name="id" value={staff.id} />
       <div className="flex items-center gap-2 text-sm font-bold">
-        🔑 كلمة السر
+        <Icon name="key" className="w-4 h-4 inline-block align-[-3px] me-1.5" />كلمة السر
         <span
           className={`rounded-full px-2 py-0.5 text-xs ${staff.hasPassword ? "bg-ok-soft text-ok" : "bg-booked-soft text-booked"}`}
         >
@@ -197,7 +198,7 @@ function PasswordForm({ staff }: { staff: StaffDTO }) {
       )}
       {state.ok && (
         <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">
-          اتحفظت كلمة السر ✅ ابعتها له.
+          اتحفظت كلمة السر ابعتها له.
         </div>
       )}
       <div className="flex gap-2">

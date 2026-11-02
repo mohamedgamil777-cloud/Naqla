@@ -146,6 +146,11 @@ export function DeliveryEstimator({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the day changes
   }, [date]);
 
+  // Desktop has room for the map: show it from the start instead of behind the toggle.
+  useEffect(() => {
+    if (window.matchMedia("(min-width: 1024px)").matches) setMapOpen(true);
+  }, []);
+
   // Once both addresses are filled, drop the "missing address" warning.
   useEffect(() => {
     if (addrError && pickupAddr.trim() && dropoffAddr.trim()) {
@@ -385,111 +390,116 @@ export function DeliveryEstimator({
     ) : null;
 
   return (
-    <div className="flex flex-col gap-4">
-      {account?.company && <CompanyBanner company={account.company} />}
-      <Stepper done={[placesDone, timeTouched, vehicleTouched, false]} onGo={goTo} />
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-6 lg:items-start">
+      <div className="flex flex-col gap-4">
+        {account?.company && <CompanyBanner company={account.company} />}
+        <Stepper done={[placesDone, timeTouched, vehicleTouched, false]} onGo={goTo} />
 
-      <PlacesCard>
-        <StopFields
-          stop="a"
-          address={pickupAddr}
-          details={pickupDetails}
-          onAddress={setPickupAddr}
-          onDetails={setPickupDetails}
-          onFocus={() => setActiveStop("a")}
-          missing={missingPickup}
-          action={<LocateButton locating={locating} onClick={useMyLocation} />}
-        >
-          {savedChips("a")}
-        </StopFields>
+        <PlacesCard>
+          <StopFields
+            stop="a"
+            address={pickupAddr}
+            details={pickupDetails}
+            onAddress={setPickupAddr}
+            onDetails={setPickupDetails}
+            onFocus={() => setActiveStop("a")}
+            missing={missingPickup}
+            action={<LocateButton locating={locating} onClick={useMyLocation} />}
+          >
+            {savedChips("a")}
+          </StopFields>
 
-        <SwapDivider onSwap={swap} />
+          <SwapDivider onSwap={swap} />
 
-        <StopFields
-          stop="b"
-          address={dropoffAddr}
-          details={dropoffDetails}
-          onAddress={setDropoffAddr}
-          onDetails={setDropoffDetails}
-          onFocus={() => setActiveStop("b")}
-          missing={missingDropoff}
-          action={<MapToggleButton open={mapOpen} onClick={() => setMapOpen((o) => !o)} />}
-        >
-          {savedChips("b")}
-          {addrError && !placesDone && (
-            <p className="text-sm font-bold text-booked">
-              اكتب عنوان الاستلام والتسليم عشان السواق يوصل للمكان بالظبط.
-            </p>
-          )}
-        </StopFields>
+          <StopFields
+            stop="b"
+            address={dropoffAddr}
+            details={dropoffDetails}
+            onAddress={setDropoffAddr}
+            onDetails={setDropoffDetails}
+            onFocus={() => setActiveStop("b")}
+            missing={missingDropoff}
+            action={<MapToggleButton open={mapOpen} onClick={() => setMapOpen((o) => !o)} />}
+          >
+            {savedChips("b")}
+            {addrError && !placesDone && (
+              <p className="text-sm font-bold text-booked">
+                اكتب عنوان الاستلام والتسليم عشان السواق يوصل للمكان بالظبط.
+              </p>
+            )}
+          </StopFields>
 
-        <MapPanel
-          open={mapOpen}
-          error={mapError}
-          active={activeStop}
-          onActive={setActiveStop}
-          container={mapEl}
+          <MapPanel
+            open={mapOpen}
+            error={mapError}
+            active={activeStop}
+            onActive={setActiveStop}
+            container={mapEl}
+          />
+          <DistanceBar km={km} onChange={setKm} />
+        </PlacesCard>
+
+        <ScheduleSection
+          date={date}
+          time={time}
+          minDate={firstDay}
+          maxDate={addDaysISO(today, options.advanceDays)}
+          slots={availableSlots}
+          onDate={(day) => {
+            setDate(day);
+            setTimeTouched(true);
+          }}
+          onTime={(slot) => {
+            setTime(slot);
+            setTimeTouched(true);
+          }}
         />
-        <DistanceBar km={km} onChange={setKm} />
-      </PlacesCard>
 
-      <ScheduleSection
-        date={date}
-        time={time}
-        minDate={firstDay}
-        maxDate={addDaysISO(today, options.advanceDays)}
-        slots={availableSlots}
-        onDate={(day) => {
-          setDate(day);
-          setTimeTouched(true);
-        }}
-        onTime={(slot) => {
-          setTime(slot);
-          setTimeTouched(true);
-        }}
-      />
+        <CargoHints hints={options.cargo} selected={hint} onPick={pickHint} />
 
-      <CargoHints hints={options.cargo} selected={hint} onPick={pickHint} />
+        <VehiclePicker
+          sizes={sizes}
+          selectedId={sizeId}
+          recommendedId={recommended}
+          onSelect={(id) => {
+            setSizeId(id);
+            setVehicleTouched(true);
+          }}
+        />
 
-      <VehiclePicker
-        sizes={sizes}
-        selectedId={sizeId}
-        recommendedId={recommended}
-        onSelect={(id) => {
-          setSizeId(id);
-          setVehicleTouched(true);
-        }}
-      />
+        <ExtrasSection
+          key={promoFieldKey}
+          loaders={loaders}
+          maxLoaders={options.maxLoaders}
+          loaderFee={loaderFee}
+          onLoaders={setLoaders}
+          showPromo={!account?.company}
+          initialPromo={appliedPromo}
+          promoMessage={promoMsg}
+          onApplyPromo={(code) => {
+            setPromoMsg(null);
+            setAppliedPromo(code);
+          }}
+          notes={notes}
+          onNotes={setNotes}
+          disclaimer={options.disclaimer}
+        />
 
-      <ExtrasSection
-        key={promoFieldKey}
-        loaders={loaders}
-        maxLoaders={options.maxLoaders}
-        loaderFee={loaderFee}
-        onLoaders={setLoaders}
-        showPromo={!account?.company}
-        initialPromo={appliedPromo}
-        promoMessage={promoMsg}
-        onApplyPromo={(code) => {
-          setPromoMsg(null);
-          setAppliedPromo(code);
-        }}
-        notes={notes}
-        onNotes={setNotes}
-        disclaimer={options.disclaimer}
-      />
+        {/* spacer so the sticky bar never hides content */}
+        <div className="h-24 lg:hidden" aria-hidden />
+      </div>
 
-      {/* spacer so the sticky bar never hides content */}
-      <div className="h-24" aria-hidden />
-
-      <OrderBar
-        quote={quote}
-        pricing={pricing}
-        ordering={ordering}
-        error={orderErr}
-        hidden={typing}
-        onOrder={placeOrder}
-      />
+      {/* desktop: summary beside the form, following the scroll */}
+      <aside className="lg:sticky lg:top-24">
+        <OrderBar
+          quote={quote}
+          pricing={pricing}
+          ordering={ordering}
+          error={orderErr}
+          hidden={typing}
+          onOrder={placeOrder}
+        />
+      </aside>
     </div>
   );
 }

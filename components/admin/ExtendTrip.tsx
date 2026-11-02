@@ -33,7 +33,7 @@ export function ExtendTrip({
       )}
       {state.ok && (
         <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">
-          تم تعديل المدة والسعر ✅
+          تم تعديل المدة والسعر
         </div>
       )}
       <form action={action} className="flex flex-wrap items-end gap-3">

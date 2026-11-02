@@ -131,15 +131,14 @@ export function roadKm(a: LatLng, b: LatLng): number {
 /** Address box: clearly an input — border, tinted background, strong focus ring; red when missing. */
 export function addrField(missing: boolean) {
   const base =
-    "w-full rounded-xl border-2 px-4 py-3.5 text-lg font-semibold text-ink outline-none transition " +
-    "placeholder:text-muted/70 placeholder:font-normal placeholder:text-base focus:bg-panel focus:border-primary " +
-    "focus:shadow-[0_0_0_4px_var(--color-primary-soft)]";
-  return `${base} ${missing ? "border-booked bg-booked-soft/50" : "border-line-2 bg-ground"}`;
+    "w-full rounded-xl border bg-panel px-3.5 py-2.5 text-base font-medium text-ink outline-none transition " +
+    "placeholder:text-muted/70 placeholder:font-normal focus:border-primary focus:ring-3 focus:ring-primary/15";
+  return `${base} ${missing ? "border-booked ring-3 ring-booked/15" : "border-line-2 hover:border-ink-2/40"}`;
 }
 
 export const detailField =
-  "w-full rounded-xl border border-line bg-panel px-4 py-2.5 text-base text-ink-2 outline-none transition " +
-  "placeholder:text-muted/70 focus:border-primary focus:shadow-[0_0_0_3px_var(--color-primary-soft)]";
+  "w-full rounded-xl border border-line bg-panel px-3.5 py-2 text-[15px] text-ink-2 outline-none transition " +
+  "placeholder:text-muted/70 focus:border-primary focus:ring-3 focus:ring-primary/15";
 
 /** What the order form keeps in sessionStorage across the login detour. */
 export interface OrderDraft {

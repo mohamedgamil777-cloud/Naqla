@@ -30,7 +30,7 @@ export function CustomerPasswordForm({ id }: { id: string }) {
       )}
       {state.ok && (
         <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">
-          اتحفظت ✅ قولها للعميل.
+          اتحفظت قولها للعميل.
         </div>
       )}
       <div className="flex gap-2">

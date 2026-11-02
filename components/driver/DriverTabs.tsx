@@ -34,7 +34,34 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/driver/profile", label: "صفحتي", icon: "user" },
 ];
 
-/** Bottom navigation for the driver app. */
+function isActive(path: string, href: string) {
+  return href === "/driver" ? path === "/driver" || path.startsWith("/driver/trip") : path.startsWith(href);
+}
+
+/** Tablet / desktop: the bottom-nav destinations as plain header links. */
+export function DriverHeaderNav() {
+  const path = usePathname();
+  return (
+    <nav className="hidden md:flex items-stretch self-stretch gap-6" aria-label="القائمة">
+      {NAV.map((it) => {
+        const active = isActive(path, it.href);
+        return (
+          <Link
+            key={it.href}
+            href={it.href}
+            aria-current={active ? "page" : undefined}
+            className={`relative flex items-center text-[15px] ${active ? "text-ink font-semibold" : "text-muted hover:text-ink"}`}
+          >
+            {it.label}
+            {active && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" aria-hidden />}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** Phone: bottom navigation for the driver pages. */
 export function DriverNav() {
   const path = usePathname();
   // slide away while the keyboard is up so it never covers the field being typed in
@@ -42,15 +69,15 @@ export function DriverNav() {
   return (
     <nav
       aria-hidden={typing || undefined}
-      className={`fixed bottom-0 inset-x-0 z-40 bg-panel border-t border-line pb-[env(safe-area-inset-bottom)] transition-transform duration-200 ${
+      className={`md:hidden fixed bottom-0 inset-x-0 z-40 bg-panel border-t border-line pb-[env(safe-area-inset-bottom)] transition-transform duration-200 ${
         typing ? "translate-y-full" : ""
       }`}
     >
       <div className="max-w-lg mx-auto grid grid-cols-3">
         {NAV.map((it) => {
-          const active = it.href === "/driver" ? path === "/driver" || path.startsWith("/driver/trip") : path.startsWith(it.href);
+          const active = isActive(path, it.href);
           return (
-            <Link key={it.href} href={it.href} className={`flex flex-col items-center gap-1 py-2.5 text-sm ${active ? "text-primary font-bold" : "text-muted font-semibold"}`}>
+            <Link key={it.href} href={it.href} aria-current={active ? "page" : undefined} className={`flex flex-col items-center gap-1 py-2.5 text-sm ${active ? "text-primary font-bold" : "text-muted font-semibold"}`}>
               <Icon name={it.icon} className="w-7 h-7" strokeWidth={active ? 2.3 : 1.8} />
               {it.label}
             </Link>

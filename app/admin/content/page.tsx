@@ -3,6 +3,7 @@ import { listCategories } from "@/db/lib/categories";
 import { getAppContent } from "@/db/lib/settings";
 import { ContentForms } from "@/components/admin/ContentForms";
 import { requirePermission } from "@/lib/authz";
+import { Icon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function AdminContentPage() {
       </div>
       {!content.supportPhone || !content.whatsapp ? (
         <div className="bg-rented-soft text-rented rounded-xl px-4 py-3 font-bold">
-          ⚠️ أرقام التواصل لسه متحطّتش — العملاء مش هيعرفوا يكلّموك. اكتبها تحت.
+          <Icon name="alert" className="w-4 h-4 inline-block align-[-3px] me-1.5" />أرقام التواصل لسه متحطّتش — العملاء مش هيعرفوا يكلّموك. اكتبها تحت.
         </div>
       ) : null}
       <ContentForms content={content} sizeCodes={sizeCodes} />

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { fullDateLabel, hourLabel, durationLabel } from "@/lib/client-time";
 import { KIND_LABEL, type VehicleKind } from "@/lib/constants";
 import type { VehicleListItem } from "@/types";
+import { Icon, type IconName } from "@/components/Icons";
 
 export type Step = "kind" | "vehicle" | "when" | "time" | "duration" | "place" | "review";
 export const STEP_ORDER: Step[] = ["kind", "vehicle", "when", "time", "duration", "place", "review"];
@@ -86,7 +87,7 @@ export function StepCard({
   onBack: () => void;
 }) {
   return (
-    <div className="bg-panel border border-line rounded-card p-4 shadow-sm">
+    <div className="bg-panel border border-line rounded-card p-4">
       <div className="flex items-center gap-3 mb-4">
         <button
           type="button"
@@ -103,23 +104,21 @@ export function StepCard({
   );
 }
 
-type BigChoiceProps = { icon?: string; label: string; onClick: () => void; active?: boolean };
+type BigChoiceProps = { icon?: IconName; label: string; onClick: () => void; active?: boolean };
 
 export function BigChoice({ icon, label, onClick, active }: BigChoiceProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`tap rounded-2xl py-4 px-3 font-extrabold text-lg flex flex-col items-center gap-1.5 border-2 transition ${
+      className={`tap rounded-xl py-4 px-3 font-semibold text-base flex flex-col items-center gap-2 border cursor-pointer transition ${
         active
-          ? "border-primary bg-primary-soft text-primary-ink"
-          : "border-line-2 bg-panel hover:border-primary"
+          ? "border-primary ring-1 ring-primary bg-primary-soft/60 text-primary-ink"
+          : "border-line-2 bg-panel hover:border-ink-2/40"
       }`}
     >
       {icon && (
-        <span className="text-3xl" aria-hidden>
-          {icon}
-        </span>
+        <Icon name={icon} className="w-7 h-7 text-primary" strokeWidth={1.7} />
       )}
       {label}
     </button>

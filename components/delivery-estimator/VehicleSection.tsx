@@ -24,12 +24,12 @@ export function CargoHints({ hints, selected, onPick }: CargoHintsProps) {
               type="button"
               onClick={() => onPick(h.size)}
               aria-pressed={on}
-              className={`rounded-2xl border-2 py-3 px-1 flex flex-col items-center gap-1.5 text-center ${
-                on ? "border-primary bg-primary-soft" : "border-line bg-panel hover:border-line-2"
+              className={`rounded-xl border py-3 px-1 flex flex-col items-center gap-1.5 text-center cursor-pointer ${
+                on ? "border-primary ring-1 ring-primary bg-primary-soft/60" : "border-line bg-panel hover:border-line-2"
               }`}
             >
-              <Icon name={h.icon} className={`w-7 h-7 ${on ? "text-primary" : "text-ink-2"}`} />
-              <span className="text-xs font-bold leading-tight">{h.label}</span>
+              <Icon name={h.icon} className={`w-6 h-6 ${on ? "text-primary" : "text-ink-2"}`} strokeWidth={1.7} />
+              <span className="text-xs font-semibold leading-tight">{h.label}</span>
             </button>
           );
         })}
@@ -111,8 +111,8 @@ function SizeCard({ size: s, selected, recommended, onSelect }: SizeCardProps) {
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className={`relative snap-start shrink-0 w-[8.4rem] rounded-2xl border-2 p-2.5 pt-3 flex flex-col items-center gap-1 text-center ${
-        selected ? "border-primary bg-panel shadow-[0_6px_16px_rgba(19,95,90,0.15)]" : "border-line bg-panel"
+      className={`relative snap-start shrink-0 w-[8.4rem] rounded-xl border p-2.5 pt-3 flex flex-col items-center gap-1 text-center cursor-pointer ${
+        selected ? "border-primary ring-1 ring-primary bg-panel" : "border-line bg-panel hover:border-line-2"
       }`}
     >
       {selected && (
@@ -130,7 +130,7 @@ function SizeCard({ size: s, selected, recommended, onSelect }: SizeCardProps) {
           // eslint-disable-next-line @next/next/no-img-element -- admin uploads are data: URLs
           <img src={s.image} alt={s.name} className="w-full h-full object-cover" />
         ) : (
-          <Icon name="truck" className="w-10 h-10 text-primary" />
+          <Icon name="truck" className="w-9 h-9 text-primary/70" strokeWidth={1.5} />
         )}
       </div>
       <span className="font-extrabold mt-1">{s.name}</span>

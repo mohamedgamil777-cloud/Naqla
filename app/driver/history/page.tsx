@@ -8,7 +8,7 @@ import { labelDateArabic, labelTime } from "@/lib/time";
 import { DriverTabs } from "@/components/driver/DriverTabs";
 import { DriverSwitch } from "@/components/driver/DriverSwitch";
 import { LinkButton } from "@/components/ui";
-import { Icon } from "@/components/Icons";
+import { Icon, type IconName } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,7 @@ export default async function DriverHistoryPage({
   const session = await getSession();
   if (!session) {
     return (
-      <Centered emoji="🔑" title="سجّل دخولك الأول">
+      <Centered icon="key" title="سجّل دخولك الأول">
         <LinkButton href="/login?next=/driver/history" full>
           الدخول
         </LinkButton>
@@ -42,7 +42,7 @@ export default async function DriverHistoryPage({
   }
   const driver = await getStaffByPhone(session.phone);
   if (!driver || driver.role !== "driver") {
-    return <Centered emoji="🚫" title="الصفحة دي للسواقين بس" />;
+    return <Centered icon="ban" title="الصفحة دي للسواقين بس" />;
   }
 
   // finished orders, latest pickup first, one page at a time
@@ -72,7 +72,7 @@ export default async function DriverHistoryPage({
 
       {items.length === 0 ? (
         <div className="bg-panel border border-line rounded-card p-8 text-center">
-          <div className="text-5xl mb-3">🗂️</div>
+          <Icon name="inbox" className="w-10 h-10 mx-auto mb-3 text-muted" strokeWidth={1.5} />
           <p className="text-lg font-bold">لسه مفيش رحلات قديمة</p>
           <p className="text-muted mt-1">اللي بتخلّصه هيظهر هنا.</p>
         </div>
@@ -123,11 +123,13 @@ export default async function DriverHistoryPage({
   );
 }
 
-function Centered({ emoji, title, children }: { emoji: string; title: string; children?: React.ReactNode }) {
+function Centered({ icon, title, children }: { icon: IconName; title: string; children?: React.ReactNode }) {
   return (
     <div className="p-6 min-h-[60vh] flex flex-col items-center justify-center text-center gap-3">
-      <div className="text-6xl">{emoji}</div>
-      <h1 className="text-2xl font-extrabold">{title}</h1>
+      <span className="w-14 h-14 rounded-full bg-primary-soft text-primary grid place-items-center">
+        <Icon name={icon} className="w-7 h-7" />
+      </span>
+      <h1 className="text-xl font-bold">{title}</h1>
       <div className="flex flex-col gap-3 w-full max-w-xs">{children}</div>
     </div>
   );

@@ -10,7 +10,7 @@ const inp =
   "w-full rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary";
 const lbl = "text-xs font-bold text-ink-2";
 
-function Status({ s, okText = "تم الحفظ ✅" }: { s: ActionResult; okText?: string }) {
+function Status({ s, okText = "تم الحفظ" }: { s: ActionResult; okText?: string }) {
   if (s.error)
     return <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-bold">{s.error}</div>;
   if (s.ok) return <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-bold">{okText}</div>;
@@ -114,7 +114,7 @@ export function MemberForm({ companyId }: { companyId: string }) {
   return (
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="companyId" value={companyId} />
-      <Status s={s} okText="اتضاف ✅ — يقدر يدخل برقمه ويطلب باسم الشركة" />
+      <Status s={s} okText="اتضاف — يقدر يدخل برقمه ويطلب باسم الشركة" />
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_auto] gap-2">
         <input className={inp} name="phone" dir="ltr" required placeholder="موبايل المستخدم 01xxxxxxxxx" />
         <input className={inp} name="name" placeholder="الاسم" />
@@ -133,7 +133,7 @@ export function PaymentForm({ companyId }: { companyId: string }) {
   return (
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="companyId" value={companyId} />
-      <Status s={s} okText="اتسجّلت الدفعة ✅" />
+      <Status s={s} okText="اتسجّلت الدفعة" />
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr_auto] gap-2">
         <input
           className={inp}

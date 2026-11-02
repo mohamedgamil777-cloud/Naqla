@@ -4,14 +4,14 @@
    Brand: teal = brand & trust · amber = the ONE main action per screen ·
    cream/white = base · near-black text · maroon only inside the logo (parcel). */
 @theme {
-  --color-ground: #f7f4ec;
+  --color-ground: #f5f4f0;
   --color-panel: #ffffff;
-  --color-panel-2: #efe9dc;
+  --color-panel-2: #efede7;
   --color-ink: #10201c;
   --color-ink-2: #3b4542;
   --color-muted: #6e716b;
-  --color-line: #e6dfd0;
-  --color-line-2: #d6cdb9;
+  --color-line: #e5e2da;
+  --color-line-2: #d4cfc3;
 
   --color-primary: #0b6b5b; /* teal: selected states, step buttons, links */
   --color-primary-ink: #08503f;
@@ -43,7 +43,10 @@
 
   --font-sans: var(--font-cairo), system-ui, "Segoe UI", sans-serif;
 
-  --radius-card: 16px;
+  /* Radii: tight and consistent — 6 chips/inputs-sm · 10 controls · 12 cards. */
+  --radius-card: 12px;
+  --radius-xl: 0.625rem;
+  --radius-2xl: 0.75rem;
 }
 
 html {
@@ -95,28 +98,20 @@ body {
   a.tap:active {
     transform: scale(0.98);
   }
-  @keyframes naqla-rise {
-    from {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-  main > * {
-    animation: naqla-rise 0.32s ease-out backwards; /* not "both": a held transform would trap position:fixed children */
-  }
   ::selection {
     background: var(--color-accent-soft);
     color: var(--color-primary-ink);
   }
 }
 
-/* Buttons never smaller than a comfortable tap target. */
+/* Controls never smaller than a comfortable target: finger-sized on phones, pointer-sized from tablet up. */
 .tap {
-  min-height: 52px;
+  min-height: 48px;
+}
+@media (min-width: 768px) {
+  .tap {
+    min-height: 44px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

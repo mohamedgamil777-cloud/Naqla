@@ -92,7 +92,7 @@ export function PaymentsPanel({
         )}
         {state.ok && (
           <div className="w-full bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">
-            تم تسجيل الدفعة ✅
+            تم تسجيل الدفعة
           </div>
         )}
         <label>

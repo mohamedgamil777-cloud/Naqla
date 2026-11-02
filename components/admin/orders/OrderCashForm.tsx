@@ -2,6 +2,7 @@ import { setOrderCashAction } from "@/actions/admin/delivery-orders";
 import { formatEgp, piastresToEgp } from "@/lib/money";
 import { labelDateArabic, labelTime } from "@/lib/time";
 import type { DeliveryOrderDTO } from "@/types";
+import { Icon } from "@/components/Icons";
 
 type OrderCashFormProps = { order: DeliveryOrderDTO };
 
@@ -16,7 +17,7 @@ export function OrderCashForm({ order }: OrderCashFormProps) {
         className="bg-reserved-soft rounded-xl p-3 flex flex-wrap gap-2 items-center"
       >
         <input type="hidden" name="code" value={order.code} />
-        <span className="font-bold text-sm">💵 الكاش لسه مع السواق — المطلوب {formatEgp(total)}</span>
+        <span className="font-bold text-sm"><Icon name="banknote" className="w-4 h-4 inline-block align-[-3px] me-1.5" />الكاش لسه مع السواق — المطلوب {formatEgp(total)}</span>
         <input
           name="amount"
           type="number"
@@ -43,7 +44,7 @@ export function OrderCashForm({ order }: OrderCashFormProps) {
       <input type="hidden" name="code" value={order.code} />
       <input type="hidden" name="undo" value="1" />
       <span className="font-bold text-sm text-ok">
-        ✅ اتسلّم {formatEgp(order.cashReceived)}
+        اتسلّم {formatEgp(order.cashReceived)}
         {receivedAt}
         {receivedBy}
       </span>

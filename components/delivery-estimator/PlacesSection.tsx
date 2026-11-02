@@ -33,7 +33,7 @@ export function SwapDivider({ onSwap }: { onSwap: () => void }) {
         type="button"
         onClick={onSwap}
         aria-label="بدّل الاستلام والتسليم"
-        className="absolute left-6 -top-[18px] w-9 h-9 rounded-full bg-panel border border-line shadow-sm grid place-items-center text-ink-2 hover:text-primary"
+        className="absolute left-6 -top-[18px] w-9 h-9 rounded-full bg-panel border border-line grid place-items-center text-ink-2 hover:text-primary"
       >
         <Icon name="swap" className="w-4 h-4" />
       </button>
@@ -52,7 +52,7 @@ type MapPanelProps = {
 /** Collapsible map: choose which pin a tap moves, then tap / drag on the map. */
 export function MapPanel({ open, error, active, onActive, container }: MapPanelProps) {
   const toggle = (stop: Stop, on: string) =>
-    `rounded-xl py-2 text-sm font-bold border-2 ${active === stop ? on : "border-line bg-panel text-ink-2"}`;
+    `rounded-lg py-2 text-sm font-semibold border cursor-pointer ${active === stop ? on : "border-line-2 bg-panel text-ink-2 hover:bg-panel-2"}`;
 
   return (
     <div className={open ? "block" : "hidden"}>
@@ -73,11 +73,11 @@ export function MapPanel({ open, error, active, onActive, container }: MapPanelP
         </button>
       </div>
       {error ? (
-        <div className="mx-4 mb-3 h-52 grid place-items-center rounded-xl bg-panel-2 text-center text-muted p-4 text-sm">
+        <div className="mx-4 mb-3 h-52 lg:h-80 grid place-items-center rounded-xl bg-panel-2 text-center text-muted p-4 text-sm">
           الخريطة مش متاحة دلوقتي. عدّل المسافة يدوياً.
         </div>
       ) : (
-        <div ref={container} className="mx-4 mb-3 h-56 rounded-xl overflow-hidden bg-panel-2" />
+        <div ref={container} className="mx-4 mb-3 h-56 lg:h-80 rounded-xl overflow-hidden bg-panel-2" />
       )}
     </div>
   );
@@ -100,7 +100,7 @@ export function DistanceBar({ km, onChange }: { km: number; onChange: (km: numbe
             value={km}
             onChange={(e) => onChange(Math.max(0, Number(e.target.value)))}
             onBlur={() => setEditing(false)}
-            className="w-20 rounded-lg border-2 border-primary bg-panel px-2 py-0.5 text-lg font-extrabold text-center"
+            className="w-20 rounded-lg border border-primary bg-panel px-2 py-0.5 text-lg font-extrabold text-center"
           />
         ) : (
           <span className="text-2xl font-extrabold text-emph">{km}</span>
@@ -122,7 +122,7 @@ export function PlacesCard({ children }: { children: ReactNode }) {
   return (
     <section
       id="sec-places"
-      className="scroll-mt-20 bg-panel border border-line rounded-card shadow-sm overflow-hidden"
+      className="scroll-mt-20 bg-panel border border-line rounded-card overflow-hidden"
     >
       {children}
     </section>

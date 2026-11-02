@@ -9,7 +9,7 @@ import { MIN_PASSWORD } from "@/lib/password-policy";
 const field =
   "w-full rounded-2xl border-2 border-line bg-panel px-4 py-3.5 text-lg outline-none focus:border-primary placeholder:text-muted/70";
 const cta =
-  "tap rounded-2xl bg-accent text-on-accent text-lg font-extrabold flex items-center justify-center gap-2 py-3.5 shadow-[0_6px_16px_rgba(242,165,65,0.3)] disabled:opacity-50 disabled:shadow-none";
+  "tap rounded-2xl bg-accent text-on-accent text-lg font-extrabold flex items-center justify-center gap-2 py-3.5 disabled:opacity-50 disabled:shadow-none";
 
 /** Phone + password for everyone (customers, drivers). New customers create an account here. */
 export default function LoginPage() {
@@ -58,7 +58,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="p-4 pt-8 flex flex-col gap-6">
+    <div className="p-4 pt-8 flex flex-col gap-6 w-full max-w-md mx-auto">
       <header className="flex flex-col items-center text-center gap-3">
         <Logo className="h-20" full />
         <div>
@@ -88,7 +88,7 @@ export default function LoginPage() {
         </div>
       )}
 
-      <form onSubmit={submit} className="bg-panel border border-line rounded-card shadow-sm p-4 flex flex-col gap-4">
+      <form onSubmit={submit} className="bg-panel border border-line rounded-card p-4 flex flex-col gap-4">
         {mode === "register" && (
           <label className="flex flex-col gap-1.5">
             <span className="font-bold flex items-center gap-1.5">

@@ -4,6 +4,7 @@ import { cairoDateISO, labelDateArabic } from "@/lib/time";
 import { BookingStatusBadge } from "@/components/ui";
 import { DELIVERY_STATUS_LABEL } from "@/lib/constants";
 import { requirePermission } from "@/lib/authz";
+import { Icon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -127,7 +128,7 @@ export default async function FinancePage({
                     <Td>
                       <div>{r.customer}</div>
                       <div className="text-muted text-xs" dir="ltr">{r.phone}</div>
-                      {r.company && <div className="text-xs font-bold text-primary-ink">🏢 {r.company}</div>}
+                      {r.company && <div className="text-xs font-bold text-primary-ink"><Icon name="building" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{r.company}</div>}
                     </Td>
                     <Td>{r.driver ?? "-"}</Td>
                     <Td>{DELIVERY_STATUS_LABEL[r.status]}</Td>

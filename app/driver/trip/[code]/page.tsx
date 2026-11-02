@@ -209,7 +209,7 @@ function OnTheWay({ o }: { o: DeliveryOrderDTO }) {
       </Card>
 
       <details
-        className="group bg-panel border border-line rounded-card shadow-sm overflow-hidden"
+        className="group bg-panel border border-line rounded-card overflow-hidden"
         open={!toPickup || undefined}
       >
         <summary className="list-none cursor-pointer p-4 flex items-center justify-between font-extrabold text-lg">

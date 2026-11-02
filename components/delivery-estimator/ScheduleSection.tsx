@@ -27,7 +27,7 @@ export function ScheduleSection({
 
   return (
     <section id="sec-time" className="scroll-mt-20 grid grid-cols-2 gap-3">
-      <label className="relative bg-panel border border-line rounded-card shadow-sm p-3.5 flex flex-col gap-1.5 cursor-pointer">
+      <label className="relative bg-panel border border-line rounded-card p-3.5 flex flex-col gap-1.5 cursor-pointer">
         <span className="flex items-center gap-2 text-sm text-muted">
           <Icon name="calendar" className="w-5 h-5 text-ink" /> التاريخ
           <Icon name="chevronDown" className="w-4 h-4 mr-auto" />
@@ -46,7 +46,7 @@ export function ScheduleSection({
           className="absolute inset-0 opacity-0 cursor-pointer"
         />
       </label>
-      <label className="relative bg-panel border border-line rounded-card shadow-sm p-3.5 flex flex-col gap-1.5 cursor-pointer">
+      <label className="relative bg-panel border border-line rounded-card p-3.5 flex flex-col gap-1.5 cursor-pointer">
         <span className="flex items-center gap-2 text-sm text-muted">
           <Icon name="clock" className="w-5 h-5 text-ink" /> الوقت
           <Icon name="chevronDown" className="w-4 h-4 mr-auto" />

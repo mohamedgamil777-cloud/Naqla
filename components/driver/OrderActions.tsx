@@ -90,7 +90,7 @@ function ProofOfDelivery() {
           )}
         </div>
         <label className="flex-1 min-h-[56px] rounded-2xl border-2 border-primary text-primary font-extrabold text-lg grid place-items-center cursor-pointer hover:bg-primary-soft">
-          {busy ? "…" : photo ? "صوّر تاني" : "📷 صوّر الحاجة بعد التسليم"}
+          {busy ? "…" : photo ? "صوّر تاني" : "صوّر الحاجة بعد التسليم"}
           <input type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />
         </label>
       </div>
@@ -105,7 +105,7 @@ function SubmitBtn({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="w-full min-h-[60px] rounded-2xl bg-accent text-on-accent text-xl font-extrabold flex items-center justify-center gap-2 shadow-[0_6px_16px_rgba(242,165,65,0.35)] hover:brightness-105 disabled:opacity-60"
+      className="w-full min-h-[60px] rounded-2xl bg-accent text-on-accent text-xl font-extrabold flex items-center justify-center gap-2 hover:brightness-105 disabled:opacity-60"
     >
       {pending ? "لحظة…" : label}
       {!pending && <Icon name="chevronLeft" className="w-6 h-6" strokeWidth={2.6} />}

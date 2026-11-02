@@ -4,6 +4,7 @@ import { listVehicles } from "@/db/lib/vehicles";
 import { formatEgp } from "@/lib/money";
 import { KIND_LABEL } from "@/lib/constants";
 import { QuickStatus } from "@/components/admin/QuickStatus";
+import { Icon } from "@/components/Icons";
 import { requirePermission } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
@@ -31,12 +32,12 @@ export default async function AdminFleet() {
         {vehicles.map((v) => (
           <div
             key={v.id}
-            className="bg-panel border border-line rounded-card overflow-hidden shadow-sm flex flex-col"
+            className="bg-panel border border-line rounded-card overflow-hidden flex flex-col"
           >
             <Link href={`/admin/fleet/${v.id}/edit`} className="relative aspect-[16/9] bg-panel-2 block">
               <VehicleImage src={v.primaryImage} alt={v.name} sizes="360px" />
-              <span className="absolute top-3 start-3 bg-panel/90 rounded-full px-3 py-1 text-xs font-bold">
-                {v.kind === "van" ? "🚐" : "🚚"} {KIND_LABEL[v.kind]}
+              <span className="absolute top-3 start-3 bg-panel/90 rounded-md px-2 py-1 text-xs font-semibold inline-flex items-center gap-1.5">
+                <Icon name={v.kind === "van" ? "van" : "truck"} className="w-4 h-4" /> {KIND_LABEL[v.kind]}
               </span>
             </Link>
             <div className="p-4 flex flex-col gap-3 flex-1">

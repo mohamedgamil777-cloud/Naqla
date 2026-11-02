@@ -11,12 +11,7 @@ export function CompanyBanner({ company }: { company: NonNullable<AccountInfo["c
 
   return (
     <div className="bg-primary-soft border border-primary/20 rounded-card px-4 py-3 flex items-start gap-3">
-      <span
-        className="w-10 h-10 shrink-0 rounded-full bg-panel text-primary grid place-items-center text-xl"
-        aria-hidden
-      >
-        🏢
-      </span>
+      <Icon name="building" className="w-6 h-6 shrink-0 mt-0.5 text-primary" />
       <div className="text-sm">
         <div className="font-extrabold text-base">بتطلب باسم: {company.name}</div>
         <div className="text-ink-2">
@@ -39,7 +34,7 @@ export function Stepper({ done, onGo }: StepperProps) {
 
   return (
     <ol className="grid grid-cols-4 relative mb-1">
-      <span className="absolute top-[18px] right-[12.5%] left-[12.5%] h-0.5 bg-line-2" aria-hidden />
+      <span className="absolute top-4 right-[12.5%] left-[12.5%] h-px bg-line-2" aria-hidden />
       {STEPS.map((s, i) => {
         const isDone = done[i] && i !== current;
         const isCurrent = i === current;
@@ -47,19 +42,19 @@ export function Stepper({ done, onGo }: StepperProps) {
           ? "bg-primary border-primary text-white"
           : isDone
             ? "bg-primary-soft border-primary text-primary"
-            : "bg-panel-2 border-line-2 text-muted";
+            : "bg-panel border-line-2 text-muted";
         return (
           <li key={s.id} className="relative flex flex-col items-center gap-1.5">
             <button
               type="button"
               onClick={() => onGo(s.id)}
               aria-current={isCurrent ? "step" : undefined}
-              className={`w-9 h-9 rounded-full grid place-items-center font-extrabold border-2 ${circle}`}
+              className={`w-8 h-8 rounded-full grid place-items-center text-sm font-semibold border cursor-pointer ${circle}`}
             >
-              {isDone ? <Icon name="check" className="w-4 h-4" strokeWidth={3} /> : i + 1}
+              {isDone ? <Icon name="check" className="w-3.5 h-3.5" strokeWidth={3} /> : i + 1}
             </button>
             <span
-              className={`text-sm ${isCurrent ? "text-primary font-extrabold" : "text-muted font-semibold"}`}
+              className={`text-[13px] ${isCurrent ? "text-ink font-semibold" : "text-muted"}`}
             >
               {s.label}
             </span>
@@ -73,7 +68,7 @@ export function Stepper({ done, onGo }: StepperProps) {
 /** Shown once the order is placed. */
 export function OrderPlaced({ code }: { code: string }) {
   return (
-    <div className="bg-panel border border-line rounded-card p-8 text-center flex flex-col items-center gap-3 shadow-sm">
+    <div className="bg-panel border border-line rounded-card p-8 text-center flex flex-col items-center gap-3">
       <div className="w-16 h-16 rounded-full bg-ok-soft text-ok grid place-items-center">
         <Icon name="check" className="w-9 h-9" strokeWidth={2.6} />
       </div>
@@ -91,7 +86,7 @@ export function OrderPlaced({ code }: { code: string }) {
         </Link>
         <Link
           href="/"
-          className="tap rounded-2xl border-2 border-line-2 text-ink px-6 py-3 font-bold grid place-items-center"
+          className="tap rounded-xl border border-line-2 text-ink px-6 py-3 font-bold grid place-items-center"
         >
           تمام
         </Link>

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { Icon } from "@/components/Icons";
 
 /** Downscale an uploaded image to a compact JPEG data URL (client-side). */
 export function fileToDataUrl(file: File, maxW = 1100, quality = 0.8): Promise<string> {
@@ -79,7 +80,7 @@ export function ImageField({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={value} alt={label} className="w-full h-full object-cover" />
           ) : (
-            <span>🖼️</span>
+            <Icon name="image" className="w-5 h-5" />
           )}
         </div>
         <label className="rounded-xl bg-primary-soft text-primary-ink px-4 py-2 font-bold tap cursor-pointer">

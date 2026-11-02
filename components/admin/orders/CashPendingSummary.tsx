@@ -1,5 +1,6 @@
 import { formatEgp } from "@/lib/money";
 import type { DeliveryOrderDTO } from "@/types";
+import { Icon } from "@/components/Icons";
 
 type CashPendingSummaryProps = { orders: DeliveryOrderDTO[] };
 
@@ -20,7 +21,7 @@ export function CashPendingSummary({ orders }: CashPendingSummaryProps) {
   return (
     <div className="bg-reserved-soft border border-line rounded-card p-4 flex flex-col gap-2">
       <div className="font-extrabold">
-        💵 كاش لسه مع السواقين: {formatEgp(total)} في {orders.length} طلب
+        <Icon name="banknote" className="w-4 h-4 inline-block align-[-3px] me-1.5" />كاش لسه مع السواقين: {formatEgp(total)} في {orders.length} طلب
       </div>
       <div className="flex flex-wrap gap-2 text-sm">
         {[...byDriver.entries()].map(([key, d]) => (

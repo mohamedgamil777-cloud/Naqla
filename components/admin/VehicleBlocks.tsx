@@ -33,7 +33,7 @@ export function VehicleBlocks({ vehicleId, blocks }: { vehicleId: string; blocks
         </div>
       )}
       {state.ok && (
-        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تمت الإضافة ✅</div>
+        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تمت الإضافة</div>
       )}
 
       <form action={action} className="flex flex-wrap items-end gap-3">

@@ -84,10 +84,10 @@ export default async function CompanyPage({
   const months = [...new Set([month, ...orderMonths])].sort().reverse().slice(0, 6);
 
   return (
-    <div className="p-4 flex flex-col gap-5">
+    <div className="p-4 flex flex-col gap-5 w-full max-w-4xl mx-auto">
       <header className="flex items-center gap-3">
         <span className="w-14 h-14 rounded-2xl bg-primary-soft grid place-items-center text-2xl" aria-hidden>
-          🏢
+         <Icon name="building" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
         </span>
         <div className="min-w-0">
           <h1 className="text-2xl font-extrabold truncate">{company.name}</h1>
@@ -117,7 +117,7 @@ export default async function CompanyPage({
 
       <Link
         href="/estimate"
-        className="tap bg-accent text-on-accent rounded-2xl font-extrabold text-lg flex items-center justify-center gap-2 shadow-[0_6px_16px_rgba(242,165,65,0.3)]"
+        className="tap bg-accent text-on-accent rounded-2xl font-extrabold text-lg flex items-center justify-center gap-2"
       >
         اطلب توصيلة باسم الشركة <Icon name="chevronLeft" className="w-5 h-5" strokeWidth={2.6} />
       </Link>
@@ -130,7 +130,7 @@ export default async function CompanyPage({
               href={`/company/statement?month=${m}`}
               className="rounded-xl border-2 border-primary text-primary px-3.5 py-2 font-bold text-sm hover:bg-primary-soft"
             >
-              📄 {monthLabel(m)}
+              <Icon name="file" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{monthLabel(m)}
             </Link>
           ))}
         </div>
@@ -185,7 +185,7 @@ export default async function CompanyPage({
             {saved.map((a) => (
               <div key={a.id} className="py-2.5 flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="font-bold">📍 {a.label}</div>
+                  <div className="font-bold"><Icon name="mapPin" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{a.label}</div>
                   <div className="text-sm text-muted truncate">
                     {a.address}
                     {a.details ? ` — ${a.details}` : ""}
@@ -235,7 +235,7 @@ export default async function CompanyPage({
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section className="bg-panel border border-line rounded-card shadow-sm p-4 flex flex-col gap-3">
+    <section className="bg-panel border border-line rounded-card p-4 flex flex-col gap-3">
       <div>
         <h2 className="text-lg font-extrabold">{title}</h2>
         {hint && <p className="text-xs text-muted mt-0.5">{hint}</p>}

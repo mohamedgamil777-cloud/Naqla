@@ -23,7 +23,7 @@ export function CouponManager({ coupons }: { coupons: CouponDTO[] }) {
           </div>
         )}
         {state.ok && (
-          <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تم الحفظ ✅</div>
+          <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">تم الحفظ</div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">
@@ -96,7 +96,7 @@ function CouponRow({ c }: { c: CouponDTO }) {
         </div>
       )}
       {state.ok && (
-        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">اتحفظ ✅</div>
+        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">اتحفظ</div>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="flex flex-col gap-1">

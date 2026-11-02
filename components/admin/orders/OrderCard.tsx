@@ -9,6 +9,7 @@ import { OrderCashForm } from "./OrderCashForm";
 import { OrderDriverPanel } from "./OrderDriverPanel";
 import { OrderSizeForm } from "./OrderSizeForm";
 import { ORDER_STATUS, isOnTheRoad, isOpenOrder } from "./status";
+import { Icon } from "@/components/Icons";
 
 export type OrderCardProps = {
   order: DeliveryOrderDTO;
@@ -80,12 +81,12 @@ function OrderCardHeader({ order: o, companyName }: { order: DeliveryOrderDTO; c
             href={`/admin/companies/${o.companyId}`}
             className="rounded-full bg-primary-soft text-primary-ink px-2 py-0.5 text-xs font-bold"
           >
-            🏢 {companyName ?? "شركة"} · {o.billing === "account" ? "على الحساب" : "كاش"}
+            <Icon name="building" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{companyName ?? "شركة"} · {o.billing === "account" ? "على الحساب" : "كاش"}
           </Link>
         )}
         {o.source === "agent" && (
           <span className="rounded-full bg-accent-soft text-accent-ink px-2 py-0.5 text-xs font-bold">
-            ☎️ بالتليفون{o.agentName ? ` · ${o.agentName}` : ""}
+            <Icon name="phone" className="w-4 h-4 inline-block align-[-3px] me-1.5" />بالتليفون{o.agentName ? ` · ${o.agentName}` : ""}
           </span>
         )}
       </div>
@@ -118,7 +119,7 @@ function OrderCardActions({ order: o }: { order: DeliveryOrderDTO }) {
     <div className="flex flex-wrap gap-2 items-center pt-1">
       {o.contactPhone && (
         <a href={`tel:${o.contactPhone}`} className="rounded-xl bg-ok text-white px-4 py-2 font-bold tap">
-          📞 اتصل بالعميل
+          <Icon name="phone" className="w-4 h-4 inline-block align-[-3px] me-1.5" />اتصل بالعميل
         </a>
       )}
       {maps && (
@@ -128,7 +129,7 @@ function OrderCardActions({ order: o }: { order: DeliveryOrderDTO }) {
           rel="noopener noreferrer"
           className="rounded-xl border-2 border-line-2 text-primary px-4 py-2 font-bold tap"
         >
-          🗺️ الطريق
+          <Icon name="map" className="w-4 h-4 inline-block align-[-3px] me-1.5" />الطريق
         </a>
       )}
       {o.status === "new" && (

@@ -38,7 +38,7 @@ function Status({ state }: { state: ActionResult }) {
   if (state.ok)
     return (
       <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-bold">
-        تم الحفظ — التغيير ظهر في التطبيق ✅
+        تم الحفظ — التغيير ظهر في التطبيق
       </div>
     );
   return null;

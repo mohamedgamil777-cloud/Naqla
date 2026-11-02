@@ -101,14 +101,14 @@ export default async function BookingsPage({
   const toRate = unrated.rows[0] ?? null;
 
   return (
-    <div className="p-4 flex flex-col gap-6">
+    <div className="p-4 flex flex-col gap-6 w-full max-w-3xl mx-auto">
       <header>
         <h1 className="text-[1.7rem] font-extrabold leading-tight">طلباتي</h1>
         <p className="text-muted mt-1">تابع حالة توصيلاتك خطوة بخطوة</p>
       </header>
 
       {toRate && (
-        <section className="bg-panel border-2 border-accent rounded-card shadow-sm p-4 flex flex-col gap-3">
+        <section className="bg-panel border-2 border-accent rounded-card p-4 flex flex-col gap-3">
           <div className="flex items-center gap-3">
             <span className="w-11 h-11 shrink-0 rounded-full bg-accent-soft grid place-items-center">
               <Icon name="star" className="w-6 h-6 text-accent fill-current" />
@@ -137,7 +137,7 @@ export default async function BookingsPage({
       {activeOrders.length === 0 && (
         <Link
           href="/estimate"
-          className="tap bg-accent text-on-accent rounded-2xl font-extrabold text-lg flex items-center justify-center gap-2 shadow-[0_6px_16px_rgba(242,165,65,0.3)]"
+          className="tap bg-accent text-on-accent rounded-2xl font-extrabold text-lg flex items-center justify-center gap-2"
         >
           اطلب توصيلة جديدة <Icon name="chevronLeft" className="w-5 h-5" strokeWidth={2.6} />
         </Link>
@@ -249,7 +249,7 @@ function OrderHead({ o }: { o: DeliveryOrderDTO }) {
 function ActiveOrder({ o }: { o: DeliveryOrderDTO }) {
   const cur = STATUS_ORDER[o.status];
   return (
-    <article className="bg-panel border border-line rounded-card shadow-sm p-4 flex flex-col gap-4">
+    <article className="bg-panel border border-line rounded-card p-4 flex flex-col gap-4">
       <OrderHead o={o} />
       <Route o={o} />
       <Meta o={o} />
@@ -384,7 +384,7 @@ function RentalRow({ b }: { b: BookingDTO }) {
   return (
     <Link
       href={`/bookings/${b.code}`}
-      className="bg-panel border border-line rounded-card p-4 shadow-sm flex items-center justify-between gap-3"
+      className="bg-panel border border-line rounded-card p-4 flex items-center justify-between gap-3"
     >
       <div>
         <div className="font-bold">{b.vehicleName}</div>

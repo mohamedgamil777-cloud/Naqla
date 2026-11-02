@@ -3,6 +3,7 @@ import { piastresToEgp } from "@/lib/money";
 import type { RatingStat } from "@/services/ratings";
 import type { DeliveryOrderDTO, StaffDTO } from "@/types";
 import { ORDER_STATUS, isOnTheRoad, isOpenOrder } from "./status";
+import { Icon } from "@/components/Icons";
 
 type OrderDriverPanelProps = {
   order: DeliveryOrderDTO;
@@ -22,11 +23,11 @@ export function OrderDriverPanel({ order, drivers, ratings }: OrderDriverPanelPr
 
   return (
     <div className="bg-panel-2 rounded-xl p-3 flex flex-col gap-2">
-      <div className="font-bold text-sm">🧑‍✈️ السائق: {order.driverName ?? "لسه متعيّنش"}</div>
+      <div className="font-bold text-sm"><Icon name="user" className="w-4 h-4 inline-block align-[-3px] me-1.5" />السائق: {order.driverName ?? "لسه متعيّنش"}</div>
 
       {missingDriver && (
         <div className="bg-booked-soft text-booked rounded-lg px-3 py-2 text-sm font-bold">
-          ⚠️ الطلب حالته «{ORDER_STATUS[order.status].label}» بس مفيش سواق متعيّن — اختار سواق ودوس «تعيين»
+          <Icon name="alert" className="w-4 h-4 inline-block align-[-3px] me-1.5" />الطلب حالته «{ORDER_STATUS[order.status].label}» بس مفيش سواق متعيّن — اختار سواق ودوس «تعيين»
           عشان العميل يقدر يكلّمه.
         </div>
       )}
@@ -55,7 +56,7 @@ export function OrderDriverPanel({ order, drivers, ratings }: OrderDriverPanelPr
 
       <form action={setDriverFeeAction} className="flex gap-2 items-center">
         <input type="hidden" name="code" value={order.code} />
-        <span className="text-sm font-bold">💵 أجر السائق (جنيه):</span>
+        <span className="text-sm font-bold"><Icon name="banknote" className="w-4 h-4 inline-block align-[-3px] me-1.5" />أجر السائق (جنيه):</span>
         <input
           name="fee"
           type="number"
