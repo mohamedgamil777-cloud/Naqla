@@ -18,8 +18,8 @@
     "db:migrate": "tsx --env-file-if-exists=.env.local db/migrate.ts",
     "db:reset": "tsx --env-file-if-exists=.env.local db/reset.ts",
     "db:fresh": "npm run db:reset && npm run db:seed",
-    "db:seed": "tsx --env-file-if-exists=.env.local --conditions=react-server --tsconfig tsconfig.json db/seeds/seed.ts",
-    "db:seed:admin": "tsx --env-file-if-exists=.env.local --conditions=react-server --tsconfig tsconfig.json db/seeds/seed-admin.ts",
+    "db:seed": "tsx --env-file-if-exists=.env.local --conditions=react-server --tsconfig tsconfig.json db/seed.ts",
+    "db:seed:admin": "tsx --env-file-if-exists=.env.local --conditions=react-server --tsconfig tsconfig.json db/seed.ts --admin",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

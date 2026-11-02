@@ -8,7 +8,7 @@ describe("migration history", () => {
 
   it("is one numbered, gap-free sequence", () => {
     const nums = files.map((f) => Number(f.name.slice(0, 4)));
-    const expected = nums.filter((n) => n !== 2); // 0002 is seed data → db/seeds/
+    const expected = nums.filter((n) => n !== 2); // 0002 was seed data → now db/seed.ts + db/seeds/
     expect(nums).toEqual(expected);
     for (let i = 1; i < nums.length; i++) {
       const prev = nums[i - 1];
@@ -18,7 +18,7 @@ describe("migration history", () => {
 
   it("keeps seed data out of migrations", () => {
     expect(files.some((f) => /seed/.test(f.name))).toBe(false);
-    expect(readdirSync(join(process.cwd(), "db", "seeds"))).toContain("0002_seed.sql");
+    expect(readdirSync(join(process.cwd(), "db", "seeds"))).toContain("fleet.ts");
   });
 
   it("checksums ignore Windows line endings", () => {

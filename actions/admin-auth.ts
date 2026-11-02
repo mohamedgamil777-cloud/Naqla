@@ -6,7 +6,7 @@ import { adminPasscode } from "@/lib/env";
 import { AuthError, loginWithPassword } from "@/services/auth";
 import { setSession, clearSession } from "@/services/session";
 import { isAdminRole } from "@/lib/permissions";
-import { bootstrapAdminOnce } from "@/services/bootstrap";
+import { runBootstrapAdmin } from "@/services/bootstrap";
 import { actionFailure, fail, invalid, type ActionResult } from "@/lib/action-result";
 import { formObject } from "@/lib/validation/fields";
 import { loginInputSchema, passcodeInputSchema } from "@/lib/validation/staff";
@@ -24,7 +24,7 @@ export async function staffLogin(_prev: LoginState, fd: FormData): Promise<Login
   const parsed = loginInputSchema.safeParse({ phone: fd.get("phone"), password: fd.get("password") ?? "" });
   if (!parsed.success) return invalid(parsed.error);
   try {
-    await bootstrapAdminOnce(); // the SEED_ADMIN_* super-admin always exists before anyone signs in
+    await runBootstrapAdmin(); // the SEED_ADMIN_* super-admin always exists before anyone signs in
     const user = await loginWithPassword(parsed.data.phone, parsed.data.password);
     if (!isAdminRole(user.role)) return fail("الحساب ده مش له صلاحية دخول الإدارة.");
     await setSession({ phone: user.phone, name: user.name ?? undefined });

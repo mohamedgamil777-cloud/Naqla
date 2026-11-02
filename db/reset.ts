@@ -1,6 +1,6 @@
 /**
  * Wipes the local database and rebuilds it from db/migrations — every table, row and extension in the
- * public schema is dropped first. Then `npm run db:seed` fills it with sample data.
+ * public schema is dropped first. Then `npm run db:seed` fills it again.
  *
  *   npm run db:reset    drop everything, re-apply all migrations
  *   npm run db:fresh    db:reset + db:seed
@@ -8,16 +8,12 @@
  * Like the seeds, this refuses any database that is not on this machine.
  */
 import postgres from "postgres";
+import { requireLocalDatabase } from "./local-only";
 import { runMigrations } from "./migrate";
 
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
-
 async function main() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
-  const { hostname, pathname } = new URL(url);
-  if (!LOCAL_HOSTS.has(hostname))
-    throw new Error(`Refusing to reset ${hostname}: db:reset is for a local database only`);
+  const url = requireLocalDatabase("reset the database");
+  const { pathname } = new URL(url);
 
   const sql = postgres(url, { max: 1, prepare: false, onnotice: () => {} });
   try {
