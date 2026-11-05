@@ -2,7 +2,7 @@ import { pgTable, uuid, text, integer, jsonb, real } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 
-import { timestamps } from "./columns";
+import { anyId, timestamps } from "./columns";
 
 export const pricingRules = pgTable("pricing_rules", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -32,6 +32,8 @@ export const pricingRules = pgTable("pricing_rules", {
 const tierSchema = z.object({ hours: z.number(), price: z.number() });
 
 const pricingRuleJson = {
+  id: anyId,
+  targetId: anyId,
   tiers: z.array(tierSchema),
   peakWindow: z.object({ from: z.number(), to: z.number() }).nullable(),
   holidayDates: z.array(z.string()),

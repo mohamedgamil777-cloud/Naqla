@@ -4,7 +4,7 @@ import { getDaySlots } from "@/services/booking-service";
 import { withErrorHandling } from "@/lib/route";
 
 const Q = z.object({
-  vehicle: z.string().uuid(),
+  vehicle: z.guid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 

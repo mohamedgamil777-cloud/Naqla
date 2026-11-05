@@ -6,7 +6,7 @@ import { companyContext } from "@/services/company-service";
 import { withErrorHandling } from "@/lib/route";
 
 const Body = z.object({
-  categoryId: z.string().uuid(),
+  categoryId: z.guid(),
   km: z.number().min(0).max(100000),
   loaders: z.number().int().min(0).max(10).optional(),
   promoCode: z.string().max(40).optional().nullable(),

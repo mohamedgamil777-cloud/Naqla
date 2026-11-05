@@ -12,6 +12,7 @@ import {
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 import type { Quote } from "@/engines/pricing";
+import { anyId } from "./columns";
 import { companies } from "./companies";
 import { users } from "./users";
 import { vehicleCategories } from "./vehicle-categories";
@@ -75,7 +76,13 @@ export const deliveryOrders = pgTable(
   ],
 );
 
-const deliveryOrderJson = { priceSnapshot: z.custom<Quote>() };
+const deliveryOrderJson = {
+  id: anyId,
+  categoryId: anyId,
+  driverId: anyId,
+  companyId: anyId,
+  priceSnapshot: z.custom<Quote>(),
+};
 
 export const selectDeliveryOrderSchema = createSelectSchema(deliveryOrders, deliveryOrderJson);
 export const insertDeliveryOrderSchema = createInsertSchema(deliveryOrders, deliveryOrderJson);

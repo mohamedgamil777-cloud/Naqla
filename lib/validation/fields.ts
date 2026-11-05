@@ -26,7 +26,7 @@ export const optionalText = (max = 2000) => raw.transform((v) => v.slice(0, max)
 
 /** A uuid (ids of rows the user picked). */
 export const id = (message: string) => raw.pipe(z.string().uuid(message));
-export const optionalId = () => raw.pipe(z.union([z.literal("").transform(() => null), z.string().uuid()]));
+export const optionalId = () => raw.pipe(z.union([z.literal("").transform(() => null), z.guid()]));
 
 /** Checkbox: present ("on") = true. */
 export const checkbox = () => z.preprocess((v) => v === "on" || v === "true" || v === "1", z.boolean());
