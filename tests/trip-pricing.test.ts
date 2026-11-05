@@ -51,9 +51,27 @@ describe("computeTripPrice", () => {
     expect(r.quote.total).toBe(359100 + Math.round(359100 * 0.14));
   });
 
-  it("adds the empty return leg for intercity trips", () => {
-    const r = computeTripPrice({ ...flatMove, km: 220, driveMinutes: 180 });
-    expect(amount(r, "return")).toBe(110 * 15 * 100);
+  it("prices Cairo to Alexandria with highway km, empty return and no drive-time charge", () => {
+    const r = computeTripPrice({ ...flatMove, km: 220, driveMinutes: 180, surgeId: "normal", tolls: 100 });
+    expect(amount(r, "km")).toBe(95 * 15 * 100);
+    expect(amount(r, "km-highway")).toBe(120 * 12 * 100);
+    expect(amount(r, "return")).toBe(110 * 12 * 100);
+    expect(amount(r, "time")).toBe(2 * 120 * 100); // loading + unloading only
+    expect(amount(r, "overnight")).toBe(0);
+    expect(amount(r, "tolls")).toBe(10000);
+    expect(r.quote.total).toBe(733000);
+  });
+
+  it("adds a night stay for the crew on a far trip like Aswan", () => {
+    const r = computeTripPrice({ ...flatMove, km: 880, driveMinutes: 600, surgeId: "normal" });
+    expect(amount(r, "overnight")).toBe((500 + 3 * 250) * 100);
+  });
+
+  it("treats Menofia (85 km) as intercity with an empty return", () => {
+    const r = computeTripPrice({ ...flatMove, km: 85, driveMinutes: 90, surgeId: "normal" });
+    expect(amount(r, "km")).toBe(80 * 15 * 100);
+    expect(amount(r, "km-highway")).toBe(0);
+    expect(amount(r, "return")).toBe(Math.round(43 * 12) * 100);
   });
 
   it("caps helpers at the vehicle maximum", () => {

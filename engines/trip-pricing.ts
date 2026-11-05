@@ -45,10 +45,17 @@ export interface TripRates {
   includedMinutes: number;
   /** Safety buffer added to the estimated job time (0.1 = 10%). */
   timeBuffer: number;
-  /** Over this distance the empty return trip is charged. */
+  /** Over this distance a trip counts as intercity (between governorates). */
   intercityKm: number;
-  /** Share of one-way km charged for the empty return trip. */
+  /** Km beyond this are highway km, charged at `highwayFactor` × the per km price. */
+  highwayFromKm: number;
+  highwayFactor: number;
+  /** Intercity: share of one-way km charged for the empty return trip (at the highway rate). */
   returnShare: number;
+  /** Intercity: one overnight stay for each full block of this many driving minutes. */
+  overnightDriveMinutes: number;
+  overnightCrew: number;
+  overnightPerHelper: number;
   helperFee: number;
   helperIncludedHours: number;
   helperExtraHour: number;
@@ -84,8 +91,13 @@ export const DEFAULT_TRIP_RATES: TripRates = {
   includedKm: 5,
   includedMinutes: 120,
   timeBuffer: 0.1,
-  intercityKm: 100,
+  intercityKm: 60,
+  highwayFromKm: 100,
+  highwayFactor: 0.8,
   returnShare: 0.5,
+  overnightDriveMinutes: 360,
+  overnightCrew: 500,
+  overnightPerHelper: 250,
   helperFee: 300,
   helperIncludedHours: 4,
   helperExtraHour: 75,
@@ -114,6 +126,20 @@ export const DEFAULT_TRIP_RATES: TripRates = {
   vatRate: 0.14,
 };
 
+/** Approximate road distance and driving time from Cairo. Check the real route on a map. */
+export const INTERCITY_PRESETS: { id: string; nameAr: string; km: number; driveMinutes: number }[] = [
+  { id: "menofia", nameAr: "المنوفية (شبين الكوم)", km: 85, driveMinutes: 90 },
+  { id: "tanta", nameAr: "طنطا", km: 95, driveMinutes: 100 },
+  { id: "ismailia", nameAr: "الإسماعيلية", km: 125, driveMinutes: 120 },
+  { id: "mansoura", nameAr: "المنصورة", km: 130, driveMinutes: 150 },
+  { id: "suez", nameAr: "السويس", km: 135, driveMinutes: 120 },
+  { id: "alex", nameAr: "الإسكندرية", km: 220, driveMinutes: 180 },
+  { id: "asyut", nameAr: "أسيوط", km: 375, driveMinutes: 300 },
+  { id: "hurghada", nameAr: "الغردقة", km: 460, driveMinutes: 360 },
+  { id: "luxor", nameAr: "الأقصر", km: 660, driveMinutes: 480 },
+  { id: "aswan", nameAr: "أسوان", km: 880, driveMinutes: 600 },
+];
+
 export interface TripEnd {
   floor: number;
   /** A usable elevator that fits the big items. */
@@ -139,6 +165,8 @@ export interface TripInput {
   wrapRolls?: number;
   /** Declared goods value for optional protection; 0 = none. */
   declaredValue?: number;
+  /** Road tolls (كارتة) for the trip, passed through as entered. */
+  tolls?: number;
   surgeId?: string;
   discountPct?: number;
   withVat?: boolean;
@@ -178,7 +206,14 @@ export function computeTripPrice(input: TripInput, rates: TripRates = DEFAULT_TR
   const loading = load.loadingMinutes;
   const unloading = Math.round((loading * 2) / 3);
   const wait = Math.max(0, n(input.waitMinutes) - rates.freeWaitMinutes);
-  const jobMinutes = Math.ceil((loading + n(input.driveMinutes) + unloading) * (1 + rates.timeBuffer)) + wait;
+  const drive = n(input.driveMinutes);
+  const jobMinutes = Math.ceil((loading + drive + unloading) * (1 + rates.timeBuffer)) + wait;
+  const intercity = km > rates.intercityKm;
+  // Intercity: driving is paid by the km, so time is charged only for loading, unloading and waiting.
+  const billedMinutes = intercity
+    ? Math.ceil((loading + unloading) * (1 + rates.timeBuffer)) + wait
+    : jobMinutes;
+  const hwRate = v.perKm * rates.highwayFactor;
 
   let truck = add(
     "base",
@@ -186,12 +221,15 @@ export function computeTripPrice(input: TripInput, rates: TripRates = DEFAULT_TR
     v.baseFare,
   );
   const extraKm = Math.max(0, km - rates.includedKm);
-  truck += add("km", `المسافة (${extraKm} كم × ${v.perKm})`, Math.round(extraKm * v.perKm));
-  if (km > rates.intercityKm) {
+  const cityKm = Math.min(extraKm, Math.max(0, rates.highwayFromKm - rates.includedKm));
+  const hwKm = extraKm - cityKm;
+  truck += add("km", `المسافة (${cityKm} كم × ${v.perKm})`, Math.round(cityKm * v.perKm));
+  truck += add("km-highway", `مسافة الطريق السريع (${hwKm} كم × ${hwRate})`, Math.round(hwKm * hwRate));
+  if (intercity) {
     const back = Math.round(km * rates.returnShare);
-    truck += add("return", `رجوع العربية فاضية (${back} كم × ${v.perKm})`, back * v.perKm);
+    truck += add("return", `رجوع العربية فاضية (${back} كم × ${hwRate})`, Math.round(back * hwRate));
   }
-  const extraBlocks = Math.ceil(Math.max(0, jobMinutes - rates.includedMinutes) / 30);
+  const extraBlocks = Math.ceil(Math.max(0, billedMinutes - rates.includedMinutes) / 30);
   truck += add("time", `وقت إضافي (${extraBlocks} × نص ساعة)`, extraBlocks * v.per30Min);
 
   const surge = rates.surges.find((s) => s.id === (input.surgeId ?? "normal")) ?? rates.surges[0];
@@ -210,11 +248,21 @@ export function computeTripPrice(input: TripInput, rates: TripRates = DEFAULT_TR
       amount: toP(surgeAmt),
     });
   truck += surgeAmt;
+  // Tolls are passed through as entered, with no surge.
+  truck += add("tolls", "رسوم طرق / كارتة", Math.round(n(input.tolls)));
 
   // ── Work part ────────────────────────────────────────────────
   let work = 0;
+  const nights = intercity ? Math.floor(drive / rates.overnightDriveMinutes) : 0;
+  if (nights > 0) {
+    work += add(
+      "overnight",
+      `مبيت الطاقم (${nights} ليلة: السواق + ${helpers} عمال)`,
+      nights * (rates.overnightCrew + helpers * rates.overnightPerHelper),
+    );
+  }
   if (helpers > 0) {
-    const extraHours = Math.max(0, Math.ceil(jobMinutes / 60) - rates.helperIncludedHours);
+    const extraHours = Math.max(0, Math.ceil(billedMinutes / 60) - rates.helperIncludedHours);
     work += add("helpers", `العمالة (${helpers} × ${rates.helperFee})`, helpers * rates.helperFee);
     work += add(
       "helpers-extra",

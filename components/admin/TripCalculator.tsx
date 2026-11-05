@@ -4,6 +4,7 @@ import { PriceBreakdown } from "@/components/ui";
 import {
   computeTripPrice,
   DEFAULT_TRIP_RATES,
+  INTERCITY_PRESETS,
   type LoadSize,
   type TripRates,
   type TripVehicleRates,
@@ -87,6 +88,7 @@ export function TripCalculator() {
   const [boxes, setBoxes] = useState(0);
   const [wrapRolls, setWrapRolls] = useState(0);
   const [declaredValue, setDeclaredValue] = useState(0);
+  const [tolls, setTolls] = useState(0);
   const [surgeId, setSurgeId] = useState("normal");
   const [discountPct, setDiscountPct] = useState(0);
   const [withVat, setWithVat] = useState(false);
@@ -113,6 +115,7 @@ export function TripCalculator() {
           boxes,
           wrapRolls,
           declaredValue,
+          tolls,
           surgeId,
           discountPct,
           withVat,
@@ -142,6 +145,7 @@ export function TripCalculator() {
     boxes,
     wrapRolls,
     declaredValue,
+    tolls,
     surgeId,
     discountPct,
     withVat,
@@ -182,6 +186,27 @@ export function TripCalculator() {
             </select>
           </label>
           <div className="grid grid-cols-2 gap-4">
+            <label className="col-span-2">
+              <span className={lbl}>سفر بين المحافظات (من القاهرة، مسافة تقريبية)</span>
+              <select
+                className={inp}
+                value=""
+                onChange={(e) => {
+                  const d = INTERCITY_PRESETS.find((x) => x.id === e.target.value);
+                  if (d) {
+                    setKm(d.km);
+                    setDriveMinutes(d.driveMinutes);
+                  }
+                }}
+              >
+                <option value="">اختار مدينة تملا المسافة والوقت…</option>
+                {INTERCITY_PRESETS.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.nameAr} — {d.km} كم
+                  </option>
+                ))}
+              </select>
+            </label>
             <Num label="المسافة (كيلومتر)" value={km} onChange={setKm} />
             <Num label="وقت السواقة (دقيقة)" value={driveMinutes} onChange={setDriveMinutes} />
           </div>
@@ -238,6 +263,7 @@ export function TripCalculator() {
             <Num label="كراتين" value={boxes} onChange={setBoxes} />
             <Num label="استرتش (رول)" value={wrapRolls} onChange={setWrapRolls} />
             <Num label="قيمة البضاعة للتأمين (ج)" value={declaredValue} onChange={setDeclaredValue} />
+            <Num label="رسوم طرق / كارتة (ج)" value={tolls} onChange={setTolls} />
             <Num
               label="خصم %"
               value={discountPct}
