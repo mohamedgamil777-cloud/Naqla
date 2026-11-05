@@ -13,7 +13,7 @@ import { createInsertSchema, createSelectSchema, createUpdateSchema } from "driz
 import { z } from "zod";
 import { BOOKING_STATUSES } from "@/lib/constants";
 import type { Quote } from "@/engines/pricing";
-import { timestamps } from "./columns";
+import { anyId, timestamps } from "./columns";
 import { branches } from "./branches";
 import { users } from "./users";
 import { customers } from "./customers";
@@ -62,6 +62,11 @@ export const bookings = pgTable(
 );
 
 const bookingJson = {
+  id: anyId,
+  customerId: anyId,
+  vehicleId: anyId,
+  branchId: anyId,
+  driverId: anyId,
   priceSnapshot: z.custom<Quote>(),
   deliveryAddress: z.record(z.unknown()).nullable(),
 };

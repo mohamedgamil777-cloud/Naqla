@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getDurations } from "@/services/booking-service";
 import { withErrorHandling } from "@/lib/route";
 
-const Q = z.object({ vehicle: z.string().uuid(), start: z.string().datetime() });
+const Q = z.object({ vehicle: z.guid(), start: z.string().datetime() });
 
 export const GET = withErrorHandling("GET /api/availability/durations", async function GET(req: NextRequest) {
   const parsed = Q.safeParse({

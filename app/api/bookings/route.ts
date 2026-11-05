@@ -7,7 +7,7 @@ import { getNotifier, bookingConfirmedMessage } from "@/services/notify";
 import { withErrorHandling } from "@/lib/route";
 
 const Body = z.object({
-  vehicleId: z.string().uuid(),
+  vehicleId: z.guid(),
   startISO: z.string().datetime(),
   hours: z
     .number()

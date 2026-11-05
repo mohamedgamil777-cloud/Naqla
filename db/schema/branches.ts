@@ -1,7 +1,7 @@
 import { pgTable, uuid, text, boolean, jsonb, real } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
-import { timestamps } from "./columns";
+import { anyId, timestamps } from "./columns";
 
 export const branches = pgTable("branches", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -16,6 +16,7 @@ export const branches = pgTable("branches", {
 });
 
 const branchJson = {
+  id: anyId,
   workingHours: z.object({ open: z.number().optional(), close: z.number().optional() }).passthrough(),
 };
 
