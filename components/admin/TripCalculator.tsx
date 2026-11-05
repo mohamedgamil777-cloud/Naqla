@@ -69,7 +69,7 @@ export function TripCalculator() {
   const [vehicles, setVehicles] = useState<TripVehicleRates[]>(DEFAULT_TRIP_RATES.vehicles);
   const rates: TripRates = useMemo(() => ({ ...DEFAULT_TRIP_RATES, vehicles }), [vehicles]);
 
-  const [vehicleId, setVehicleId] = useState("pickup");
+  const [vehicleId, setVehicleId] = useState("van-s");
   const [km, setKm] = useState(10);
   const [driveMinutes, setDriveMinutes] = useState(30);
   const [load, setLoad] = useState<LoadSize>("room");

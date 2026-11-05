@@ -33,7 +33,7 @@ describe("computeTripPrice", () => {
 
   it("charges the base fare as a minimum for a short trip", () => {
     const r = computeTripPrice({
-      vehicleId: "pickup",
+      vehicleId: "van-s",
       km: 3,
       driveMinutes: 10,
       load: "few",
@@ -58,6 +58,6 @@ describe("computeTripPrice", () => {
 
   it("caps helpers at the vehicle maximum", () => {
     const r = computeTripPrice({ ...flatMove, vehicleId: "van-s", helpers: 5 });
-    expect(amount(r, "helpers")).toBe(30000);
+    expect(amount(r, "helpers")).toBe(60000);
   });
 });

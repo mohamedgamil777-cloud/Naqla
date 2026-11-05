@@ -71,10 +71,8 @@ export interface TripRates {
 
 export const DEFAULT_TRIP_RATES: TripRates = {
   vehicles: [
-    { id: "van-s", nameAr: "فان صغير", baseFare: 300, perKm: 7, per30Min: 50, maxHelpers: 1 },
-    { id: "pickup", nameAr: "بيك أب كابينة", baseFare: 350, perKm: 8, per30Min: 60, maxHelpers: 2 },
-    { id: "pickup-d", nameAr: "بيك أب دبل كابينة", baseFare: 400, perKm: 9, per30Min: 70, maxHelpers: 2 },
-    { id: "pickup-l", nameAr: "بيك أب كبير", baseFare: 550, perKm: 12, per30Min: 90, maxHelpers: 3 },
+    { id: "van-s", nameAr: "فان صغير", baseFare: 350, perKm: 8, per30Min: 60, maxHelpers: 2 },
+    { id: "dabbaba", nameAr: "دبابه", baseFare: 550, perKm: 12, per30Min: 90, maxHelpers: 3 },
     { id: "van-l", nameAr: "فان كبير / جامبو", baseFare: 800, perKm: 15, per30Min: 120, maxHelpers: 4 },
   ],
   loads: {
