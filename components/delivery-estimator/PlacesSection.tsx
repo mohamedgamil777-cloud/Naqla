@@ -27,12 +27,12 @@ export function StopActions({
     <span className="flex flex-wrap items-center gap-1.5">
       <button type="button" onClick={onLocate} disabled={busy} className={pillButton}>
         <Icon name="locate" className={`w-5 h-5 text-primary ${locating ? "animate-pulse" : ""}`} strokeWidth={2.75} />
-        {locating ? "بنحدد مكانك…" : "استخدم موقعي الحالي"}
+        {locating ? "بنحدد مكانك…" : "حدد الموقع على الخريطة"}
       </button>
       {mapOpen !== null && (
         <button type="button" onClick={onMap} aria-expanded={mapOpen} className={pillButton}>
           <Icon name="map" className="w-4 h-4" />
-          {mapOpen ? "اقفل الخريطة" : "حدد على الخريطة"}
+          {mapOpen ? "اقفل الخريطة" : "اختار من الخريطة"}
         </button>
       )}
     </span>

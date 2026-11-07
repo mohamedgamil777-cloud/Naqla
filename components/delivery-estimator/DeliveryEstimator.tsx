@@ -327,7 +327,7 @@ export function DeliveryEstimator({
     setStops((all) => ({ a: all.b, b: all.a }));
   }
 
-  /** "حدد على الخريطة" on a stop: open the map placing that stop, or close it if it's already showing it. */
+  /** "اختار من الخريطة" on a stop: open the map placing that stop, or close it if it's already showing it. */
   function toggleMapFor(stop: Stop) {
     if (mapOpen && activeStop === stop) {
       setMapOpen(false);

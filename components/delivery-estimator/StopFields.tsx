@@ -106,7 +106,7 @@ export function StopFields({
           <p className="text-[13px] text-muted -mt-1" aria-live="polite">
             {resolving
               ? "بنجيب العنوان…"
-              : "اكتب واختار من نتايج البحث، أو استخدم موقعك الحالي، أو حدد المكان على الخريطة."}
+              : "اكتب واختار من نتايج البحث، أو دوس «حدد الموقع على الخريطة»."}
           </p>
         ) : (
           // clear confirmation that this stop is set (and how to fix it)
