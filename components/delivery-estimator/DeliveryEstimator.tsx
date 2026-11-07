@@ -11,6 +11,7 @@ import { getMyLocation, locateMessage, type LocateFailure } from "@/lib/geolocat
 import { useTyping } from "@/hooks/useTyping";
 import type { Quote } from "@/engines/pricing";
 import { AuthGate } from "./AuthGate";
+import { LocationHelp } from "./LocationHelp";
 import { ExtrasSection } from "./ExtrasSection";
 import { CompanyBanner, OrderPlaced, Stepper } from "./OrderHeader";
 import { OrderBar } from "./OrderBar";
@@ -99,6 +100,8 @@ export function DeliveryEstimator({
   const [km, setKm] = useState(5);
   const [locating, setLocating] = useState(false);
   const [locateErr, setLocateErr] = useState<string | null>(null);
+  const [locateFail, setLocateFail] = useState<LocateFailure | null>(null);
+  const [locateHelpOpen, setLocateHelpOpen] = useState(false);
   const [addrError, setAddrError] = useState(false);
   const [saved, setSaved] = useState<SavedAddr[]>(account?.saved ?? []);
   const [savedMsg, setSavedMsg] = useState<{ stop: Stop; text: string } | null>(null);
@@ -277,12 +280,17 @@ export function DeliveryEstimator({
     setStops((all) => ({ a: all.b, b: all.a }));
   }
 
-  function useMyLocation() {
+  function findMyLocation() {
     setLocating(true);
     setLocateErr(null);
+    setLocateFail(null);
     getMyLocation()
       .then((point) => locate("a", point))
-      .catch((why: LocateFailure) => setLocateErr(locateMessage(why)))
+      .catch((why: LocateFailure) => {
+        setLocateErr(locateMessage(why));
+        setLocateFail(why);
+        setLocateHelpOpen(true); // straight to the fix steps, not just a line of text
+      })
       .finally(() => setLocating(false));
   }
 
@@ -418,13 +426,23 @@ export function DeliveryEstimator({
         <PlacesCard>
           <StopFields
             {...stopProps("a")}
-            action={<LocateButton locating={locating} onClick={useMyLocation} />}
+            action={<LocateButton locating={locating} onClick={findMyLocation} />}
           >
             {savedChips("a")}
             {locateErr && (
-              <p className="text-sm font-semibold text-booked" role="alert">
-                {locateErr}
-              </p>
+              <div
+                className="flex flex-wrap items-center gap-2 text-sm font-semibold text-booked"
+                role="alert"
+              >
+                <span>{locateErr}</span>
+                <button
+                  type="button"
+                  onClick={() => setLocateHelpOpen(true)}
+                  className="text-primary underline underline-offset-2 cursor-pointer"
+                >
+                  إزاي أحلها؟
+                </button>
+              </div>
             )}
           </StopFields>
 
@@ -517,6 +535,24 @@ export function DeliveryEstimator({
         />
       </aside>
 
+      <LocationHelp
+        failure={locateFail}
+        open={locateHelpOpen}
+        onClose={() => setLocateHelpOpen(false)}
+        onRetry={() => {
+          setLocateHelpOpen(false);
+          findMyLocation();
+        }}
+        onPickOnMap={
+          plain
+            ? null
+            : () => {
+                setLocateHelpOpen(false);
+                setActiveStop("a");
+                setMapOpen(true);
+              }
+        }
+      />
       <AuthGate
         open={authOpen}
         total={quote?.total ?? null}
