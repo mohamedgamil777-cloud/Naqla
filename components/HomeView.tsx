@@ -39,8 +39,10 @@ export function HomeView({ sizes, content }: { sizes: CategoryDTO[]; content: Ap
           aria-hidden
         />
         <div className="px-4 pt-6 md:pt-12 grid gap-6 md:gap-x-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:items-center">
-          {/* pitch — right side on desktop */}
-          <div className="md:col-start-1 md:row-start-1">
+          {/* phones show no pitch text (picture first); the headline stays for screen readers */}
+          <h1 className="sr-only md:hidden">{home.title}</h1>
+          {/* pitch — right side on desktop, hidden on phones */}
+          <div className="hidden md:block md:col-start-1 md:row-start-1">
             <h1 className="text-[2.2rem] md:text-[2.9rem] lg:text-[3.5rem] font-extrabold leading-[1.15] tracking-tight text-balance">
               {titleWords.join(" ")}{" "}
               <span className="relative inline-block">
