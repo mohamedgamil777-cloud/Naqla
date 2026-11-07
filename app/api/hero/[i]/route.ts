@@ -15,8 +15,9 @@ export const GET = withErrorHandling(
     return new NextResponse(Buffer.from(m[2], "base64"), {
       headers: {
         "Content-Type": m[1],
-        // the URL carries ?v=<fingerprint>, so a changed photo gets a new URL
-        "Cache-Control": "public, max-age=31536000, immutable",
+        // the URL carries ?v=<fingerprint>, so a changed photo gets a new URL; s-maxage lets the
+        // Vercel CDN answer repeat requests without running this function or reading the database
+        "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable",
       },
     });
   },

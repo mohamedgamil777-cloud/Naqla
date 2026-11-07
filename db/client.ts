@@ -27,6 +27,10 @@ function connect(): Database {
   const client = postgres(url, {
     max: 3,
     prepare: false,
+    // Skip the catalog query postgres-js otherwise runs on every new connection (~60 ms in the
+    // database plus a round trip, paid on each cold start). It only matters for array columns,
+    // and the schema has none.
+    fetch_types: false,
     idle_timeout: 20,
     connect_timeout: 10,
     max_lifetime: 60 * 5,
