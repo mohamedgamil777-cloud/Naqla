@@ -543,6 +543,12 @@ export function DeliveryEstimator({
           setLocateHelpOpen(false);
           findMyLocation();
         }}
+        onLocated={(point) => {
+          setLocateHelpOpen(false);
+          setLocateErr(null);
+          setLocateFail(null);
+          locate("a", point);
+        }}
         onPickOnMap={
           plain
             ? null

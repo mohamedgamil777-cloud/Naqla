@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icons";
-import type { LocateFailure } from "@/lib/geolocation";
+import type { LatLng, LocateFailure } from "@/lib/geolocation";
 
 type Platform = "iphone" | "android";
 
@@ -65,6 +65,44 @@ const STEPS: Record<Platform, { label: string; groups: { title: string; steps: s
   },
 };
 
+/**
+ * Chrome 144+ (desktop and Android) has a built-in <geolocation> button. Tapping it shows
+ * Chrome's own permission prompt again, even after the customer blocked location before,
+ * so they can allow it right here without digging through settings.
+ * Safari and other browsers don't have it, and no website can open the iPhone Settings app.
+ */
+function hasGeolocationElement() {
+  return typeof window !== "undefined" && "HTMLGeolocationElement" in window;
+}
+
+type GeoElement = HTMLElement & { position?: GeolocationPosition | null };
+
+function AllowLocationButton({ onLocated }: { onLocated: (point: LatLng) => void }) {
+  const ref = useRef<GeoElement>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const handle = () => {
+      const pos = el.position;
+      if (pos) onLocated({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      else setFailed(true);
+    };
+    el.addEventListener("location", handle);
+    return () => el.removeEventListener("location", handle);
+  }, [onLocated]);
+
+  return (
+    <div className="mx-5 mt-4 rounded-xl bg-primary-soft px-4 py-3 flex flex-col items-center gap-2 text-center">
+      <p className="text-sm font-bold">أسرع حل: دوس على الزرار ده واختار «سماح»</p>
+      {/* @ts-expect-error: <geolocation> is a new browser element that React's types don't know yet */}
+      <geolocation ref={ref} accuracymode="precise" />
+      {failed && <p className="text-xs text-booked">لسه مقفول؟ اتبع الخطوات اللي تحت.</p>}
+    </div>
+  );
+}
+
 function detectPlatform(): Platform {
   if (typeof navigator === "undefined") return "android";
   return /iPhone|iPad|iPod/.test(navigator.userAgent) ? "iphone" : "android";
@@ -78,14 +116,21 @@ type Props = {
   onRetry: () => void;
   /** opens the map so the customer can drop the pin by hand; null when there's no map */
   onPickOnMap: (() => void) | null;
+  /** the browser's own "allow location" button gave us a position */
+  onLocated: (point: LatLng) => void;
 };
 
 /** Bottom sheet with step-by-step fixes, shown when "my location" fails. */
-export function LocationHelp({ failure, open, onClose, onRetry, onPickOnMap }: Props) {
+export function LocationHelp({ failure, open, onClose, onRetry, onPickOnMap, onLocated }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const [platform, setPlatform] = useState<Platform>("android");
 
-  useEffect(() => setPlatform(detectPlatform()), []);
+  const [canAllowHere, setCanAllowHere] = useState(false);
+
+  useEffect(() => {
+    setPlatform(detectPlatform());
+    setCanAllowHere(hasGeolocationElement());
+  }, []);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -128,6 +173,8 @@ export function LocationHelp({ failure, open, onClose, onRetry, onPickOnMap }: P
         </button>
       </div>
 
+      {open && canAllowHere && <AllowLocationButton onLocated={onLocated} />}
+
       <div
         role="tablist"
         className="mx-5 mt-4 grid grid-cols-2 gap-1 rounded-xl bg-panel-2 p-1 text-sm font-bold"
@@ -150,6 +197,11 @@ export function LocationHelp({ failure, open, onClose, onRetry, onPickOnMap }: P
         {failure === "timeout" && (
           <p className="text-sm rounded-xl bg-panel-2 px-4 py-2.5">
             لو الموقع شغال أصلاً، جرب تاني جنب شباك أو في مكان مفتوح، أو حدد المكان على الخريطة.
+          </p>
+        )}
+        {platform === "iphone" && (
+          <p className="text-sm rounded-xl bg-panel-2 px-4 py-2.5">
+            الآيفون مش بيسمح لأي موقع إنه يفتح الإعدادات بنفسه، فلازم تفتحها إنت بالخطوات دي (مرة واحدة بس).
           </p>
         )}
         {STEPS[platform].groups.map((g) => (
