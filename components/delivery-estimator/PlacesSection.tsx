@@ -18,7 +18,7 @@ export function LocateButton({
 }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled} className={pillButton}>
-      <Icon name="locate" className="w-4 h-4" />
+      <Icon name="locate" className="w-4 h-4 text-accent" strokeWidth={2.2} />
       {locating ? "بنحدد مكانك…" : "الموقع على الخريطة"}
     </button>
   );
