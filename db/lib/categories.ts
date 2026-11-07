@@ -4,8 +4,12 @@ import { db } from "@/db/client";
 import { vehicleCategories, vehicles, deliveryOrders } from "@/db/schema";
 import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from "@/lib/errors";
 import type { CategoryDTO, CategoryInput } from "@/types";
+import { CACHE_TAGS, cachedRead, invalidate } from "./cache";
 
-export async function listCategories(): Promise<CategoryDTO[]> {
+/** All vehicle types, sorted (cached; dropped on every change below). */
+export const listCategories = cachedRead("categories", CACHE_TAGS.categories, readCategories);
+
+async function readCategories(): Promise<CategoryDTO[]> {
   const rows = await db.query.vehicleCategories.findMany({
     orderBy: (vehicleCategories) => vehicleCategories.sort,
   });
@@ -42,6 +46,7 @@ export async function createCategory(input: CategoryInput): Promise<{ id: string
       perKm: input.perKm ?? 0,
     })
     .returning({ id: vehicleCategories.id });
+  invalidate(CACHE_TAGS.categories);
   return { id: created.id };
 }
 
@@ -62,6 +67,7 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
       ...(input.perKm !== undefined ? { perKm: input.perKm } : {}),
     })
     .where(eq(vehicleCategories.id, id));
+  invalidate(CACHE_TAGS.categories);
   return true;
 }
 
@@ -69,6 +75,7 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
 export async function deleteCategory(id: string): Promise<{ ok: boolean; reason?: string }> {
   try {
     await db.delete(vehicleCategories).where(eq(vehicleCategories.id, id));
+    invalidate(CACHE_TAGS.categories);
     return { ok: true };
   } catch (e) {
     if (pgErrorCode(e) === PG_FOREIGN_KEY_VIOLATION) return { ok: false, reason: "IN_USE" };

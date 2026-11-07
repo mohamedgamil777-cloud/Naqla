@@ -6,6 +6,7 @@ import { withDefaults, type AppContent } from "@/lib/content";
 import { DEFAULTS } from "@/lib/constants";
 import { z } from "zod";
 import type { BusinessSettings } from "@/types";
+import { CACHE_TAGS, cachedRead, invalidate } from "./cache";
 
 /** The stored "business" document: any field may be missing (defaults fill it) or malformed (ignored). */
 const storedBusinessSchema = z
@@ -24,7 +25,9 @@ const storedBusinessSchema = z
   .partial()
   .catch({});
 
-export async function getBusiness(): Promise<BusinessSettings> {
+export const getBusiness = cachedRead("business", CACHE_TAGS.settings, readBusiness);
+
+async function readBusiness(): Promise<BusinessSettings> {
   const row = await db.query.settings.findFirst({ where: (settings) => eq(settings.key, "business") });
   const v = storedBusinessSchema.parse(row?.value ?? {});
   return {
@@ -50,10 +53,13 @@ export async function updateBusiness(input: Partial<BusinessSettings>): Promise<
       target: settings.key,
       set: { value: sql`${settings.value} || excluded.value`, updatedAt: new Date() },
     });
+  invalidate(CACHE_TAGS.settings);
   return true;
 }
 
-export async function getAppContent(): Promise<AppContent> {
+export const getAppContent = cachedRead("app_content", CACHE_TAGS.settings, readAppContent);
+
+async function readAppContent(): Promise<AppContent> {
   const row = await db.query.settings.findFirst({ where: (settings) => eq(settings.key, "app_content") });
   return withDefaults((row?.value as Partial<AppContent> | undefined) ?? null);
 }
@@ -66,7 +72,7 @@ export async function getAppContent(): Promise<AppContent> {
 export async function updateAppContent(
   mutate: (content: AppContent) => string | void,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  return db.transaction(async (tx) => {
+  const res = await db.transaction(async (tx): Promise<{ ok: true } | { ok: false; error: string }> => {
     await tx
       .insert(settings)
       .values({ key: "app_content", value: {} })
@@ -81,4 +87,6 @@ export async function updateAppContent(
       .where(eq(settings.key, "app_content"));
     return { ok: true };
   });
+  if (res.ok) invalidate(CACHE_TAGS.settings);
+  return res;
 }

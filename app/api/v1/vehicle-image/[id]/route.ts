@@ -11,7 +11,7 @@ export const GET = withErrorHandling(
     const m = cat?.image?.match(/^data:([^;,]+);base64,(.*)$/);
     if (!m) return new NextResponse("not found", { status: 404 });
     return new NextResponse(Buffer.from(m[2], "base64"), {
-      headers: { "Content-Type": m[1], "Cache-Control": "public, max-age=31536000, immutable" },
+      headers: { "Content-Type": m[1], "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable" },
     });
   },
 );
