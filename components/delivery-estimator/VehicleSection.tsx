@@ -5,9 +5,9 @@ import { SIZE_BADGE, capacityLabel, type OrderOptions, type SizeOpt } from "./mo
 
 type CargoHintsProps = {
   hints: OrderOptions["cargo"];
-  /** size code of the chosen hint */
+  /** label of the chosen hint */
   selected: string | null;
-  onPick: (size: string) => void;
+  onPick: (label: string) => void;
 };
 
 /** "What are you moving?" — each card suggests a size. */
@@ -17,12 +17,12 @@ export function CargoHints({ hints, selected, onPick }: CargoHintsProps) {
       <h2 className="text-lg font-extrabold">ماذا ستنقل؟</h2>
       <div className="grid grid-cols-4 gap-2">
         {hints.map((h) => {
-          const on = selected === h.size;
+          const on = selected === h.label;
           return (
             <button
-              key={h.size}
+              key={h.label}
               type="button"
-              onClick={() => onPick(h.size)}
+              onClick={() => onPick(h.label)}
               aria-pressed={on}
               className={`rounded-xl border py-3 px-1 flex flex-col items-center gap-1.5 text-center cursor-pointer ${
                 on ? "border-primary ring-1 ring-primary bg-primary-soft/60" : "border-line bg-panel hover:border-line-2"

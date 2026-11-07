@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createDeliveryOrder, resolveOrderSchedule } from "@/services/delivery-service";
+import { pointFrom, tripDistance } from "@/services/route-service";
 import { getSession } from "@/services/session";
 import { companyContext } from "@/services/company-service";
 import { withErrorHandling } from "@/lib/route";
 
 const Body = z.object({
   categoryId: z.guid(),
-  km: z.number().min(0).max(100000),
+  /** legacy: only used while no server Maps key is configured and there are no pins */
+  km: z.number().min(0).max(100000).optional(),
   loaders: z.number().int().min(0).max(10).optional(),
   promoCode: z.string().max(40).optional().nullable(),
   // the driver needs readable addresses — required, not just pins
@@ -43,9 +45,19 @@ export const POST = withErrorHandling("POST /api/orders", async function POST(re
   if (!when.ok) return NextResponse.json({ error: when.reason }, { status: 400 });
   const scheduledAt = when.scheduledAt;
 
+  // price with the server's distance (road distance once GOOGLE_MAPS_SERVER_KEY is set), never the browser's
+  const trip = await tripDistance({
+    pickup: pointFrom(d.pickupLat, d.pickupLng),
+    dropoff: pointFrom(d.dropoffLat, d.dropoffLng),
+    pickupAddress: d.pickupAddress,
+    dropoffAddress: d.dropoffAddress,
+    customerKm: d.km,
+  });
+  if (!trip.ok) return NextResponse.json({ error: trip.reason }, { status: 400 });
+
   const result = await createDeliveryOrder({
     categoryId: d.categoryId,
-    km: d.km,
+    km: trip.km,
     loaders: d.loaders,
     promoCode: d.promoCode,
     pickupAddress: d.pickupAddress,
@@ -54,10 +66,11 @@ export const POST = withErrorHandling("POST /api/orders", async function POST(re
     dropoffDetails: d.dropoffDetails,
     cargoType: d.cargoType,
     notes: d.notes,
-    pickupLat: d.pickupLat,
-    pickupLng: d.pickupLng,
-    dropoffLat: d.dropoffLat,
-    dropoffLng: d.dropoffLng,
+    // the pins the price was measured between (found from the typed address when the page sent none)
+    pickupLat: trip.pickup?.lat ?? null,
+    pickupLng: trip.pickup?.lng ?? null,
+    dropoffLat: trip.dropoff?.lat ?? null,
+    dropoffLng: trip.dropoff?.lng ?? null,
     scheduledAt,
     contactName: session.name ?? "عميل",
     contactPhone: session.phone,

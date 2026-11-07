@@ -17,9 +17,9 @@ import { CompanyBanner, OrderPlaced, Stepper } from "./OrderHeader";
 import { OrderBar } from "./OrderBar";
 import {
   DistanceBar,
-  LocateButton,
+  RouteProblem,
+  StopActions,
   MapPanel,
-  MapToggleButton,
   PlacesCard,
   SwapDivider,
 } from "./PlacesSection";
@@ -30,12 +30,12 @@ import { useDeliveryMap } from "./use-delivery-map";
 import {
   DRAFT_KEY,
   ORDER_ERROR,
+  ROUTE_ERROR,
   addDaysISO,
   cairoNowMinutes,
   composeDetails,
   emptyStop,
   parseDetails,
-  roadKm,
   slotMinutes,
   timeSlots,
   type AccountInfo,
@@ -97,7 +97,13 @@ export function DeliveryEstimator({
   const [resolving, setResolving] = useState<Record<Stop, boolean>>({ a: false, b: false });
   const lookupSeq = useRef<Record<Stop, number>>({ a: 0, b: 0 });
   // straight-line × road factor from the two pins; a hand-set value without maps
+  /** the km the price uses — set by the server; typed by the customer only in the old no-key fallback */
   const [km, setKm] = useState(5);
+  /** where the server got the km: road (Google route), straight (pins, no server key) or customer (typed) */
+  const [distanceSource, setDistanceSource] = useState<"road" | "straight" | "customer" | null>(null);
+  /** the server couldn't measure the trip (no route / address not found) → no price, ask to fix */
+  const [routeErr, setRouteErr] = useState<string | null>(null);
+  const [routeRetry, setRouteRetry] = useState(0);
   /** which stop's "my location" lookup is running (null = none) */
   const [locating, setLocating] = useState<Stop | null>(null);
   /** the stop the last location error / help sheet belongs to */
@@ -159,6 +165,7 @@ export function DeliveryEstimator({
         ?.id ?? "",
   );
   const [recommended, setRecommended] = useState<string | null>(null);
+  /** label of the chosen "ماذا ستنقل؟" option (several options can suggest the same size) */
   const [hint, setHint] = useState<string | null>(null);
   const [vehicleTouched, setVehicleTouched] = useState(Boolean(initialSizeCode));
 
@@ -208,10 +215,6 @@ export function DeliveryEstimator({
     }
   }, [addrError, placesDone]);
 
-  useEffect(() => {
-    if (stops.a.point && stops.b.point) setKm(roadKm(stops.a.point, stops.b.point));
-  }, [stops.a.point, stops.b.point]);
-
   // Addresses from the home page: a GPS spot is used as-is; typed text goes on the map (Google's best match), or stays text.
   useEffect(() => {
     const draft = takeDraft();
@@ -237,47 +240,81 @@ export function DeliveryEstimator({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on mount
   }, []);
 
-  // Live price: re-quote on the server whenever an input changes (debounced).
+  // Live price: re-quote on the server whenever an input changes (debounced). The server measures the
+  // trip from the pins (or the typed addresses) and sends back the km with the price.
   const canPrice = Boolean(sizeId) && (plain || Boolean(stops.a.point && stops.b.point));
+  const tripKey = JSON.stringify([
+    stops.a.point,
+    stops.b.point,
+    // typed addresses / km only matter without pins (plain fields)
+    plain && !(stops.a.point && stops.b.point) ? [stops.a.address.trim(), stops.b.address.trim(), km] : null,
+  ]);
   useEffect(() => {
     if (!canPrice) {
       setQuote(null);
+      setRouteErr(null);
       return;
     }
     let cancelled = false;
     setPricing(true);
-    const timer = setTimeout(async () => {
-      try {
-        const r = await fetch("/api/estimate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ categoryId: sizeId, km, loaders, promoCode: appliedPromo || null }),
-        });
-        if (!r.ok) throw new Error(`estimate ${r.status}`);
-        const j = await r.json();
-        if (cancelled) return;
-        if (j.quote) setQuote(j.quote);
-        if (appliedPromo) {
-          setPromoMsg(
-            j.promoApplied
-              ? { ok: true, text: "تم تطبيق الكوبون" }
-              : { ok: false, text: "الكوبون مش صحيح أو مش مطابق للشروط" },
-          );
+    const { a, b } = stops;
+    const timer = setTimeout(
+      async () => {
+        try {
+          const r = await fetch("/api/estimate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              categoryId: sizeId,
+              loaders,
+              promoCode: appliedPromo || null,
+              pickupLat: a.point?.lat ?? null,
+              pickupLng: a.point?.lng ?? null,
+              dropoffLat: b.point?.lat ?? null,
+              dropoffLng: b.point?.lng ?? null,
+              pickupAddress: a.address.trim() || null,
+              dropoffAddress: b.address.trim() || null,
+              km, // only used by the server's old no-key fallback
+            }),
+          });
+          const j = await r.json().catch(() => ({}));
+          if (cancelled) return;
+          if (r.status === 422) {
+            // can't measure this trip: never show a price that might be wrong
+            setQuote(null);
+            setRouteErr(ROUTE_ERROR[j.error as string] ?? ROUTE_ERROR.ROUTE_FAILED);
+            return;
+          }
+          if (!r.ok) throw new Error(`estimate ${r.status}`);
+          setRouteErr(null);
+          if (typeof j.km === "number") setKm(j.km);
+          setDistanceSource(j.distanceSource ?? null);
+          if (j.quote) setQuote(j.quote);
+          if (appliedPromo) {
+            setPromoMsg(
+              j.promoApplied
+                ? { ok: true, text: "تم تطبيق الكوبون" }
+                : { ok: false, text: "الكوبون مش صحيح أو مش مطابق للشروط" },
+            );
+          }
+        } catch {
+          // network hiccup: keep the last good price; the order itself is priced again on the server
+        } finally {
+          if (!cancelled) setPricing(false);
         }
-      } catch {
-        // keep the last good price; the order itself is priced again on the server
-      } finally {
-        if (!cancelled) setPricing(false);
-      }
-    }, 300);
+      },
+      plain ? 700 : 300, // typed addresses: wait for a pause in typing
+    );
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [canPrice, sizeId, km, loaders, appliedPromo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- tripKey stands for the stops
+  }, [canPrice, sizeId, tripKey, loaders, appliedPromo, routeRetry]);
 
-  function pickHint(size: string) {
-    setHint(size);
+  function pickHint(label: string) {
+    setHint(label);
+    const size = options.cargo.find((h) => h.label === label)?.size;
     const match = sizes.find((s) => s.sizeCode === size);
     if (match) {
       setSizeId(match.id);
@@ -288,6 +325,16 @@ export function DeliveryEstimator({
 
   function swap() {
     setStops((all) => ({ a: all.b, b: all.a }));
+  }
+
+  /** "حدد على الخريطة" on a stop: open the map placing that stop, or close it if it's already showing it. */
+  function toggleMapFor(stop: Stop) {
+    if (mapOpen && activeStop === stop) {
+      setMapOpen(false);
+      return;
+    }
+    setActiveStop(stop);
+    setMapOpen(true);
   }
 
   function findMyLocation(stop: Stop) {
@@ -358,6 +405,10 @@ export function DeliveryEstimator({
       goTo("sec-places");
       return;
     }
+    if (routeErr) {
+      goTo("sec-places"); // fix the addresses first — there is no reliable price yet
+      return;
+    }
     if (!loggedIn && !afterSignIn) {
       setAuthOpen(true);
       return;
@@ -371,14 +422,14 @@ export function DeliveryEstimator({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           categoryId: sizeId,
-          km,
+          km, // ignored by the server once it can measure the trip itself
           loaders,
           promoCode: appliedPromo || null,
           pickupAddress: a.address.trim(),
           dropoffAddress: b.address.trim(),
           pickupDetails: composeDetails(a) || null,
           dropoffDetails: composeDetails(b) || null,
-          cargoType: options.cargo.find((h) => h.size === hint)?.label ?? null,
+          cargoType: options.cargo.find((h) => h.label === hint)?.label ?? null,
           notes: notes || null,
           pickupLat: a.point?.lat ?? null,
           pickupLng: a.point?.lng ?? null,
@@ -402,6 +453,7 @@ export function DeliveryEstimator({
       const known = ORDER_ERROR[j.error as string];
       setOrderErr(known?.text ?? GENERIC_ERROR);
       if (known?.toTime) goTo("sec-time");
+      if (known?.toPlaces) goTo("sec-places");
     } catch {
       setOrderErr(GENERIC_ERROR);
     } finally {
@@ -452,7 +504,13 @@ export function DeliveryEstimator({
           <StopFields
             {...stopProps("a")}
             action={
-              <LocateButton locating={locating === "a"} disabled={locating !== null} onClick={() => findMyLocation("a")} />
+              <StopActions
+                locating={locating === "a"}
+                busy={locating !== null}
+                onLocate={() => findMyLocation("a")}
+                mapOpen={!plain ? mapOpen && activeStop === "a" : null}
+                onMap={() => toggleMapFor("a")}
+              />
             }
           >
             {savedChips("a")}
@@ -464,10 +522,13 @@ export function DeliveryEstimator({
           <StopFields
             {...stopProps("b")}
             action={
-              <span className="flex items-center gap-1.5">
-                <LocateButton locating={locating === "b"} disabled={locating !== null} onClick={() => findMyLocation("b")} />
-                {!plain && <MapToggleButton open={mapOpen} onClick={() => setMapOpen((o) => !o)} />}
-              </span>
+              <StopActions
+                locating={locating === "b"}
+                busy={locating !== null}
+                onLocate={() => findMyLocation("b")}
+                mapOpen={!plain ? mapOpen && activeStop === "b" : null}
+                onMap={() => toggleMapFor("b")}
+              />
             }
           >
             {savedChips("b")}
@@ -490,7 +551,19 @@ export function DeliveryEstimator({
               container={mapEl}
             />
           )}
-          {(plain || (stops.a.point && stops.b.point)) && <DistanceBar km={km} onChange={setKm} />}
+          {routeErr ? (
+            <RouteProblem message={routeErr} onRetry={() => setRouteRetry((n) => n + 1)} />
+          ) : (
+            (plain || (stops.a.point && stops.b.point)) && (
+              <DistanceBar
+                km={km}
+                source={distanceSource}
+                measuring={pricing}
+                // a typed km only counts in the old no-key fallback (no pins)
+                onChange={distanceSource === "road" || distanceSource === "straight" ? null : setKm}
+              />
+            )
+          )}
         </PlacesCard>
 
         <ScheduleSection
@@ -573,7 +646,7 @@ export function DeliveryEstimator({
             ? null
             : () => {
                 setLocateHelpOpen(false);
-                setActiveStop("a");
+                setActiveStop(locateStop);
                 setMapOpen(true);
               }
         }

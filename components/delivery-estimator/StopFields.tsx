@@ -105,11 +105,23 @@ export function StopFields({
         onPick={onPick}
         onType={(address) => onChange({ address })}
       />
-      {!plain && (resolving || !value.point) && (
-        <p className="text-[13px] text-muted -mt-1" aria-live="polite">
-          {resolving ? "بنجيب العنوان…" : "اختار من نتايج البحث، أو اضغط على الخريطة لتحديد المكان بالظبط."}
-        </p>
-      )}
+      {!plain &&
+        (resolving || !value.point ? (
+          <p className="text-[13px] text-muted -mt-1" aria-live="polite">
+            {resolving
+              ? "بنجيب العنوان…"
+              : "اكتب واختار من نتايج البحث، أو استخدم موقعك الحالي، أو حدد المكان على الخريطة."}
+          </p>
+        ) : (
+          // clear confirmation that this stop is set (and how to fix it)
+          <p className="text-[13px] font-semibold text-ok -mt-1 flex items-start gap-1.5" aria-live="polite">
+            <Icon name="checkCircle" className="w-4 h-4 mt-0.5 shrink-0" strokeWidth={2.2} />
+            <span>
+              تم تحديد المكان على الخريطة.
+              <span className="font-normal text-muted"> مش مظبوط؟ ابحث تاني أو اسحب الدبوس على الخريطة.</span>
+            </span>
+          </p>
+        ))}
 
       {located && (
         <fieldset className="flex flex-col gap-2.5">

@@ -201,7 +201,19 @@ export interface OrderDraft {
 export const DRAFT_KEY = "naqla_order_draft";
 
 /** Server error codes from POST /api/orders → message, and whether to scroll back to the time step. */
-export const ORDER_ERROR: Record<string, { text: string; toTime?: boolean }> = {
+/** Why the server couldn't measure the trip (no price is shown until it can). */
+export const ROUTE_ERROR: Record<string, string> = {
+  ROUTE_FAILED: "مقدرناش نحسب الطريق بين المكانين دلوقتي. اتأكد إن العنوانين صح أو حرّك الدبوس، وجرّب تاني.",
+  ADDRESS_NOT_FOUND: "مقدرناش نلاقي العنوان ده. اختاره من نتايج البحث أو حدده على الخريطة.",
+  OUTSIDE_EGYPT: "المكان ده بره مصر. اختار عنوان داخل مصر.",
+  NO_POINTS: "حدد مكان الاستلام والتسليم عشان نحسب المسافة والسعر.",
+};
+
+export const ORDER_ERROR: Record<string, { text: string; toTime?: boolean; toPlaces?: boolean }> = {
+  ROUTE_FAILED: { text: ROUTE_ERROR.ROUTE_FAILED, toPlaces: true },
+  ADDRESS_NOT_FOUND: { text: ROUTE_ERROR.ADDRESS_NOT_FOUND, toPlaces: true },
+  OUTSIDE_EGYPT: { text: ROUTE_ERROR.OUTSIDE_EGYPT, toPlaces: true },
+  NO_POINTS: { text: ROUTE_ERROR.NO_POINTS, toPlaces: true },
   PAST: { text: "الميعاد ده قريب أوي — اختار ميعاد بعد كده عشان نلحق نجهّز العربية.", toTime: true },
   HOURS: { text: "الميعاد ده بره مواعيد الشغل، اختار ساعة تانية.", toTime: true },
   CREDIT: { text: "الطلب ده هيعدّي حد الائتمان المتفق عليه للشركة — كلّموا الإدارة." },

@@ -45,6 +45,9 @@ const schema = z.object({
   GOOGLE_MAPS_API_KEY: optional,
   // Map ID for vector maps / advanced markers. Defaults to Google's DEMO_MAP_ID (fine for development).
   GOOGLE_MAPS_MAP_ID: optional,
+  // Server-only Google key for trip distance (Routes API) and geocoding typed addresses (Geocoding API).
+  // Never sent to the browser. Without it, quotes fall back to the old straight-line / typed distance.
+  GOOGLE_MAPS_SERVER_KEY: optional,
 });
 
 export type ServerEnv = z.infer<typeof schema>;
