@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cairoDateISO } from "@/lib/client-time";
 import { geocodeAddress, loadGoogleMaps, reverseGeocode } from "@/lib/google-maps";
+import { getMyLocation, locateMessage, type LocateFailure } from "@/lib/geolocation";
 import { useTyping } from "@/hooks/useTyping";
 import type { Quote } from "@/engines/pricing";
 import { AuthGate } from "./AuthGate";
@@ -97,6 +98,7 @@ export function DeliveryEstimator({
   // straight-line × road factor from the two pins; a hand-set value without maps
   const [km, setKm] = useState(5);
   const [locating, setLocating] = useState(false);
+  const [locateErr, setLocateErr] = useState<string | null>(null);
   const [addrError, setAddrError] = useState(false);
   const [saved, setSaved] = useState<SavedAddr[]>(account?.saved ?? []);
   const [savedMsg, setSavedMsg] = useState<{ stop: Stop; text: string } | null>(null);
@@ -276,16 +278,12 @@ export function DeliveryEstimator({
   }
 
   function useMyLocation() {
-    if (!navigator.geolocation) return;
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        locate("a", { lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocating(false);
-      },
-      () => setLocating(false),
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
+    setLocateErr(null);
+    getMyLocation()
+      .then((point) => locate("a", point))
+      .catch((why: LocateFailure) => setLocateErr(locateMessage(why)))
+      .finally(() => setLocating(false));
   }
 
   /** Fill a stop from a saved address, pin included, so the distance stays right. */
@@ -423,6 +421,11 @@ export function DeliveryEstimator({
             action={<LocateButton locating={locating} onClick={useMyLocation} />}
           >
             {savedChips("a")}
+            {locateErr && (
+              <p className="text-sm font-semibold text-booked" role="alert">
+                {locateErr}
+              </p>
+            )}
           </StopFields>
 
           <SwapDivider onSwap={swap} />
