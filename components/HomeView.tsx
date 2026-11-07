@@ -20,7 +20,16 @@ const WHY: { icon: IconName; title: string; note: string }[] = [
 ];
 
 /** The home page's markup. Data is loaded by app/(customer)/page.tsx. */
-export function HomeView({ sizes, content }: { sizes: CategoryDTO[]; content: AppContent }) {
+export function HomeView({
+  sizes,
+  content,
+  maps = null,
+}: {
+  sizes: CategoryDTO[];
+  content: AppContent;
+  /** Google Maps key: lets the GPS buttons turn a spot into a street address */
+  maps?: { apiKey: string } | null;
+}) {
   const { home, order } = content;
   const TRUST = home.trust.map((t, i) => ({ t, icon: TRUST_ICONS[i] }));
   const STEPS = home.steps.map((t, i) => ({ t, icon: STEP_ICONS[i], note: STEP_NOTES[i] }));
@@ -76,7 +85,7 @@ export function HomeView({ sizes, content }: { sizes: CategoryDTO[]; content: Ap
 
           {/* order card — full width, lifted over the picture's edge on desktop */}
           <div className="order-3 md:order-none md:col-span-2 md:row-start-2 relative z-10 md:-mt-14 md:mx-6">
-            <QuoteStarter />
+            <QuoteStarter maps={maps} />
           </div>
         </div>
 

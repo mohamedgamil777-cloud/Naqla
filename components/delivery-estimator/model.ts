@@ -193,6 +193,9 @@ export const detailField =
 export interface OrderDraft {
   pickupAddr: string;
   dropoffAddr: string;
+  /** set when the home page's GPS button found the spot — used as-is instead of geocoding the text */
+  pickupPoint?: LatLng | null;
+  dropoffPoint?: LatLng | null;
 }
 
 export const DRAFT_KEY = "naqla_order_draft";

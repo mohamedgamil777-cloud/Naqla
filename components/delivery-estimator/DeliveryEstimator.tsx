@@ -207,15 +207,20 @@ export function DeliveryEstimator({
     if (stops.a.point && stops.b.point) setKm(roadKm(stops.a.point, stops.b.point));
   }, [stops.a.point, stops.b.point]);
 
-  // Addresses typed on the home page: put each on the map (Google's best match), or keep the text.
+  // Addresses from the home page: a GPS spot is used as-is; typed text goes on the map (Google's best match), or stays text.
   useEffect(() => {
     const draft = takeDraft();
     if (!draft) return;
-    for (const [stop, text] of [
-      ["a", draft.pickupAddr],
-      ["b", draft.dropoffAddr],
+    for (const [stop, text, point] of [
+      ["a", draft.pickupAddr, draft.pickupPoint],
+      ["b", draft.dropoffAddr, draft.dropoffPoint],
     ] as const) {
       const typed = text?.trim();
+      if (point) {
+        // located with GPS on the home page: keep that exact spot
+        locate(stop, point, typed || undefined);
+        continue;
+      }
       if (!typed) continue;
       updateStop(stop, { address: typed });
       if (!maps) continue;
