@@ -141,6 +141,10 @@ const ICON_LABEL: Record<string, string> = {
   sofa: "كنبة",
   home: "بيت",
   truck: "عربية",
+  washer: "غسالة / أجهزة",
+  store: "محل",
+  bricks: "طوب / مواد بناء",
+  tools: "معدات",
 };
 
 function OrderForm({ c, sizeCodes }: { c: AppContent; sizeCodes: { code: string; name: string }[] }) {

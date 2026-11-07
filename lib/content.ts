@@ -5,7 +5,7 @@
  */
 
 export type FaqTopic = "order" | "price" | "driver" | "payment" | "cancel";
-export type CargoIcon = "file" | "box" | "sofa" | "home" | "truck";
+export type CargoIcon = "file" | "box" | "sofa" | "home" | "truck" | "washer" | "store" | "bricks" | "tools";
 
 export interface FaqItem {
   id: string;
@@ -138,10 +138,11 @@ export const DEFAULT_CONTENT: AppContent = {
     maxLoaders: 6,
     disclaimer: "السعر تقديري حسب المسافة والحجم، والسعر النهائي بيتأكد مع خدمة العملاء.",
     cargo: [
-      { label: "ظرف / أوراق", size: "XS", icon: "file" },
-      { label: "صناديق / كراسي", size: "S", icon: "box" },
-      { label: "أثاث / أجهزة", size: "M", icon: "sofa" },
-      { label: "عفش بيت", size: "L", icon: "home" },
+      { label: "أجهزة منزلية", size: "M", icon: "washer" },
+      { label: "كراتين وأغراض", size: "S", icon: "box" },
+      { label: "بضاعة محلات", size: "M", icon: "store" },
+      { label: "مواد بناء", size: "L", icon: "bricks" },
+      { label: "نقل معدات", size: "L", icon: "tools" },
     ],
   },
 };

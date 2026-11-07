@@ -10,7 +10,7 @@ const FAQ_TOPIC_IDS = [
   "payment",
   "cancel",
 ] as const satisfies readonly FaqTopic[];
-const CARGO_ICONS = ["file", "box", "sofa", "home", "truck"] as const satisfies readonly CargoIcon[];
+const CARGO_ICONS = ["file", "box", "sofa", "home", "truck", "washer", "store", "bricks", "tools"] as const satisfies readonly CargoIcon[];
 
 export const contactInputSchema = z.object({
   supportPhone: requiredText("اكتب رقم خدمة العملاء (خط ساخن أو موبايل).", 40).refine(
