@@ -4,17 +4,17 @@
    Brand: teal = brand & trust · amber = the ONE main action per screen ·
    cream/white = base · near-black text · maroon only inside the logo (parcel). */
 @theme {
-  --color-ground: #f5f4f0;
+  --color-ground: #f5f1e8; /* brand cream */
   --color-panel: #ffffff;
-  --color-panel-2: #efede7;
+  --color-panel-2: #eee9dd;
   --color-ink: #10201c;
   --color-ink-2: #3b4542;
   --color-muted: #6e716b;
-  --color-line: #e5e2da;
-  --color-line-2: #d4cfc3;
+  --color-line: #e6e0d2;
+  --color-line-2: #d5cdbc;
 
-  --color-primary: #0b6b5b; /* teal: selected states, step buttons, links */
-  --color-primary-ink: #08503f;
+  --color-primary: #135f5a; /* brand teal: selected states, step buttons, links */
+  --color-primary-ink: #0e4844;
   --color-primary-soft: #e3efec;
   --color-accent: #f2a541; /* amber: main call-to-action only */
   --color-on-accent: #3a2306; /* text on a solid accent button */
@@ -26,7 +26,7 @@
   --color-bar: #ffffff;
   --color-on-bar: #10201c;
   --color-bar-chip: #e3efec;
-  --color-bar-chip-ink: #0b6b5b;
+  --color-bar-chip-ink: #135f5a;
   --color-bar-edge: rgb(16 32 28 / 0.08);
   --color-bar-ink: #0f3b38; /* admin sidebar (dark teal) */
 

@@ -8,21 +8,29 @@ import { Icon } from "@/components/Icons";
 export default function CustomerLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-ground flex flex-col">
-      <header className="print:hidden sticky top-0 z-30 bg-bar/95 backdrop-blur text-on-bar border-b border-line">
-        <div className="max-w-6xl mx-auto flex items-center gap-8 px-4 md:px-6 h-16">
+      <header className="print:hidden sticky top-0 z-30 bg-bar/90 backdrop-blur text-on-bar border-b border-line/70">
+        <div className="max-w-6xl mx-auto flex items-center gap-10 px-4 md:px-6 h-16 md:h-[4.5rem]">
           <div className="flex items-center gap-2">
             <HeaderBack />
-            <Link href="/" aria-label="انقلي — الرئيسية" className="flex items-center">
-              <Logo className="h-10" surface="bar" />
+            <Link href="/" aria-label="انقلي ENQELLY — الرئيسية" className="flex items-center">
+              <Logo className="h-10 md:h-12" surface="bar" />
             </Link>
           </div>
           <HeaderNav />
           <div className="ms-auto flex items-center gap-2">
             <Link
-              href="/estimate"
-              className="hidden md:inline-flex items-center gap-1.5 rounded-xl bg-accent text-on-accent px-4 py-2 font-semibold hover:brightness-95"
+              href="/bookings"
+              className="hidden md:inline-flex items-center gap-2 rounded-full border-2 border-primary/80 text-primary px-4 py-1.5 font-bold text-sm hover:bg-primary-soft"
             >
-              اطلب توصيلة
+              <Icon name="orders" className="w-4 h-4" strokeWidth={2.2} />
+              طلباتي
+            </Link>
+            <Link
+              href="/account"
+              aria-label="حسابي"
+              className="hidden md:grid w-10 h-10 place-items-center rounded-full text-primary hover:bg-primary-soft"
+            >
+              <Icon name="user" className="w-5 h-5" strokeWidth={2} />
             </Link>
             <Link
               href="/bookings"

@@ -15,26 +15,32 @@ function isActive(path: string, href: string) {
   return href === "/" ? path === "/" : path.startsWith(href);
 }
 
-/** Tablet / desktop: the same destinations as the bottom nav, as plain header links. */
+/** Tablet / desktop header links: the home page's sections plus the help centre (FAQs).
+ *  Orders and account stay one click away in the header's left corner. */
+const headerItems: { href: string; label: string }[] = [
+  { href: "/", label: "الرئيسية" },
+  { href: "/#how", label: "كيف تعمل؟" },
+  { href: "/#fleet", label: "العربيات" },
+  { href: "/help", label: "الأسئلة الشائعة" },
+];
+
 export function HeaderNav() {
   const path = usePathname();
   return (
-    <nav className="hidden md:flex items-stretch self-stretch gap-6" aria-label="القائمة الرئيسية">
-      {items.map((it) => {
-        const active = isActive(path, it.href);
+    <nav className="hidden md:flex items-stretch self-stretch gap-7" aria-label="القائمة الرئيسية">
+      {headerItems.map((it) => {
+        const active = !it.href.includes("#") && isActive(path, it.href);
         return (
           <Link
             key={it.href}
             href={it.href}
             aria-current={active ? "page" : undefined}
             className={`relative flex items-center text-[15px] ${
-              active ? "text-ink font-semibold" : "text-muted hover:text-ink"
+              active ? "text-ink font-bold" : "text-ink-2 font-medium hover:text-primary"
             }`}
           >
             {it.label}
-            {active && (
-              <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" aria-hidden />
-            )}
+            {active && <span className="absolute inset-x-0 bottom-3 h-0.5 rounded-full bg-booked" aria-hidden />}
           </Link>
         );
       })}
