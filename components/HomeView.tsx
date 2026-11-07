@@ -63,8 +63,8 @@ export function HomeView({ sizes, content }: { sizes: CategoryDTO[]; content: Ap
             <p className="mt-4 text-base md:text-lg text-muted leading-relaxed max-w-md">{subtitle}</p>
           </div>
 
-          {/* picture — left side on desktop, after the order card on phones */}
-          <div className="order-3 md:order-none md:col-start-2 md:row-start-1 overflow-hidden rounded-3xl border border-line bg-panel-2 shadow-[0_18px_40px_rgba(16,32,28,0.10)]">
+          {/* picture — left side on desktop, above the order card on phones */}
+          <div className="order-2 md:order-none md:col-start-2 md:row-start-1 overflow-hidden rounded-3xl border border-line bg-panel-2 shadow-[0_18px_40px_rgba(16,32,28,0.10)]">
             {home.heroImages.length ? (
               <HeroCarousel slides={home.heroImages.map((src, i) => `/api/hero/${i}?v=${photoVersion(src)}`)} />
             ) : (
@@ -73,7 +73,7 @@ export function HomeView({ sizes, content }: { sizes: CategoryDTO[]; content: Ap
           </div>
 
           {/* order card — full width, lifted over the picture's edge on desktop */}
-          <div className="order-2 md:order-none md:col-span-2 md:row-start-2 relative z-10 md:-mt-14 md:mx-6">
+          <div className="order-3 md:order-none md:col-span-2 md:row-start-2 relative z-10 md:-mt-14 md:mx-6">
             <QuoteStarter />
           </div>
         </div>
