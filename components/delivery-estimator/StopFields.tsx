@@ -31,7 +31,7 @@ const STOP_LOOK: Record<Stop, { title: string; marker: string; label: string; de
   },
   b: {
     title: "مكان التسليم",
-    marker: "rounded-full border-[3px] border-accent bg-panel",
+    marker: "", // drawn as a location pin (see StopFields)
     label: "عنوان التسليم",
     detailsLabel: "تفاصيل التسليم",
   },
@@ -84,7 +84,11 @@ export function StopFields({
     <div className="p-4 flex flex-col gap-2.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         {/* same stop markers as the map pins and the home-page form */}
-        <span className={`w-4 h-4 shrink-0 ${look.marker}`} aria-hidden />
+        {stop === "b" ? (
+          <Icon name="mapPin" className="w-5 h-5 shrink-0 text-accent" strokeWidth={2.2} />
+        ) : (
+          <span className={`w-4 h-4 shrink-0 ${look.marker}`} aria-hidden />
+        )}
         <span className="flex-1 flex items-center gap-2 font-semibold whitespace-nowrap">
           {look.title} <RequiredTag done={located} />
         </span>
