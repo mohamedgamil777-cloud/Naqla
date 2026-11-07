@@ -166,32 +166,34 @@ export function HomeView({
         </section>
       )}
 
-      {/* ---------- How it works ---------- */}
-      <section id="how" aria-labelledby="how-title" className="px-4 scroll-mt-24 text-center">
-        <h2 id="how-title" className="text-2xl md:text-[2rem] font-extrabold">
-          <span className="relative inline-block">
-            <span className="relative z-10">بتشتغل إزاي؟</span>
-            <span className="absolute inset-x-0 bottom-1 h-2 rounded-full bg-primary/20" aria-hidden />
-          </span>
-        </h2>
-        <p className="text-base text-muted mt-1">{STEPS.length} خطوات بسيطة</p>
-        <ol className="mt-6 md:mt-8 grid grid-cols-2 gap-3 md:flex md:items-stretch md:gap-2">
+      {/* ---------- How it works — one row of steps; swipe on phones ---------- */}
+      <section id="how" aria-labelledby="how-title" className="scroll-mt-24 text-center">
+        <div className="px-4">
+          <h2 id="how-title" className="text-2xl md:text-[2rem] font-extrabold">
+            <span className="relative inline-block">
+              <span className="relative z-10">بتشتغل إزاي؟</span>
+              <span className="absolute inset-x-0 bottom-1 h-2 rounded-full bg-primary/20" aria-hidden />
+            </span>
+          </h2>
+          <p className="text-base text-muted mt-1">{STEPS.length} خطوات بسيطة</p>
+        </div>
+        <ol className="mt-5 md:mt-8 px-4 flex items-stretch gap-1.5 md:gap-2 overflow-x-auto snap-x snap-mandatory pb-2 [scrollbar-width:none] md:overflow-visible">
           {STEPS.map((x, i) => (
             <li key={x.t} className="contents">
-              <div className="md:flex-1 bg-panel rounded-2xl border border-line/80 p-4 md:p-5 flex flex-col items-center md:flex-row md:items-center gap-3 text-center md:text-start">
-                <span className="w-9 h-9 shrink-0 grid place-items-center rounded-full bg-primary-soft text-primary-ink text-lg font-extrabold">
+              <div className="snap-start shrink-0 w-[12.5rem] md:w-auto md:flex-1 bg-panel rounded-2xl border border-line/80 p-3.5 md:p-5 flex items-center gap-3 text-start">
+                <span className="w-8 h-8 md:w-9 md:h-9 shrink-0 grid place-items-center rounded-full bg-primary-soft text-primary-ink text-base md:text-lg font-extrabold">
                   {i + 1}
                 </span>
-                <div className="flex flex-col items-center gap-1.5 flex-1">
-                  <Icon name={x.icon} className="w-8 h-8 text-primary" strokeWidth={1.7} />
-                  <span className="font-extrabold leading-snug">{x.t}</span>
-                  {x.note && <span className="text-[13px] text-muted leading-snug">{x.note}</span>}
+                <div className="flex flex-col items-center gap-1 flex-1 text-center">
+                  <Icon name={x.icon} className="w-7 h-7 md:w-8 md:h-8 text-primary" strokeWidth={1.7} />
+                  <span className="font-extrabold text-sm md:text-base leading-snug">{x.t}</span>
+                  {x.note && <span className="text-xs md:text-[13px] text-muted leading-snug">{x.note}</span>}
                 </div>
               </div>
               {i < STEPS.length - 1 && (
                 <Icon
                   name="chevronLeft"
-                  className="hidden md:block self-center w-5 h-5 text-ink-2 shrink-0"
+                  className="self-center w-4 h-4 md:w-5 md:h-5 text-ink-2 shrink-0"
                   strokeWidth={2.4}
                   aria-hidden
                 />
@@ -201,21 +203,21 @@ export function HomeView({
         </ol>
       </section>
 
-      {/* ---------- What we move (cargo types from admin → محتوى التطبيق) ---------- */}
+      {/* ---------- What we move (cargo types from admin → محتوى التطبيق) — one row; swipe on phones ---------- */}
       {order.cargo.length > 0 && (
-        <section aria-labelledby="needs-title" className="px-4 text-center">
-          <h2 id="needs-title" className="text-2xl md:text-[2rem] font-extrabold">
+        <section aria-labelledby="needs-title" className="text-center">
+          <h2 id="needs-title" className="px-4 text-2xl md:text-[2rem] font-extrabold">
             انقلي لكل احتياجاتك
           </h2>
-          <ul className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:flex md:justify-center gap-3 md:gap-4">
+          <ul className="mt-5 md:mt-6 px-4 flex gap-3 md:gap-4 overflow-x-auto snap-x pb-2 [scrollbar-width:none] md:justify-center md:overflow-visible">
             {order.cargo.map((g) => (
-              <li key={g.label} className="md:w-40">
+              <li key={g.label} className="snap-start shrink-0 w-[7rem] md:w-40">
                 <Link
                   href={`/estimate?size=${g.size}`}
-                  className="h-full bg-panel rounded-2xl border border-line/80 py-5 px-3 flex flex-col items-center gap-2.5 hover:border-primary/60 hover:shadow-[0_8px_22px_rgba(16,32,28,0.08)]"
+                  className="h-full bg-panel rounded-2xl border border-line/80 py-4 md:py-5 px-2 md:px-3 flex flex-col items-center gap-2 md:gap-2.5 hover:border-primary/60 hover:shadow-[0_8px_22px_rgba(16,32,28,0.08)]"
                 >
-                  <Icon name={g.icon as IconName} className="w-9 h-9 text-primary" strokeWidth={1.6} />
-                  <span className="font-bold text-[15px] leading-snug">{g.label}</span>
+                  <Icon name={g.icon as IconName} className="w-8 h-8 md:w-9 md:h-9 text-primary" strokeWidth={1.6} />
+                  <span className="font-bold text-sm md:text-[15px] leading-snug">{g.label}</span>
                 </Link>
               </li>
             ))}
@@ -223,22 +225,25 @@ export function HomeView({
         </section>
       )}
 
-      {/* ---------- Why ENQELLY ---------- */}
+      {/* ---------- Why ENQELLY — three points side by side on every screen ---------- */}
       <section
         aria-labelledby="why-title"
-        className="mx-4 rounded-3xl bg-primary text-white px-6 py-7 md:px-10 md:py-8 grid gap-6 md:grid-cols-[auto_1fr] md:items-center md:gap-10"
+        className="mx-4 rounded-3xl bg-primary text-white px-4 py-6 md:px-10 md:py-8 grid gap-5 md:grid-cols-[auto_1fr] md:items-center md:gap-10"
       >
-        <h2 id="why-title" className="text-2xl md:text-[1.9rem] font-extrabold leading-tight">
+        <h2 id="why-title" className="text-xl md:text-[1.9rem] font-extrabold leading-tight text-center md:text-start">
           ليه
           <br className="hidden md:block" /> تختار انقلي؟
         </h2>
-        <ul className="grid gap-5 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-x-reverse divide-white/20">
+        <ul className="grid grid-cols-3">
           {WHY.map((w) => (
-            <li key={w.title} className="flex items-center gap-3 sm:justify-center sm:px-4">
-              <Icon name={w.icon} className="w-8 h-8 shrink-0 text-white" strokeWidth={1.6} />
+            <li
+              key={w.title}
+              className="[&:not(:first-child)]:border-s border-white/20 px-1.5 md:px-4 flex flex-col md:flex-row items-center gap-2 md:gap-3 text-center md:text-start md:justify-center"
+            >
+              <Icon name={w.icon} className="w-7 h-7 md:w-8 md:h-8 shrink-0 text-white" strokeWidth={1.6} />
               <div>
-                <div className="font-bold leading-snug">{w.title}</div>
-                <div className="text-sm text-white/75">{w.note}</div>
+                <div className="font-bold text-[13px] md:text-base leading-snug">{w.title}</div>
+                <div className="text-xs md:text-sm text-white/75">{w.note}</div>
               </div>
             </li>
           ))}
