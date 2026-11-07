@@ -98,7 +98,10 @@ export function DeliveryEstimator({
   const lookupSeq = useRef<Record<Stop, number>>({ a: 0, b: 0 });
   // straight-line × road factor from the two pins; a hand-set value without maps
   const [km, setKm] = useState(5);
-  const [locating, setLocating] = useState(false);
+  /** which stop's "my location" lookup is running (null = none) */
+  const [locating, setLocating] = useState<Stop | null>(null);
+  /** the stop the last location error / help sheet belongs to */
+  const [locateStop, setLocateStop] = useState<Stop>("a");
   const [locateErr, setLocateErr] = useState<string | null>(null);
   const [locateFail, setLocateFail] = useState<LocateFailure | null>(null);
   const [locateHelpOpen, setLocateHelpOpen] = useState(false);
@@ -116,7 +119,9 @@ export function DeliveryEstimator({
 
   /** A stop got a point (map tap, dragged pin, my location): store it, then fetch its street address. */
   function locate(stop: Stop, point: LatLng, address?: string) {
-    updateStop(stop, address ? { point, address } : { point });
+    // no Google (plain fields): say where the pin is, unless the customer already typed an address
+    const fallback = !address && !maps && !stops[stop].address.trim() ? "موقعي الحالي" : undefined;
+    updateStop(stop, address ? { point, address } : fallback ? { point, address: fallback } : { point });
     if (stop === "a" && !stops.b.point) setActiveStop("b"); // the next tap places the drop-off
     if (address || !maps) return;
     const seq = ++lookupSeq.current[stop];
@@ -285,19 +290,34 @@ export function DeliveryEstimator({
     setStops((all) => ({ a: all.b, b: all.a }));
   }
 
-  function findMyLocation() {
-    setLocating(true);
+  function findMyLocation(stop: Stop) {
+    setLocating(stop);
+    setLocateStop(stop);
     setLocateErr(null);
     setLocateFail(null);
     getMyLocation()
-      .then((point) => locate("a", point))
+      .then((point) => locate(stop, point))
       .catch((why: LocateFailure) => {
         setLocateErr(locateMessage(why));
         setLocateFail(why);
         setLocateHelpOpen(true); // straight to the fix steps, not just a line of text
       })
-      .finally(() => setLocating(false));
+      .finally(() => setLocating(null));
   }
+
+  const locateError = (stop: Stop) =>
+    locateErr && locateStop === stop ? (
+      <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-booked" role="alert">
+        <span>{locateErr}</span>
+        <button
+          type="button"
+          onClick={() => setLocateHelpOpen(true)}
+          className="text-primary underline underline-offset-2 cursor-pointer"
+        >
+          إزاي أحلها؟
+        </button>
+      </div>
+    ) : null;
 
   /** Fill a stop from a saved address, pin included, so the distance stays right. */
   function applySaved(stop: Stop, address: SavedAddr) {
@@ -431,33 +451,27 @@ export function DeliveryEstimator({
         <PlacesCard>
           <StopFields
             {...stopProps("a")}
-            action={<LocateButton locating={locating} onClick={findMyLocation} />}
+            action={
+              <LocateButton locating={locating === "a"} disabled={locating !== null} onClick={() => findMyLocation("a")} />
+            }
           >
             {savedChips("a")}
-            {locateErr && (
-              <div
-                className="flex flex-wrap items-center gap-2 text-sm font-semibold text-booked"
-                role="alert"
-              >
-                <span>{locateErr}</span>
-                <button
-                  type="button"
-                  onClick={() => setLocateHelpOpen(true)}
-                  className="text-primary underline underline-offset-2 cursor-pointer"
-                >
-                  إزاي أحلها؟
-                </button>
-              </div>
-            )}
+            {locateError("a")}
           </StopFields>
 
           <SwapDivider onSwap={swap} />
 
           <StopFields
             {...stopProps("b")}
-            action={plain ? null : <MapToggleButton open={mapOpen} onClick={() => setMapOpen((o) => !o)} />}
+            action={
+              <span className="flex items-center gap-1.5">
+                <LocateButton locating={locating === "b"} disabled={locating !== null} onClick={() => findMyLocation("b")} />
+                {!plain && <MapToggleButton open={mapOpen} onClick={() => setMapOpen((o) => !o)} />}
+              </span>
+            }
           >
             {savedChips("b")}
+            {locateError("b")}
             {addrError && !placesDone && (
               <p className="text-sm font-semibold text-booked" role="alert">
                 {plain
@@ -546,13 +560,13 @@ export function DeliveryEstimator({
         onClose={() => setLocateHelpOpen(false)}
         onRetry={() => {
           setLocateHelpOpen(false);
-          findMyLocation();
+          findMyLocation(locateStop);
         }}
         onLocated={(point) => {
           setLocateHelpOpen(false);
           setLocateErr(null);
           setLocateFail(null);
-          locate("a", point);
+          locate(locateStop, point);
         }}
         onPickOnMap={
           plain

@@ -6,11 +6,20 @@ import type { Stop } from "./model";
 const pillButton =
   "shrink-0 flex items-center gap-1.5 text-sm font-bold text-primary rounded-full border border-line px-2.5 py-1.5 hover:bg-primary-soft disabled:opacity-50";
 
-export function LocateButton({ locating, onClick }: { locating: boolean; onClick: () => void }) {
+/** GPS: puts this stop's pin at the phone's current location. */
+export function LocateButton({
+  locating,
+  disabled = locating,
+  onClick,
+}: {
+  locating: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
   return (
-    <button type="button" onClick={onClick} disabled={locating} className={pillButton}>
+    <button type="button" onClick={onClick} disabled={disabled} className={pillButton}>
       <Icon name="locate" className="w-4 h-4" />
-      {locating ? "…" : "موقعي"}
+      {locating ? "بنحدد مكانك…" : "الموقع على الخريطة"}
     </button>
   );
 }
