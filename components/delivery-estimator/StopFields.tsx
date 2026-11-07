@@ -85,7 +85,7 @@ export function StopFields({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         {/* same stop markers as the map pins and the home-page form */}
         {stop === "b" ? (
-          <Icon name="mapPin" className="w-5 h-5 shrink-0 text-primary" strokeWidth={2.2} />
+          <Icon name="mapPin" className="w-5 h-5 shrink-0 text-accent" strokeWidth={2.2} />
         ) : (
           <span className={`w-4 h-4 shrink-0 ${look.marker}`} aria-hidden />
         )}
