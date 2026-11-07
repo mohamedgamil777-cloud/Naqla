@@ -52,7 +52,7 @@ export function TripMap({ pickup, dropoff, maps }: TripMapProps) {
               icon: {
                 path: "M 0,-1 0,1",
                 strokeOpacity: 1,
-                strokeColor: "#0b6b5b",
+                strokeColor: "#135F5A",
                 strokeWeight: 4,
                 scale: 3,
               },

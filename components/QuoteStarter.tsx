@@ -85,7 +85,7 @@ export function QuoteStarter({ maps = null }: { maps?: { apiKey: string } | null
     return (
       <div className="flex-1 min-w-0">
         <label htmlFor={`qs-${stop}`} className="flex items-center gap-1.5 mb-1.5 text-sm font-bold">
-          <Icon name="mapPin" className={`w-5 h-5 ${pinClass}`} strokeWidth={2.2} />
+          <Icon name="mapPin" className={`w-6 h-6 ${pinClass}`} strokeWidth={2.75} />
           {label}
         </label>
         <div className="relative">
@@ -104,10 +104,10 @@ export function QuoteStarter({ maps = null }: { maps?: { apiKey: string } | null
             aria-label={`حدد ${label} بموقعي الحالي (GPS)`}
             title="موقعي الحالي"
             className={`absolute end-1.5 top-1/2 -translate-y-1/2 w-9 h-9 grid place-items-center rounded-lg cursor-pointer disabled:cursor-wait ${
-              fields[stop].point ? "bg-accent text-on-accent" : "text-accent hover:bg-accent/15"
+              fields[stop].point ? "bg-primary text-white" : "text-primary hover:bg-primary-soft"
             }`}
           >
-            <Icon name="locate" className={`w-5 h-5 ${busy ? "animate-pulse" : ""}`} strokeWidth={2.1} />
+            <Icon name="locate" className={`w-5 h-5 ${busy ? "animate-pulse" : ""}`} strokeWidth={2.75} />
           </button>
         </div>
       </div>
@@ -121,7 +121,7 @@ export function QuoteStarter({ maps = null }: { maps?: { apiKey: string } | null
         className="bg-panel rounded-2xl shadow-[0_12px_36px_rgba(16,32,28,0.10)] border border-line/70 p-4 md:p-5"
       >
         <div className="flex flex-col md:flex-row md:items-end gap-3 md:gap-4">
-          {stopField("a", "مكان الاستلام", "text-booked")}
+          {stopField("a", "مكان الاستلام", "text-pickup")}
 
           <button
             type="button"
@@ -129,7 +129,7 @@ export function QuoteStarter({ maps = null }: { maps?: { apiKey: string } | null
             aria-label="بدّل مكان الاستلام والتسليم"
             className="self-center md:self-end md:mb-1 w-11 h-11 shrink-0 grid place-items-center rounded-full bg-primary-soft text-primary hover:bg-primary hover:text-white cursor-pointer -my-1 md:my-0"
           >
-            <Icon name="swapH" className="w-5 h-5 rotate-90 md:rotate-0" strokeWidth={2.2} />
+            <Icon name="swapH" className="w-5 h-5 rotate-90 md:rotate-0" strokeWidth={2.5} />
           </button>
 
           {stopField("b", "مكان التسليم", "text-primary")}

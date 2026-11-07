@@ -125,7 +125,8 @@ export function PlaceSearch({
     <div className="relative">
       <Icon
         name={busy ? "clock" : "search"}
-        className="absolute start-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-muted pointer-events-none"
+        className="absolute start-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-2 pointer-events-none"
+        strokeWidth={2.5}
       />
       <input
         role="combobox"

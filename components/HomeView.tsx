@@ -96,7 +96,7 @@ export function HomeView({
               key={x.t}
               className="md:[&:not(:first-child)]:border-s border-line-2 flex flex-col md:flex-row items-center justify-center gap-1.5 md:gap-2.5 px-2 text-center text-sm md:text-base font-semibold text-ink-2"
             >
-              <Icon name={x.icon} className="w-6 h-6 md:w-7 md:h-7 text-primary shrink-0" strokeWidth={1.9} />
+              <Icon name={x.icon} className="w-6 h-6 md:w-7 md:h-7 text-primary shrink-0" strokeWidth={2.5} />
               {x.t}
             </li>
           ))}
@@ -124,7 +124,7 @@ export function HomeView({
                       <VehicleImage src={c.image} alt={c.name} sizes="(max-width:768px) 260px, 360px" />
                     ) : (
                       <div className="grid place-items-center h-full">
-                        <Icon name="truck" className="w-14 h-14 text-primary/70" strokeWidth={1.4} />
+                        <Icon name="truck" className="w-14 h-14 text-primary/70" strokeWidth={2.5} />
                       </div>
                     )}
                     <span
@@ -139,14 +139,14 @@ export function HomeView({
                     <dl className="text-xs flex flex-col gap-1">
                       {c.capacityKg ? (
                         <div className="flex items-center gap-2">
-                          <Icon name="weight" className="w-3.5 h-3.5 text-primary" strokeWidth={1.9} />
+                          <Icon name="weight" className="w-3.5 h-3.5 text-primary" strokeWidth={2.5} />
                           <dt className="text-muted w-10 shrink-0">الحمولة</dt>
                           <dd className="text-ink font-bold whitespace-nowrap">حتى {c.capacityKg.toLocaleString("en-US")} كجم</dd>
                         </div>
                       ) : null}
                       {c.dims ? (
                         <div className="flex items-center gap-2">
-                          <Icon name="box" className="w-3.5 h-3.5 text-primary" strokeWidth={1.9} />
+                          <Icon name="box" className="w-3.5 h-3.5 text-primary" strokeWidth={2.5} />
                           <dt className="text-muted w-10 shrink-0">المقاس</dt>
                           <dd className="text-ink font-bold whitespace-nowrap">{c.dims}</dd>
                         </div>
@@ -185,7 +185,7 @@ export function HomeView({
                   {i + 1}
                 </span>
                 <div className="flex flex-col items-center gap-1 flex-1 text-center">
-                  <Icon name={x.icon} className="w-7 h-7 md:w-8 md:h-8 text-primary" strokeWidth={1.7} />
+                  <Icon name={x.icon} className="w-7 h-7 md:w-8 md:h-8 text-primary" strokeWidth={2.5} />
                   <span className="font-extrabold text-sm md:text-base leading-snug">{x.t}</span>
                   {x.note && <span className="text-xs md:text-[13px] text-muted leading-snug">{x.note}</span>}
                 </div>
@@ -216,7 +216,7 @@ export function HomeView({
                   href={`/estimate?size=${g.size}`}
                   className="h-full bg-panel rounded-2xl border border-line/80 py-4 md:py-5 px-2 md:px-3 flex flex-col items-center gap-2 md:gap-2.5 hover:border-primary/60 hover:shadow-[0_8px_22px_rgba(16,32,28,0.08)]"
                 >
-                  <Icon name={g.icon as IconName} className="w-8 h-8 md:w-9 md:h-9 text-primary" strokeWidth={1.6} />
+                  <Icon name={g.icon as IconName} className="w-8 h-8 md:w-9 md:h-9 text-primary" strokeWidth={2.5} />
                   <span className="font-bold text-sm md:text-[15px] leading-snug">{g.label}</span>
                 </Link>
               </li>
@@ -240,7 +240,7 @@ export function HomeView({
               key={w.title}
               className="[&:not(:first-child)]:border-s border-white/20 px-1.5 md:px-4 flex flex-col md:flex-row items-center gap-2 md:gap-3 text-center md:text-start md:justify-center"
             >
-              <Icon name={w.icon} className="w-7 h-7 md:w-8 md:h-8 shrink-0 text-white" strokeWidth={1.6} />
+              <Icon name={w.icon} className="w-7 h-7 md:w-8 md:h-8 shrink-0 text-white" strokeWidth={2.5} />
               <div>
                 <div className="font-bold text-[13px] md:text-base leading-snug">{w.title}</div>
                 <div className="text-xs md:text-sm text-white/75">{w.note}</div>
@@ -255,13 +255,13 @@ export function HomeView({
         <Icon
           name="mapPin"
           className="hidden md:block absolute end-8 top-1/2 -translate-y-1/2 w-9 h-9 text-accent/50"
-          strokeWidth={1.8}
+          strokeWidth={2.5}
           aria-hidden
         />
         <Icon
           name="mapPin"
           className="hidden md:block absolute start-8 top-1/2 -translate-y-1/2 w-9 h-9 text-accent/50"
-          strokeWidth={1.8}
+          strokeWidth={2.5}
           aria-hidden
         />
         <Link

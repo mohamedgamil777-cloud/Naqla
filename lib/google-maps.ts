@@ -140,9 +140,9 @@ export async function placeDetails(s: PlaceSuggestion): Promise<{ point: LatLng;
   return { point: place.location.toJSON(), address: tidyAddress(name + (place.formattedAddress ?? s.main)) };
 }
 
-/** Teardrop pin used on every map: red ring = pickup, teal square = drop-off (same as the forms). */
+/** Teardrop pin used on every map: coral = pickup, teal = drop-off (same colours as the forms). */
 export function pinElement(kind: "a" | "b"): HTMLElement {
-  const bg = kind === "a" ? "#d9452b" : "#0b6b5b";
+  const bg = kind === "a" ? "#D94B3D" : "#135F5A"; // pickup coral · drop-off brand teal
   const glyph =
     kind === "a"
       ? '<circle cx="12" cy="11" r="3.4" fill="none" stroke="#fff" stroke-width="2.4"/>'

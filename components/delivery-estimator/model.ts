@@ -206,7 +206,7 @@ export const ROUTE_ERROR: Record<string, string> = {
   ROUTE_FAILED: "مقدرناش نحسب الطريق بين المكانين دلوقتي. اتأكد إن العنوانين صح أو حرّك الدبوس، وجرّب تاني.",
   ADDRESS_NOT_FOUND: "مقدرناش نلاقي العنوان ده. اختاره من نتايج البحث أو حدده على الخريطة.",
   OUTSIDE_EGYPT: "المكان ده بره مصر. اختار عنوان داخل مصر.",
-  NO_POINTS: "حدد مكان الاستلام والتسليم عشان نحسب المسافة والسعر.",
+  NO_POINTS: "حدد مكان الاستلام ومكان التسليم عشان نحسب المسافة والسعر.",
 };
 
 export const ORDER_ERROR: Record<string, { text: string; toTime?: boolean; toPlaces?: boolean }> = {

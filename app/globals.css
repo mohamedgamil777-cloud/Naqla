@@ -32,6 +32,7 @@
 
   --color-ok: #1f9d57;
   --color-ok-soft: #dff3e7;
+  --color-pickup: #d94b3d; /* pickup pin (coral red) */
   --color-booked: #d9452b;
   --color-booked-soft: #fadede;
   --color-rented: #e0902b;

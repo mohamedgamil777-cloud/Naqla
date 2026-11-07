@@ -72,7 +72,7 @@ export function BottomNav() {
                 active ? "text-primary font-bold" : "text-muted font-semibold"
               }`}
             >
-              <Icon name={it.icon} className="w-6 h-6" strokeWidth={active ? 2.3 : 1.8} />
+              <Icon name={it.icon} className="w-6 h-6" strokeWidth={active ? 2.8 : 2.3} />
               {it.label}
             </Link>
           );

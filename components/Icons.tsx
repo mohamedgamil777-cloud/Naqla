@@ -339,7 +339,7 @@ const PATHS = {
 
 export type IconName = keyof typeof PATHS;
 
-export function Icon({ name, className = "w-6 h-6", strokeWidth = 1.9, ...rest }: { name: IconName; className?: string; strokeWidth?: number } & SVGProps<SVGSVGElement>) {
+export function Icon({ name, className = "w-6 h-6", strokeWidth = 2.5, ...rest }: { name: IconName; className?: string; strokeWidth?: number } & SVGProps<SVGSVGElement>) {
   return (
     <svg
       viewBox="0 0 24 24"

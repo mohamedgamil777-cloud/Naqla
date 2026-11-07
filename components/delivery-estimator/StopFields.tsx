@@ -25,14 +25,14 @@ function RequiredTag({ done }: { done: boolean }) {
 const STOP_LOOK: Record<Stop, { title: string; marker: string; label: string; detailsLabel: string }> = {
   a: {
     title: "مكان الاستلام",
-    marker: "rounded-full border-[3px] border-booked bg-panel",
-    label: "عنوان الاستلام",
+    marker: "text-pickup",
+    label: "مكان الاستلام",
     detailsLabel: "تفاصيل الاستلام",
   },
   b: {
     title: "مكان التسليم",
-    marker: "", // drawn as a location pin (see StopFields)
-    label: "عنوان التسليم",
+    marker: "text-primary",
+    label: "مكان التسليم",
     detailsLabel: "تفاصيل التسليم",
   },
 };
@@ -84,11 +84,7 @@ export function StopFields({
     <div className="p-4 flex flex-col gap-2.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         {/* same stop markers as the map pins and the home-page form */}
-        {stop === "b" ? (
-          <Icon name="mapPin" className="w-5 h-5 shrink-0 text-accent" strokeWidth={2.2} />
-        ) : (
-          <span className={`w-4 h-4 shrink-0 ${look.marker}`} aria-hidden />
-        )}
+        <Icon name="mapPin" className={`w-6 h-6 shrink-0 ${look.marker}`} strokeWidth={2.75} />
         <span className="flex-1 flex items-center gap-2 font-semibold whitespace-nowrap">
           {look.title} <RequiredTag done={located} />
         </span>
@@ -115,7 +111,7 @@ export function StopFields({
         ) : (
           // clear confirmation that this stop is set (and how to fix it)
           <p className="text-[13px] font-semibold text-ok -mt-1 flex items-start gap-1.5" aria-live="polite">
-            <Icon name="checkCircle" className="w-4 h-4 mt-0.5 shrink-0" strokeWidth={2.2} />
+            <Icon name="checkCircle" className="w-4 h-4 mt-0.5 shrink-0" strokeWidth={2.5} />
             <span>
               تم تحديد المكان على الخريطة.
               <span className="font-normal text-muted"> مش مظبوط؟ ابحث تاني أو اسحب الدبوس على الخريطة.</span>

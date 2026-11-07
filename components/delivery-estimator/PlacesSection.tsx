@@ -26,7 +26,7 @@ export function StopActions({
   return (
     <span className="flex flex-wrap items-center gap-1.5">
       <button type="button" onClick={onLocate} disabled={busy} className={pillButton}>
-        <Icon name="locate" className={`w-4 h-4 text-accent ${locating ? "animate-pulse" : ""}`} strokeWidth={2.2} />
+        <Icon name="locate" className={`w-5 h-5 text-primary ${locating ? "animate-pulse" : ""}`} strokeWidth={2.75} />
         {locating ? "بنحدد مكانك…" : "استخدم موقعي الحالي"}
       </button>
       {mapOpen !== null && (
@@ -66,10 +66,10 @@ export function SwapDivider({ onSwap }: { onSwap: () => void }) {
       <button
         type="button"
         onClick={onSwap}
-        aria-label="بدّل الاستلام والتسليم"
+        aria-label="بدّل مكان الاستلام ومكان التسليم"
         className="absolute left-6 -top-[18px] w-9 h-9 rounded-full bg-panel border border-line grid place-items-center text-ink-2 hover:text-primary"
       >
-        <Icon name="swap" className="w-4 h-4" />
+        <Icon name="swap" className="w-5 h-5" strokeWidth={2.75} />
       </button>
     </div>
   );
@@ -96,19 +96,19 @@ export function MapPanel({ open, error, active, onActive, container }: MapPanelP
           onClick={() => onActive("a")}
           className={toggle("a", "border-booked bg-booked-soft text-booked")}
         >
-          حدّد الاستلام
+          حدّد مكان الاستلام
         </button>
         <button
           type="button"
           onClick={() => onActive("b")}
           className={toggle("b", "border-primary bg-primary-soft text-primary")}
         >
-          حدّد التسليم
+          حدّد مكان التسليم
         </button>
       </div>
       {error ? (
         <div className="mx-4 mb-3 h-52 lg:h-80 grid place-items-center rounded-xl bg-panel-2 text-center text-muted p-4 text-sm">
-          الخريطة مش متاحة دلوقتي. عدّل المسافة يدوياً.
+          الخريطة مش متاحة دلوقتي. اكتب العنوان واختاره من نتايج البحث.
         </div>
       ) : (
         <div ref={container} className="mx-4 mb-3 h-56 lg:h-80 rounded-xl overflow-hidden bg-panel-2" />

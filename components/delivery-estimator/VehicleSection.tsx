@@ -28,7 +28,7 @@ export function CargoHints({ hints, selected, onPick }: CargoHintsProps) {
                 on ? "border-primary ring-1 ring-primary bg-primary-soft/60" : "border-line bg-panel hover:border-line-2"
               }`}
             >
-              <Icon name={h.icon} className={`w-6 h-6 ${on ? "text-primary" : "text-ink-2"}`} strokeWidth={1.7} />
+              <Icon name={h.icon} className={`w-6 h-6 ${on ? "text-primary" : "text-ink-2"}`} strokeWidth={2.5} />
               <span className="text-xs font-semibold leading-tight">{h.label}</span>
             </button>
           );
@@ -130,7 +130,7 @@ function SizeCard({ size: s, selected, recommended, onSelect }: SizeCardProps) {
           // eslint-disable-next-line @next/next/no-img-element -- admin uploads are data: URLs
           <img src={s.image} alt={s.name} className="w-full h-full object-cover" />
         ) : (
-          <Icon name="truck" className="w-9 h-9 text-primary/70" strokeWidth={1.5} />
+          <Icon name="truck" className="w-9 h-9 text-primary/70" strokeWidth={2.5} />
         )}
       </div>
       <span className="font-extrabold mt-1">{s.name}</span>
