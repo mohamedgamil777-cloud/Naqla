@@ -12,9 +12,22 @@ export const LOCATE_ERROR: Record<LocateFailure, string> = {
   insecure: "تحديد الموقع محتاج تفتح الموقع من رابط https.",
   denied:
     "إذن الموقع مقفول. افتح إعدادات المتصفح ← الموقع ← اسمح لموقعنا، وتأكد إن الـ GPS (الموقع) شغال في الموبايل، وجرب تاني.",
-  unavailable: "مقدرناش نحدد مكانك. اتأكد إن الـ GPS (الموقع) شغال في الموبايل وجرب تاني، أو حدده على الخريطة.",
+  unavailable:
+    "مقدرناش نحدد مكانك. اتأكد إن الـ GPS (الموقع) شغال في الموبايل وجرب تاني، أو حدده على الخريطة.",
   timeout: "تحديد الموقع أخد وقت طويل. جرب تاني في مكان مفتوح، أو حدده على الخريطة.",
 };
+
+const IPHONE_DENIED =
+  "إذن الموقع مقفول على الآيفون. افتح الإعدادات ← الخصوصية والأمان ← خدمات الموقع وخليها شغالة، ثم «مواقع Safari» (أو Chrome) ← «أثناء الاستخدام». وفي Safari دوس «aA» جنب الرابط ← إعدادات الموقع ← الموقع ← سماح، وجرب تاني.";
+
+/** The message to show; on iPhone/iPad the "denied" steps point to iOS settings. */
+export function locateMessage(
+  why: LocateFailure,
+  userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "",
+): string {
+  if (why === "denied" && /iPhone|iPad|iPod/.test(userAgent)) return IPHONE_DENIED;
+  return LOCATE_ERROR[why] ?? LOCATE_ERROR.unavailable;
+}
 
 type Geo = Pick<Geolocation, "getCurrentPosition">;
 

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cairoDateISO } from "@/lib/client-time";
 import { geocodeAddress, loadGoogleMaps, reverseGeocode } from "@/lib/google-maps";
-import { getMyLocation, LOCATE_ERROR, type LocateFailure } from "@/lib/geolocation";
+import { getMyLocation, locateMessage, type LocateFailure } from "@/lib/geolocation";
 import { useTyping } from "@/hooks/useTyping";
 import type { Quote } from "@/engines/pricing";
 import { AuthGate } from "./AuthGate";
@@ -282,7 +282,7 @@ export function DeliveryEstimator({
     setLocateErr(null);
     getMyLocation()
       .then((point) => locate("a", point))
-      .catch((why: LocateFailure) => setLocateErr(LOCATE_ERROR[why] ?? LOCATE_ERROR.unavailable))
+      .catch((why: LocateFailure) => setLocateErr(locateMessage(why)))
       .finally(() => setLocating(false));
   }
 
