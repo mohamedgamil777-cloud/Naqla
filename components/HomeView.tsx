@@ -103,14 +103,14 @@ export function HomeView({ sizes, content }: { sizes: CategoryDTO[]; content: Ap
             </h2>
             <p className="text-base text-muted mt-1">اختار على قد الحاجة اللي هتنقلها</p>
           </div>
-          <ul className="mt-5 md:mt-7 px-4 flex gap-4 overflow-x-auto snap-x pb-2 [scrollbar-width:none] md:grid md:grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] md:overflow-visible">
+          <ul className="mt-5 md:mt-7 px-4 flex gap-3 overflow-x-auto snap-x pb-2 [scrollbar-width:none] md:grid md:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] md:overflow-visible">
             {sizes.map((c) => (
-              <li key={c.id} className="snap-start shrink-0 w-[16rem] md:w-auto">
+              <li key={c.id} className="snap-start shrink-0 w-[13rem] md:w-auto">
                 <Link
                   href={`/estimate?size=${c.sizeCode}`}
                   className="group h-full flex flex-col bg-panel rounded-2xl overflow-hidden border border-line/80 shadow-[0_6px_20px_rgba(16,32,28,0.06)] hover:shadow-[0_12px_28px_rgba(16,32,28,0.12)] hover:-translate-y-0.5 transition-[box-shadow,transform]"
                 >
-                  <div className="relative aspect-[16/10] bg-gradient-to-b from-primary-soft to-[#f3f6f4]">
+                  <div className="relative aspect-[16/9] bg-gradient-to-b from-primary-soft to-[#f3f6f4]">
                     {c.image ? (
                       <VehicleImage src={c.image} alt={c.name} sizes="(max-width:768px) 260px, 360px" />
                     ) : (
@@ -119,32 +119,32 @@ export function HomeView({ sizes, content }: { sizes: CategoryDTO[]; content: Ap
                       </div>
                     )}
                     <span
-                      className="absolute top-3 start-3 w-9 h-9 grid place-items-center rounded-full bg-panel shadow-sm text-base font-extrabold text-ink"
+                      className="absolute top-2 start-2 w-7 h-7 grid place-items-center rounded-full bg-panel shadow-sm text-sm font-extrabold text-ink"
                       dir="ltr"
                     >
                       {`${c.sizeCode}`}
                     </span>
                   </div>
-                  <div className="p-4 flex flex-col gap-2.5 flex-1">
-                    <span className="text-xl font-extrabold leading-snug">{c.name}</span>
-                    <dl className="text-sm flex flex-col gap-2">
+                  <div className="p-3 flex flex-col gap-2 flex-1">
+                    <span className="text-lg font-extrabold leading-snug">{c.name}</span>
+                    <dl className="text-[13px] flex flex-col gap-1.5">
                       {c.capacityKg ? (
                         <div className="flex items-center gap-2">
-                          <Icon name="weight" className="w-[18px] h-[18px] text-primary" strokeWidth={1.9} />
-                          <dt className="text-muted w-14">الحمولة</dt>
+                          <Icon name="weight" className="w-4 h-4 text-primary" strokeWidth={1.9} />
+                          <dt className="text-muted w-12">الحمولة</dt>
                           <dd className="text-ink font-bold">حتى {c.capacityKg.toLocaleString("en-US")} كجم</dd>
                         </div>
                       ) : null}
                       {c.dims ? (
                         <div className="flex items-center gap-2">
-                          <Icon name="box" className="w-[18px] h-[18px] text-primary" strokeWidth={1.9} />
-                          <dt className="text-muted w-14">المقاس</dt>
+                          <Icon name="box" className="w-4 h-4 text-primary" strokeWidth={1.9} />
+                          <dt className="text-muted w-12">المقاس</dt>
                           <dd className="text-ink font-bold">{c.dims}</dd>
                         </div>
                       ) : null}
                     </dl>
-                    <span className="mt-auto pt-2">
-                      <span className="w-full rounded-xl bg-primary-soft text-primary-ink py-2.5 font-bold flex items-center justify-center gap-1.5 group-hover:bg-primary group-hover:text-white transition-colors">
+                    <span className="mt-auto pt-1.5">
+                      <span className="w-full rounded-lg bg-primary-soft text-primary-ink py-2 text-sm font-bold flex items-center justify-center gap-1.5 group-hover:bg-primary group-hover:text-white transition-colors">
                         اطلب الحجم ده
                         <Icon name="arrowLeft" className="w-4 h-4" strokeWidth={2.4} />
                       </span>
