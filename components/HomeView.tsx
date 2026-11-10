@@ -250,6 +250,27 @@ export function HomeView({
         </ul>
       </section>
 
+      {/* ---------- Companies: what a company account adds ---------- */}
+      <section aria-labelledby="biz-title" className="mx-4">
+        <Link
+          href="/business"
+          className="rounded-3xl border border-line bg-panel p-4 md:p-6 flex items-center gap-4 hover:border-primary"
+        >
+          <span className="w-12 h-12 md:w-14 md:h-14 shrink-0 rounded-2xl bg-primary-soft text-primary grid place-items-center">
+            <Icon name="building" className="w-6 h-6 md:w-7 md:h-7" strokeWidth={2.5} />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span id="biz-title" className="block font-extrabold text-lg md:text-xl">
+              عندك شركة أو محل؟
+            </span>
+            <span className="block text-sm md:text-base text-ink-2">
+              حساب شركة: سعر تعاقدي، دفع آخر الشهر بكشف حساب، وكل موظفينك يطلبوا من نفس الحساب.
+            </span>
+          </span>
+          <Icon name="chevronLeft" className="w-5 h-5 text-primary shrink-0" />
+        </Link>
+      </section>
+
       {/* ---------- Closing call to action ---------- */}
       <section className="relative px-4 flex justify-center">
         <Icon

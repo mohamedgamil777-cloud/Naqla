@@ -32,6 +32,7 @@ export default async function EstimatePage({ searchParams }: { searchParams: Pro
           details: a.details,
           lat: a.lat,
           lng: a.lng,
+          isDefault: a.isDefault,
         }))
       : [],
   };

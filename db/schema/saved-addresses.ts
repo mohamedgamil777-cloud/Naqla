@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, index, real } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, index, real, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 
 export const savedAddresses = pgTable(
@@ -12,6 +12,8 @@ export const savedAddresses = pgTable(
     details: text("details"),
     lat: real("lat"),
     lng: real("lng"),
+    /** filled in by itself on the order form (one per list) */
+    isDefault: boolean("is_default").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("saved_addresses_owner_idx").on(t.owner)],

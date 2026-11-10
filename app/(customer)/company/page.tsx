@@ -1,4 +1,4 @@
-import { removeCompanyUser, deleteSavedAddressAction } from "@/actions/customer/company";
+import { removeCompanyUser } from "@/actions/customer/company";
 import Link from "next/link";
 import { z } from "zod";
 import { Pagination } from "@/components/Pagination";
@@ -21,6 +21,9 @@ import { EmptyState, LinkButton } from "@/components/ui";
 import { Icon } from "@/components/Icons";
 import { PodView } from "@/components/PodView";
 import { CompanyUserForm } from "@/components/CompanyUserForm";
+import { AddressBook } from "@/components/AddressBook";
+import { defaultBranch } from "@/db/lib/branches";
+import { googleMapsConfig } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -58,8 +61,8 @@ export default async function CompanyPage({
     return (
       <EmptyState
         title="رقمك مش مربوط بحساب شركة"
-        subtitle="لو شركتك عايزة حساب بأسعار خاصة ودفع شهري، كلّمنا من صفحة المساعدة."
-        action={<LinkButton href="/help">تواصل معانا</LinkButton>}
+        subtitle="لو شركتك عايزة حساب بسعر تعاقدي ودفع آخر الشهر، قدّم طلب وهنكلمك."
+        action={<LinkButton href="/business">اطلب حساب شركة</LinkButton>}
       />
     );
   }
@@ -68,7 +71,7 @@ export default async function CompanyPage({
   const month = currentMonth();
   const { start, end } = monthRange(month);
   // this month's orders are paginated; the statement months come from the database
-  const [monthPage, orderMonths, members, saved, bal] = await Promise.all([
+  const [monthPage, orderMonths, members, saved, bal, branch] = await Promise.all([
     searchDeliveryOrders(
       { companyId: company.id, scheduledFrom: start, scheduledTo: end },
       page,
@@ -79,6 +82,7 @@ export default async function CompanyPage({
     listCompanyMembers(company.id),
     listSavedAddresses(addressOwner(session.phone, ctx)),
     companyBalance(company.id),
+    defaultBranch(),
   ]);
   const monthOrders = monthPage.rows;
   const months = [...new Set([month, ...orderMonths])].sort().reverse().slice(0, 6);
@@ -176,30 +180,23 @@ export default async function CompanyPage({
 
       <Section
         title={`العناوين المحفوظة (${saved.length})`}
-        hint="بتظهر لكل موظفي الشركة في صفحة الطلب — احفظ عنوان جديد بزرار «احفظ العنوان» وانت بتطلب"
+        hint="بتظهر لكل موظفي الشركة في صفحة الطلب. العنوان الأساسي (المخزن مثلاً) بيتملي لوحده كمكان الاستلام."
       >
-        {saved.length === 0 ? (
-          <p className="text-muted text-sm">مفيش عناوين محفوظة لسه.</p>
-        ) : (
-          <div className="flex flex-col divide-y divide-line">
-            {saved.map((a) => (
-              <div key={a.id} className="py-2.5 flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="font-bold"><Icon name="mapPin" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{a.label}</div>
-                  <div className="text-sm text-muted truncate">
-                    {a.address}
-                    {a.details ? ` — ${a.details}` : ""}
-                  </div>
-                </div>
-                <form action={deleteSavedAddressAction}>
-                  <button name="id" value={a.id} className="text-booked text-sm font-bold">
-                    حذف
-                  </button>
-                </form>
-              </div>
-            ))}
-          </div>
-        )}
+        <AddressBook
+          addresses={saved.map((a) => ({
+            id: a.id,
+            label: a.label,
+            address: a.address,
+            details: a.details,
+            lat: a.lat,
+            lng: a.lng,
+            isDefault: a.isDefault,
+          }))}
+          apiKey={googleMapsConfig()?.apiKey ?? null}
+          near={{ lat: branch.lat ?? 30.0444, lng: branch.lng ?? 31.2357 }}
+          labelIdeas={["المخزن", "المصنع", "الفرع الرئيسي", "المكتب"]}
+          emptyText="مفيش عناوين محفوظة لسه. ضيف عنوان المخزن والفروع عشان الموظفين مايكتبوهاش كل مرة."
+        />
       </Section>
 
       <Section title={`مستخدمين الحساب (${members.length})`}>

@@ -58,3 +58,23 @@ export const companyUserInputSchema = z.object({
 });
 
 export const savedAddressRefSchema = z.object({ id: id("العنوان مش موجود.") });
+
+/** حسابي / شركتي: add (no id) or edit (id) one saved address. */
+export const savedAddressInputSchema = z.object({
+  id: optionalId(),
+  label: requiredText("اكتب اسم للعنوان (مثلاً: البيت، المخزن).", 40),
+  address: requiredText("اكتب العنوان.", 300).refine((v) => v.length >= 3, "اكتب العنوان."),
+  details: optionalText(300),
+  lat: optionalNumber("المكان على الخريطة مش صحيح.", { min: -90, max: 90 }),
+  lng: optionalNumber("المكان على الخريطة مش صحيح.", { min: -180, max: 180 }),
+  isDefault: checkbox(),
+});
+
+/** «للشركات»: a business asks for a company account. */
+export const companyRequestInputSchema = z.object({
+  companyName: requiredText("اكتب اسم الشركة أو المحل.", 160),
+  contactName: requiredText("اكتب اسم المسؤول.", 120),
+  phone: egyptianMobile("رقم موبايل مش صحيح (01xxxxxxxxx)."),
+  monthlyTrips: optionalText(40),
+  note: optionalText(1000),
+});
