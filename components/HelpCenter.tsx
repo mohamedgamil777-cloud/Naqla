@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import type { FaqItem, FaqTopic } from "@/lib/content";
 import { Icon, type IconName } from "@/components/Icons";
@@ -77,6 +78,19 @@ export function HelpCenter({
           )}
         </div>
       </div>
+
+      {/* Company accounts: always here, whatever FAQs the admin keeps */}
+      <Link
+        href="/business"
+        className="bg-panel border border-line rounded-card p-3.5 flex items-center gap-3 hover:border-primary"
+      >
+        <Icon name="building" className="w-6 h-6 text-primary shrink-0" />
+        <span className="flex-1 min-w-0">
+          <span className="block font-extrabold">الفرق بين الحساب الشخصي وحساب الشركة</span>
+          <span className="block text-sm text-muted">وإزاي تفتح حساب لشركتك أو محلك</span>
+        </span>
+        <Icon name="chevronLeft" className="w-5 h-5 text-primary shrink-0" />
+      </Link>
 
       {/* Search */}
       <label className="flex items-center gap-3 bg-panel border border-line rounded-2xl px-4 py-3.5 focus-within:border-primary">

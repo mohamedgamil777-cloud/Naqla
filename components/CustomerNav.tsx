@@ -21,6 +21,7 @@ const headerItems: { href: string; label: string }[] = [
   { href: "/", label: "الرئيسية" },
   { href: "/#how", label: "كيف تعمل؟" },
   { href: "/#fleet", label: "العربيات" },
+  { href: "/business", label: "للشركات" },
   { href: "/help", label: "الأسئلة الشائعة" },
 ];
 

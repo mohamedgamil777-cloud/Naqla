@@ -1,5 +1,5 @@
 "use client";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Icon } from "@/components/Icons";
 import type { LatLng } from "@/lib/google-maps";
 import { detailField, type SavedAddr, type Stop, type StopState } from "./model";
@@ -173,32 +173,85 @@ type SavedAddressChipsProps = {
   /** the address currently typed for this stop */
   value: string;
   message: string | null;
+  /** first guess for the name box (e.g. "البيت" for a pickup) */
+  suggestedLabel: string;
   onPick: (address: SavedAddr) => void;
-  onSave: () => void;
+  onSave: (label: string) => void;
 };
 
-/** Saved-address chips + "احفظ العنوان" under an address (signed-in customers only). */
-export function SavedAddressChips({ saved, value, message, onPick, onSave }: SavedAddressChipsProps) {
+/** Saved-address chips + "احفظ العنوان" (asks for a name in place) under an address (signed-in customers only). */
+export function SavedAddressChips({ saved, value, message, suggestedLabel, onPick, onSave }: SavedAddressChipsProps) {
   const typed = value.trim();
   const alreadySaved = saved.some((a) => a.address === typed);
+  const [naming, setNaming] = useState(false);
+  const [label, setLabel] = useState("");
+
+  function save() {
+    if (!label.trim()) return;
+    onSave(label);
+    setNaming(false);
+  }
+
+  if (naming)
+    return (
+      <div className="flex items-center gap-2">
+        <input
+          autoFocus
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              save();
+            } else if (e.key === "Escape") setNaming(false);
+          }}
+          maxLength={40}
+          placeholder="اسم العنوان: البيت، المخزن، الفرع"
+          aria-label="اسم العنوان"
+          className={`${detailField} flex-1 min-w-0`}
+        />
+        <button
+          type="button"
+          onClick={save}
+          disabled={!label.trim()}
+          className="shrink-0 rounded-xl bg-primary text-white px-3 py-2 text-sm font-bold disabled:opacity-50"
+        >
+          احفظ
+        </button>
+        <button type="button" onClick={() => setNaming(false)} className="shrink-0 text-sm font-bold text-ink-2 px-1">
+          إلغاء
+        </button>
+      </div>
+    );
 
   return (
     <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] -mx-1 px-1">
-      {saved.map((a) => (
-        <button
-          key={a.id}
-          type="button"
-          onClick={() => onPick(a)}
-          className="shrink-0 rounded-full border border-line-2 bg-panel px-3 py-1.5 text-sm font-bold text-ink-2 hover:border-primary hover:text-primary"
-        >
-          <Icon name="mapPin" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
-          {a.label}
-        </button>
-      ))}
+      {saved.map((a) => {
+        const current = a.address === typed;
+        return (
+          <button
+            key={a.id}
+            type="button"
+            onClick={() => onPick(a)}
+            aria-pressed={current}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-bold ${
+              current
+                ? "border-primary bg-primary-soft text-primary-ink"
+                : "border-line-2 bg-panel text-ink-2 hover:border-primary hover:text-primary"
+            }`}
+          >
+            <Icon name="mapPin" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
+            {a.label}
+          </button>
+        );
+      })}
       {typed && !alreadySaved && (
         <button
           type="button"
-          onClick={onSave}
+          onClick={() => {
+            setLabel(suggestedLabel && !saved.some((a) => a.label === suggestedLabel) ? suggestedLabel : "");
+            setNaming(true);
+          }}
           className="shrink-0 rounded-full bg-primary-soft text-primary-ink px-3 py-1.5 text-sm font-bold"
         >
           <Icon name="star" className="w-4 h-4 inline-block align-[-3px] me-1.5" />

@@ -11,9 +11,10 @@ import {
   removeCompanyMember,
   updateCompany,
 } from "@/db/lib/companies";
+import { setCompanyRequestStatus } from "@/db/lib/company-requests";
 import { requirePermission } from "@/lib/authz";
 import { actionFailure, fail, invalid, ok, throwActionFailure, type ActionResult } from "@/lib/action-result";
-import { formObject } from "@/lib/validation/fields";
+import { formObject, rowRefSchema } from "@/lib/validation/fields";
 import {
   companyChildRefSchema,
   companyInputSchema,
@@ -100,4 +101,18 @@ export async function deleteCompanyPaymentAction(fd: FormData): Promise<void> {
     throwActionFailure("deleteCompanyPayment", error);
   }
   refresh(parsed.data.companyId);
+}
+
+/** «للشركات» request: mark it handled once staff have called back (or reopen it). */
+export async function setCompanyRequestStatusAction(fd: FormData): Promise<void> {
+  await requirePermission("company:manage");
+  const parsed = rowRefSchema.safeParse(formObject(fd));
+  if (!parsed.success) return;
+  const status = fd.get("status") === "new" ? "new" : "handled";
+  try {
+    await setCompanyRequestStatus(parsed.data.id, status);
+  } catch (error) {
+    throwActionFailure("setCompanyRequestStatus", error);
+  }
+  refresh();
 }

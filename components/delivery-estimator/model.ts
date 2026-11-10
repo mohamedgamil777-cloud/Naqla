@@ -83,6 +83,8 @@ export interface SavedAddr {
   details: string | null;
   lat: number | null;
   lng: number | null;
+  /** filled in by itself as the pickup on a new order */
+  isDefault?: boolean;
 }
 
 export interface AccountInfo {

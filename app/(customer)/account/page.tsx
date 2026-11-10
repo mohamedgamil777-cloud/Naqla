@@ -1,9 +1,11 @@
-import { deleteSavedAddressAction } from "@/actions/customer/company";
 import Link from "next/link";
 import { getSession } from "@/services/session";
 import { listSavedAddresses } from "@/db/lib/addresses";
 import { countDeliveryOrdersByStatus } from "@/db/lib/delivery-orders";
 import { getAppContent } from "@/db/lib/settings";
+import { defaultBranch } from "@/db/lib/branches";
+import { googleMapsConfig } from "@/lib/env";
+import { AddressBook } from "@/components/AddressBook";
 import { waDigits } from "@/lib/content";
 import { addressOwner, companyContext } from "@/services/company-service";
 import { toLocal } from "@/lib/phone";
@@ -26,10 +28,11 @@ export default async function AccountPage() {
   }
 
   const ctx = await companyContext(session.phone);
-  const [counts, content, saved] = await Promise.all([
+  const [counts, content, saved, branch] = await Promise.all([
     countDeliveryOrdersByStatus({ phone: session.phone }),
     getAppContent(),
     ctx ? Promise.resolve([]) : listSavedAddresses(addressOwner(session.phone, null)),
+    defaultBranch(),
   ]);
   const done = counts.completed ?? 0;
   const active = Object.entries(counts)
@@ -81,24 +84,29 @@ export default async function AccountPage() {
         </Link>
       )}
 
-      {!ctx && saved.length > 0 && (
-        <section className="bg-panel border border-line rounded-card p-4 flex flex-col gap-2">
-          <h2 className="font-extrabold">عناويني المحفوظة</h2>
-          <div className="flex flex-col divide-y divide-line">
-            {saved.map((a) => (
-              <div key={a.id} className="py-2.5 flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="font-bold"><Icon name="mapPin" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{a.label}</div>
-                  <div className="text-sm text-muted truncate">{a.address}</div>
-                </div>
-                <form action={deleteSavedAddressAction}>
-                  <button name="id" value={a.id} className="text-booked text-sm font-bold">
-                    حذف
-                  </button>
-                </form>
-              </div>
-            ))}
+      {!ctx && (
+        <section className="bg-panel border border-line rounded-card p-4 flex flex-col gap-3">
+          <div>
+            <h2 className="font-extrabold">عناويني المحفوظة</h2>
+            <p className="text-sm text-muted mt-0.5">
+              احفظ عناوينك مرة واحدة. العنوان الأساسي بيتملي لوحده لما تطلب، والباقي بضغطة واحدة.
+            </p>
           </div>
+          <AddressBook
+            addresses={saved.map((a) => ({
+              id: a.id,
+              label: a.label,
+              address: a.address,
+              details: a.details,
+              lat: a.lat,
+              lng: a.lng,
+              isDefault: a.isDefault,
+            }))}
+            apiKey={googleMapsConfig()?.apiKey ?? null}
+            near={{ lat: branch.lat ?? 30.0444, lng: branch.lng ?? 31.2357 }}
+            labelIdeas={["البيت", "الشغل", "بيت العيلة"]}
+            emptyText="مفيش عناوين محفوظة لسه."
+          />
         </section>
       )}
 
@@ -106,6 +114,14 @@ export default async function AccountPage() {
       <nav className="bg-panel border border-line rounded-card divide-y divide-line overflow-hidden">
         <Item href="/bookings" icon="orders" label="طلباتي" hint="تابع حالة توصيلاتك" />
         <Item href="/estimate" icon="truck" label="اطلب توصيلة جديدة" hint="السعر قدامك قبل ما تطلب" />
+        {!ctx && (
+          <Item
+            href="/business"
+            icon="building"
+            label="عندك شركة أو محل؟"
+            hint="حساب شركة: سعر تعاقدي، دفع آخر الشهر، وأكتر من موظف"
+          />
+        )}
         <Item href="/help" icon="help" label="المساعدة والأسئلة الشائعة" />
         {wa && (
           <Item

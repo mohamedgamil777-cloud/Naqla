@@ -216,8 +216,11 @@ export function DeliveryEstimator({
   }, [addrError, placesDone]);
 
   // Addresses from the home page: a GPS spot is used as-is; typed text goes on the map (Google's best match), or stays text.
+  // With no pickup from the home page, the default saved address (the home, the warehouse) is the pickup.
   useEffect(() => {
     const draft = takeDraft();
+    const home = saved.find((a) => a.isDefault);
+    if (home && !draft?.pickupAddr?.trim() && !draft?.pickupPoint) applySaved("a", home);
     if (!draft) return;
     for (const [stop, text, point] of [
       ["a", draft.pickupAddr, draft.pickupPoint],
@@ -372,12 +375,10 @@ export function DeliveryEstimator({
     updateStop(stop, { address: address.address, point, ...parseDetails(address.details) });
   }
 
-  async function saveAddress(stop: Stop) {
+  async function saveAddress(stop: Stop, name: string) {
     const { address, point } = stops[stop];
-    if (!address.trim()) return;
-    const suggested = stop === "a" ? "المخزن" : "";
-    const label = window.prompt("اسم العنوان (مثلاً: المخزن، الفرع، البيت)", suggested)?.trim();
-    if (!label) return;
+    const label = name.trim().slice(0, 40);
+    if (!address.trim() || !label) return;
     const details = composeDetails(stops[stop]) || null;
     const lat = point?.lat ?? null;
     const lng = point?.lng ?? null;
@@ -389,7 +390,11 @@ export function DeliveryEstimator({
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.id) throw new Error(`addresses ${r.status}`);
-      setSaved((list) => [...list, { id: j.id, label, address: address.trim(), details, lat, lng }]);
+      // the server makes a list's first address its default
+      setSaved((list) => [
+        ...list,
+        { id: j.id, label, address: address.trim(), details, lat, lng, isDefault: list.length === 0 },
+      ]);
       setSavedMsg({ stop, text: `اتحفظ «${label}»` });
     } catch {
       setSavedMsg({ stop, text: "مقدرناش نحفظه دلوقتي" });
@@ -490,7 +495,8 @@ export function DeliveryEstimator({
         value={stops[stop].address}
         message={savedMsg?.stop === stop ? savedMsg.text : null}
         onPick={(address) => applySaved(stop, address)}
-        onSave={() => saveAddress(stop)}
+        suggestedLabel={account?.company ? (stop === "a" ? "المخزن" : "") : stop === "a" ? "البيت" : ""}
+        onSave={(label) => saveAddress(stop, label)}
       />
     ) : null;
 

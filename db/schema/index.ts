@@ -27,4 +27,5 @@ export * from "./companies";
 export * from "./company-members";
 export * from "./company-payments";
 export * from "./saved-addresses";
+export * from "./company-requests";
 export * from "./relations";

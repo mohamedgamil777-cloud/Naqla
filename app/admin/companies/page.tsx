@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { companyBalances, countCompanyMembers, listCompanies } from "@/db/lib/companies";
 import { formatEgp } from "@/lib/money";
+import { listCompanyRequests } from "@/db/lib/company-requests";
+import { setCompanyRequestStatusAction } from "@/actions/admin/companies";
+import { toLocal } from "@/lib/phone";
+import { labelDateArabic } from "@/lib/time";
 import { CompanyForm } from "@/components/admin/CompanyForms";
 import { requirePermission } from "@/lib/authz";
 import { Icon } from "@/components/Icons";
@@ -10,10 +14,11 @@ export const dynamic = "force-dynamic";
 export default async function AdminCompanies() {
   await requirePermission("company:manage");
   // member counts and balances are grouped in the database (two queries, not two per company)
-  const [companies, memberCounts, balances] = await Promise.all([
+  const [companies, memberCounts, balances, requests] = await Promise.all([
     listCompanies(),
     countCompanyMembers(),
     companyBalances(),
+    listCompanyRequests(10),
   ]);
   const rows = companies.map((c) => ({
     c,
@@ -27,6 +32,50 @@ export default async function AdminCompanies() {
         <h1 className="text-2xl font-extrabold">الشركات (B2B)</h1>
         <p className="text-muted">حسابات الشركات: مستخدمين متعددين، سعر خاص، ودفع على الحساب بكشف شهري.</p>
       </div>
+
+      <section className="bg-panel border border-line rounded-card p-4 flex flex-col gap-3">
+        <div>
+          <h2 className="text-lg font-extrabold">
+            طلبات حساب شركة من الموقع
+            {requests.open.length > 0 && (
+              <span className="ms-2 rounded-full bg-booked text-white px-2 py-0.5 text-xs align-middle">
+                {requests.open.length} جديد
+              </span>
+            )}
+          </h2>
+          <p className="text-sm text-muted">
+            من صفحة «للشركات». كلّم المسؤول، وارفع الشروط للمالك، وبعدين افتح الحساب من «شركة جديدة» تحت.
+          </p>
+        </div>
+        {requests.open.length === 0 && requests.handled.length === 0 ? (
+          <p className="text-sm text-muted">مفيش طلبات لسه.</p>
+        ) : (
+          <div className="flex flex-col divide-y divide-line">
+            {[...requests.open, ...requests.handled].map((r) => (
+              <div key={r.id} className={`py-2.5 flex flex-wrap items-start justify-between gap-2 ${r.status === "handled" ? "opacity-60" : ""}`}>
+                <div className="min-w-0">
+                  <div className="font-bold">
+                    {r.companyName} · {r.contactName}
+                  </div>
+                  <div className="text-sm text-muted">
+                    <a href={`tel:${r.phone}`} dir="ltr" className="text-primary font-bold">
+                      {toLocal(r.phone) ?? r.phone}
+                    </a>
+                    {r.monthlyTrips ? ` · ${r.monthlyTrips} مشوار في الشهر` : ""} · {labelDateArabic(r.createdAt)}
+                  </div>
+                  {r.note && <div className="text-sm text-ink-2 mt-0.5 break-words">{r.note}</div>}
+                </div>
+                <form action={setCompanyRequestStatusAction}>
+                  <input type="hidden" name="status" value={r.status === "new" ? "handled" : "new"} />
+                  <button name="id" value={r.id} className="text-sm font-bold text-primary">
+                    {r.status === "new" ? "تم التواصل ✓" : "رجّعه جديد"}
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {rows.length === 0 ? (
         <div className="bg-panel border border-line rounded-card p-6 text-center text-muted">

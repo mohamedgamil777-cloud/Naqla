@@ -3,6 +3,7 @@ import type {
   selectCompanyMemberSchema,
   selectCompanyPaymentSchema,
   selectCompanySchema,
+  selectCompanyRequestSchema,
   selectSavedAddressSchema,
 } from "@/db/schema";
 
@@ -23,4 +24,10 @@ export type CompanyPaymentDTO = z.infer<typeof selectCompanyPaymentSchema>;
 
 /** owner = "c:<companyId>" (shared by the company) or "p:<phone>" (personal) */
 export type SavedAddressDTO = z.infer<typeof selectSavedAddressSchema>;
-export type SavedAddressInput = Omit<SavedAddressDTO, "id" | "createdAt">;
+export type SavedAddressInput = Omit<SavedAddressDTO, "id" | "createdAt" | "isDefault"> & { isDefault?: boolean };
+/** an edit of one saved address (the owner never changes) */
+export type SavedAddressPatch = Pick<SavedAddressDTO, "label" | "address" | "details" | "lat" | "lng">;
+
+/** «للشركات» application from the website. */
+export type CompanyRequestDTO = z.infer<typeof selectCompanyRequestSchema>;
+export type CompanyRequestInput = Pick<CompanyRequestDTO, "companyName" | "contactName" | "phone" | "monthlyTrips" | "note">;
