@@ -1,6 +1,7 @@
 "use server";
 /** Admin → أنواع العربيات: vehicle types / delivery size classes. */
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createCategory, deleteCategory, listCategories, updateCategory } from "@/db/lib/categories";
 import { requirePermission } from "@/lib/authz";
 import { errorMsgs } from "@/lib/errors";
@@ -70,4 +71,5 @@ export async function deleteCategoryAction(fd: FormData): Promise<void> {
     throwActionFailure("deleteCategory", error);
   }
   revalidatePath("/", "layout");
+  redirect("/admin/categories");
 }
