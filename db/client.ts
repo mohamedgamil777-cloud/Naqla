@@ -23,15 +23,18 @@ function connect(): Database {
   // these timeouts the next request reuses the dead connection and hangs (seen live 2026-11-01).
   // Use the Supabase pooler in SESSION mode (port 5432): transaction mode (6543) garbles postgres-js
   // pipelined queries ("invalid frontend message type"). Session mode holds a server slot per
-  // connection, so keep the per-instance pool small.
+  // connection, so keep the per-instance pool small: the Supabase pooler allows only `pool_size`
+  // clients in total (15 by default), shared by every running copy of the app. On 2026-11-13 a
+  // release left old copies holding slots and the admin failed with "max clients reached".
   const client = postgres(url, {
-    max: 3,
+    max: 2,
     prepare: false,
     // Skip the catalog query postgres-js otherwise runs on every new connection (~60 ms in the
     // database plus a round trip, paid on each cold start). It only matters for array columns,
     // and the schema has none.
     fetch_types: false,
-    idle_timeout: 20,
+    // give an idle slot back fast (a frozen instance can't, so this is the only lever we have)
+    idle_timeout: 5,
     connect_timeout: 10,
     max_lifetime: 60 * 5,
     onnotice: () => {},
