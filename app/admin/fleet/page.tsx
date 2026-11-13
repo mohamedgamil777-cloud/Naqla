@@ -19,7 +19,7 @@ export default async function AdminFleet() {
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold">العربيات</h1>
+          <h1 className="text-2xl font-extrabold">الأسطول المتاح</h1>
           <p className="text-muted text-sm">
             {vehicles.length} عربية في الأسطول · الأنواع اللي بتظهر للعملاء في{" "}
             <Link href="/admin/categories" className="text-primary font-bold">

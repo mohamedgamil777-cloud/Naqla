@@ -32,7 +32,7 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 text-sm">
         <Link href="/admin/fleet" className="text-primary font-semibold">
-          العربيات
+          الأسطول المتاح
         </Link>
         <span className="text-muted">/ تعديل</span>
       </div>
