@@ -18,7 +18,6 @@ const nav: (AdminNavItem & { permission: Permission })[] = [
   { group: "العمليات", href: "/admin", label: "لوحة التحكم", icon: "dashboard", permission: "dashboard:read" },
   { group: "العمليات", href: "/admin/orders", label: "طلبات التوصيل", icon: "box", permission: "delivery:read" },
   { group: "العمليات", href: "/admin/new-order", label: "طلب بالتليفون", icon: "phone", permission: "delivery:create" },
-  { group: "العمليات", href: "/admin/new-booking", label: "حجز جديد", icon: "plus", permission: "booking:create" },
   { group: "العمليات", href: "/admin/board", label: "المواعيد", icon: "calendar", permission: "booking:read" },
   { group: "العمليات", href: "/admin/bookings", label: "الحجوزات", icon: "orders", permission: "booking:read" },
   { group: "العمليات", href: "/admin/calculator", label: "حاسبة السعر", icon: "calculator", permission: "pricing:calculate" },
