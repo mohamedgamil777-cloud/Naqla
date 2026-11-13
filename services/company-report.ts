@@ -8,25 +8,27 @@ const egp = (piastres: number) => (piastres / 100).toFixed(2);
 const hhmm = (d: Date) =>
   new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Africa/Cairo" }).format(d);
 
-export function companyReportCsv(st: CompanyStatement): string {
-  const header = [
-    "التاريخ",
-    "الساعة",
-    "رقم الطلب",
-    "الحالة",
-    "من",
-    "تفاصيل الاستلام",
-    "إلى",
-    "تفاصيل التسليم",
-    "العربية",
-    "الشيالين",
-    "المسافة (كم)",
-    "طلبها",
-    "استلمها",
-    "الدفع",
-    "المبلغ (جنيه)",
-  ];
-  const rows = st.allTrips.map((o) => [
+export const COMPANY_REPORT_HEADERS = [
+  "التاريخ",
+  "الساعة",
+  "رقم الطلب",
+  "الحالة",
+  "من",
+  "تفاصيل الاستلام",
+  "إلى",
+  "تفاصيل التسليم",
+  "العربية",
+  "الشيالين",
+  "المسافة (كم)",
+  "طلبها",
+  "استلمها",
+  "الدفع",
+  "المبلغ (جنيه)",
+];
+
+/** Every trip of the month as rows (shown on the page and written to the Excel file). */
+export function companyReportRows(st: CompanyStatement): (string | number)[][] {
+  return st.allTrips.map((o) => [
     cairoDateISO(o.scheduledAt),
     hhmm(o.scheduledAt),
     o.code,
@@ -43,16 +45,27 @@ export function companyReportCsv(st: CompanyStatement): string {
     o.billing === "account" ? "على الحساب" : "كاش",
     o.status === "cancelled" ? "0.00" : egp(o.priceSnapshot.total),
   ]);
-  const summary = [
-    [],
-    ["ملخص الشهر", st.month],
+}
+
+/** The month's totals (label, EGP). */
+export function companyReportSummary(st: CompanyStatement): [string, string][] {
+  return [
     ["رصيد أول المدة", egp(st.opening)],
     ["رحلات على الحساب", egp(st.charges)],
     ["المدفوع في الشهر", egp(st.paid)],
     ["المستحق آخر المدة", egp(st.closing)],
     ["رحلات اتدفعت كاش", egp(st.cashTotal)],
   ];
-  return toCsv([header, ...rows, ...summary] as (string | number)[][]);
+}
+
+export function companyReportCsv(st: CompanyStatement): string {
+  return toCsv([
+    COMPANY_REPORT_HEADERS,
+    ...companyReportRows(st),
+    [],
+    ["ملخص الشهر", st.month],
+    ...companyReportSummary(st),
+  ]);
 }
 
 export function companyReportFilename(st: CompanyStatement): string {

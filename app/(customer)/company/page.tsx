@@ -132,7 +132,7 @@ export default async function CompanyPage({
         title="التقرير الشهري"
         hint={
           isOwner
-            ? "لكل شهر: كشف الحساب والفاتورة (اطبعه أو احفظه PDF)، وكل تفاصيل الرحلات في ملف Excel."
+            ? "لكل شهر: كشف الحساب والفاتورة (اطبعه أو احفظه PDF)، وكل تفاصيل الرحلات (تتعرض هنا أو تتنزّل Excel)."
             : "لكل شهر: كشف الحساب والفاتورة. ملف Excel بتفاصيل الرحلات مع مدير الحساب."
         }
       >
@@ -149,13 +149,23 @@ export default async function CompanyPage({
                   كشف الحساب
                 </Link>
                 {isOwner && (
-                  <a
-                    href={`/company/report?month=${m}`}
-                    className="rounded-xl border-2 border-line-2 text-ink-2 px-3.5 py-1.5 font-bold text-sm hover:border-primary hover:text-primary"
-                  >
-                    <Icon name="download" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
-                    تفاصيل الرحلات (Excel)
-                  </a>
+                  <span className="inline-flex rounded-xl border-2 border-line-2 overflow-hidden text-sm font-bold">
+                    <Link
+                      href={`/company/trips?month=${m}`}
+                      className="text-ink-2 px-3.5 py-1.5 hover:text-primary hover:bg-primary-soft"
+                    >
+                      <Icon name="orders" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
+                      تفاصيل الرحلات
+                    </Link>
+                    <a
+                      href={`/company/report?month=${m}`}
+                      title="تنزيل Excel"
+                      className="border-s-2 border-line-2 text-ink-2 px-3 py-1.5 hover:text-primary hover:bg-primary-soft"
+                    >
+                      <Icon name="download" className="w-4 h-4 inline-block align-[-3px]" />
+                      <span className="sr-only">تنزيل Excel</span>
+                    </a>
+                  </span>
                 )}
               </span>
             </div>
