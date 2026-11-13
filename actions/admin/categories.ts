@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createCategory, deleteCategory, listCategories, updateCategory } from "@/db/lib/categories";
 import { requirePermission } from "@/lib/authz";
+import { audit, changes } from "@/services/audit";
 import { errorMsgs } from "@/lib/errors";
 import { actionFailure, fail, invalid, ok, throwActionFailure, type ActionResult } from "@/lib/action-result";
 import { formObject, optionalId, rowRefSchema } from "@/lib/validation/fields";
@@ -18,8 +19,22 @@ export async function saveCategory(_prev: ActionResult, fd: FormData): Promise<A
   if (!id.success) return fail(errorMsgs.NotFound);
 
   try {
-    if (id.data) await updateCategory(id.data, parsed.data);
-    else await createCategory(parsed.data);
+    if (id.data) {
+      const prev = (await listCategories()).find((c) => c.id === id.data);
+      await updateCategory(id.data, parsed.data);
+      const diff = changes(prev, parsed.data);
+      if (Object.keys(diff.after).length)
+        await audit({ action: "category.update", entity: "category", entityId: id.data, label: parsed.data.name, ...diff });
+    } else {
+      const created = await createCategory(parsed.data);
+      await audit({
+        action: "category.create",
+        entity: "category",
+        entityId: created.id,
+        label: parsed.data.name,
+        after: { baseFare: parsed.data.baseFare, perKm: parsed.data.perKm },
+      });
+    }
   } catch (error) {
     return actionFailure("saveCategory", error);
   }
@@ -40,6 +55,14 @@ export async function toggleCategoryActive(fd: FormData): Promise<void> {
         kind: category.kind,
         active: !category.active,
       });
+      await audit({
+        action: "category.toggle",
+        entity: "category",
+        entityId: category.id,
+        label: category.name,
+        before: { active: category.active },
+        after: { active: !category.active },
+      });
     }
   } catch (error) {
     throwActionFailure("toggleCategoryActive", error);
@@ -52,7 +75,11 @@ export async function renameCategory(fd: FormData): Promise<void> {
   const parsed = renameCategoryInputSchema.safeParse(formObject(fd));
   if (!parsed.success) return;
   try {
+    const prev = (await listCategories()).find((c) => c.id === parsed.data.id);
     await updateCategory(parsed.data.id, { name: parsed.data.name, kind: parsed.data.kind });
+    const diff = changes(prev, { name: parsed.data.name, kind: parsed.data.kind });
+    if (Object.keys(diff.after).length)
+      await audit({ action: "category.update", entity: "category", entityId: parsed.data.id, label: parsed.data.name, ...diff });
   } catch (error) {
     throwActionFailure("renameCategory", error);
   }
@@ -66,7 +93,9 @@ export async function deleteCategoryAction(fd: FormData): Promise<void> {
   const parsed = rowRefSchema.safeParse(formObject(fd));
   if (!parsed.success) return;
   try {
-    await deleteCategory(parsed.data.id);
+    const prev = (await listCategories()).find((c) => c.id === parsed.data.id);
+    const res = await deleteCategory(parsed.data.id);
+    if (res.ok) await audit({ action: "category.delete", entity: "category", entityId: parsed.data.id, label: prev?.name ?? null });
   } catch (error) {
     throwActionFailure("deleteCategory", error);
   }

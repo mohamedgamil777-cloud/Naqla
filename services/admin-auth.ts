@@ -3,6 +3,7 @@
  * Entry is the shared passcode (→ super_admin) or a staff phone session with an admin role.
  * What each role may DO is decided by lib/permissions.ts and enforced by lib/authz.ts.
  */
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { timingSafeEqual } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
@@ -60,19 +61,25 @@ export async function getAdminRole(): Promise<StaffRole | null> {
       /* fall through */
     }
   }
-  const session = await getSession();
-  if (session) {
-    const staff = await getStaffByPhone(session.phone);
-    if (staff && isAdminRole(staff.role)) return staff.role;
-  }
-  return null;
+  const staff = await sessionStaff();
+  return staff && isAdminRole(staff.role) ? staff.role : null;
 }
+
+/** The staff record behind the phone session (looked up once per request). */
+const sessionStaff = cache(async () => {
+  const session = await getSession();
+  return session ? await getStaffByPhone(session.phone) : null;
+});
 
 /** Who is acting in the admin, for records like "taken by" / "received by". */
 export async function getAdminName(): Promise<string> {
-  const session = await getSession();
-  const staff = session ? await getStaffByPhone(session.phone) : null;
-  return staff && isAdminRole(staff.role) ? staff.name : "المدير";
+  return (await getAdminActor()).name;
+}
+
+/** The signed-in staff member, or the owner when they came in with the shared passcode (no record). */
+export async function getAdminActor(): Promise<{ id: string | null; name: string }> {
+  const staff = await sessionStaff();
+  return staff && isAdminRole(staff.role) ? { id: staff.id, name: staff.name || staff.phone } : { id: null, name: "المدير" };
 }
 
 export async function isAdminAuthed(): Promise<boolean> {
