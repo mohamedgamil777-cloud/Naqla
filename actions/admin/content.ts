@@ -6,6 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { updateAppContent } from "@/db/lib/settings";
 import { requirePermission } from "@/lib/authz";
+import { audit } from "@/services/audit";
 import type { AppContent } from "@/lib/content";
 import { actionFailure, fail, invalid, ok, throwActionFailure, type ActionResult } from "@/lib/action-result";
 import { formObject } from "@/lib/validation/fields";
@@ -20,11 +21,21 @@ import {
   orderContentInputSchema,
 } from "@/lib/validation/content";
 
+const CONTENT_SECTION: Record<string, string> = {
+  saveContact: "أرقام التواصل",
+  saveHome: "الصفحة الرئيسية",
+  saveOrderContent: "صفحة الطلب",
+  saveFaq: "الأسئلة الشائعة",
+  deleteFaq: "مسح سؤال من الأسئلة الشائعة",
+  moveFaq: "ترتيب الأسئلة الشائعة",
+};
+
 async function update(scope: string, mutate: (content: AppContent) => string | void): Promise<ActionResult> {
   await requirePermission("content:manage");
   try {
     const res = await updateAppContent(mutate);
     if (!res.ok) return fail(res.error);
+    await audit({ action: "content.update", entity: "content", label: CONTENT_SECTION[scope] ?? scope });
   } catch (error) {
     return actionFailure(scope, error);
   }

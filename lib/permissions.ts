@@ -39,6 +39,7 @@ export const PERMISSIONS = [
   "content:manage", // app texts, photos, phone numbers, FAQs
   "staff:manage",
   "settings:manage", // business settings + branch
+  "audit:read", // سجل النشاط: what every staff member did (owner only)
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 

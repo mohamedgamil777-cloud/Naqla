@@ -7,6 +7,9 @@ import { AuthError, loginWithPassword } from "@/services/auth";
 import { setSession, clearSession } from "@/services/session";
 import { isAdminRole } from "@/lib/permissions";
 import { runBootstrapAdmin } from "@/services/bootstrap";
+import { audit } from "@/services/audit";
+import { insertAuditLog } from "@/db/lib/audit";
+import { getStaffByPhone } from "@/db/lib/staff";
 import { actionFailure, fail, invalid, type ActionResult } from "@/lib/action-result";
 import { formObject } from "@/lib/validation/fields";
 import { loginInputSchema, passcodeInputSchema } from "@/lib/validation/staff";
@@ -19,6 +22,22 @@ const AUTH_MESSAGES: Partial<Record<AuthError["code"], string>> = {
   PASSWORD_NOT_SET: "الحساب ده لسه ملوش كلمة سر — اطلبها من المدير العام.",
 };
 
+/** سجل النشاط: the new cookie is not readable in this request yet, so the actor is written directly. */
+async function logLogin(phone: string | null, name: string, label: string | null = null): Promise<void> {
+  try {
+    await insertAuditLog({
+      actorId: phone ? ((await getStaffByPhone(phone))?.id ?? null) : null,
+      action: "admin.login",
+      entity: "admin",
+      entityId: null,
+      before: null,
+      after: { _label: label, _by: name },
+    });
+  } catch (error) {
+    console.error("[audit] login", error);
+  }
+}
+
 /** Staff sign-in: phone + password, admin roles only. */
 export async function staffLogin(_prev: LoginState, fd: FormData): Promise<LoginState> {
   const parsed = loginInputSchema.safeParse({ phone: fd.get("phone"), password: fd.get("password") ?? "" });
@@ -28,6 +47,7 @@ export async function staffLogin(_prev: LoginState, fd: FormData): Promise<Login
     const user = await loginWithPassword(parsed.data.phone, parsed.data.password);
     if (!isAdminRole(user.role)) return fail("الحساب ده مش له صلاحية دخول الإدارة.");
     await setSession({ phone: user.phone, name: user.name ?? undefined });
+    await logLogin(user.phone, user.name || user.phone);
   } catch (error) {
     if (error instanceof AuthError) {
       if (error.code === "ACCOUNT_LOCKED")
@@ -48,10 +68,12 @@ export async function adminLogin(_prev: LoginState, fd: FormData): Promise<Login
   }
   if (!checkPasscode(parsed.data.passcode)) return fail("كلمة السر غلط.");
   await setAdminSession();
+  await logLogin(null, "المدير", "بكلمة سر الإدارة");
   redirect("/admin");
 }
 
 export async function adminLogout(): Promise<void> {
+  await audit({ action: "admin.logout", entity: "admin" });
   await clearAdminSession();
   await clearSession(); // staff signed in with phone + password
   redirect("/admin-login");

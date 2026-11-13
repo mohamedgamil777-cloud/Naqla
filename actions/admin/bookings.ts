@@ -2,9 +2,10 @@
 /** Admin → الحجوزات: agent bookings, the booking lifecycle and payments. */
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { adminAssignDriver, adminUpdateBookingStatus } from "@/db/lib/bookings";
+import { adminAssignDriver, adminUpdateBookingStatus, getBooking } from "@/db/lib/bookings";
 import { listDrivers } from "@/db/lib/drivers";
-import { addPayment, deletePayment, refundPayment } from "@/db/lib/payments";
+import { addPayment, deletePayment, listPayments, refundPayment } from "@/db/lib/payments";
+import { audit } from "@/services/audit";
 import { requirePermission } from "@/lib/authz";
 import { createBooking, extendBooking } from "@/services/booking-service";
 import { actionFailure, fail, invalid, ok, throwActionFailure, type ActionResult } from "@/lib/action-result";
@@ -32,6 +33,13 @@ export async function agentCreateBooking(_prev: ActionResult, fd: FormData): Pro
   } catch (error) {
     return actionFailure("agentCreateBooking", error, "حصلت مشكلة أثناء الحجز، حاول تاني.");
   }
+  await audit({
+    action: "booking.create",
+    entity: "booking",
+    entityId: code,
+    label: `حجز ${code}`,
+    after: { customer: parsed.data.contactName, phone: parsed.data.contactPhone, hours: parsed.data.hours },
+  });
   revalidatePath("/admin/bookings");
   revalidatePath("/admin");
   redirect(`/admin/bookings/${code}`);
@@ -43,7 +51,17 @@ export async function adminSetBookingStatus(fd: FormData): Promise<void> {
   if (!parsed.success) return;
   const { code, status } = parsed.data;
   try {
-    await adminUpdateBookingStatus(code, status);
+    const prev = await getBooking(code);
+    if ((await adminUpdateBookingStatus(code, status)) && prev?.status !== status) {
+      await audit({
+        action: status === "cancelled" ? "booking.cancel" : "booking.status",
+        entity: "booking",
+        entityId: code,
+        label: `حجز ${code}${prev?.contactName ? ` — ${prev.contactName}` : ""}`,
+        before: { bookingStatus: prev?.status ?? null },
+        after: { bookingStatus: status },
+      });
+    }
   } catch (error) {
     throwActionFailure("adminSetBookingStatus", error);
   }
@@ -68,8 +86,17 @@ export async function extendBookingAction(_prev: ActionResult, fd: FormData): Pr
   if (!parsed.success) return invalid(parsed.error);
   const { code, hours } = parsed.data;
   try {
+    const prev = await getBooking(code);
     const res = await extendBooking(code, hours);
     if (!res.ok) return fail(EXTEND_ERROR[res.reason] ?? "مش قادر يعدّل الرحلة.");
+    await audit({
+      action: "booking.extend",
+      entity: "booking",
+      entityId: code,
+      label: `حجز ${code}`,
+      before: { hours: prev?.hours ?? null, total: prev?.priceSnapshot.total ?? null },
+      after: { hours },
+    });
   } catch (error) {
     return actionFailure("extendBooking", error);
   }
@@ -86,8 +113,19 @@ export async function adminAssignDriverAction(fd: FormData): Promise<void> {
   if (!parsed.success) return;
   const { code, driverId } = parsed.data;
   try {
-    if (driverId && !(await listDrivers()).some((d) => d.id === driverId)) return;
-    await adminAssignDriver(code, driverId);
+    const driver = driverId ? (await listDrivers()).find((d) => d.id === driverId) : null;
+    if (driverId && !driver) return;
+    const prev = await getBooking(code);
+    if (await adminAssignDriver(code, driverId)) {
+      await audit({
+        action: "booking.driver",
+        entity: "booking",
+        entityId: code,
+        label: `حجز ${code}`,
+        before: { driver: prev?.driverName ?? null },
+        after: { driver: driver?.name ?? null },
+      });
+    }
   } catch (error) {
     throwActionFailure("adminAssignDriver", error);
   }
@@ -102,6 +140,13 @@ export async function adminAddPayment(_prev: ActionResult, fd: FormData): Promis
   try {
     const created = await addPayment(parsed.data);
     if (!created) return fail("الحجز مش موجود.");
+    await audit({
+      action: "payment.add",
+      entity: "booking",
+      entityId: parsed.data.bookingCode,
+      label: `حجز ${parsed.data.bookingCode}`,
+      after: { amount: parsed.data.amount, method: parsed.data.method, kind: parsed.data.kind, note: parsed.data.note },
+    });
   } catch (error) {
     return actionFailure("adminAddPayment", error);
   }
@@ -114,7 +159,16 @@ export async function adminRefundPayment(fd: FormData): Promise<void> {
   const parsed = paymentRefInputSchema.safeParse(formObject(fd));
   if (!parsed.success) return;
   try {
-    await refundPayment(parsed.data.code, parsed.data.id);
+    const payment = (await listPayments(parsed.data.code)).find((p) => p.id === parsed.data.id);
+    if (await refundPayment(parsed.data.code, parsed.data.id)) {
+      await audit({
+        action: "payment.refund",
+        entity: "booking",
+        entityId: parsed.data.code,
+        label: `حجز ${parsed.data.code}`,
+        before: payment ? { amount: payment.amount, method: payment.method } : null,
+      });
+    }
   } catch (error) {
     throwActionFailure("adminRefundPayment", error);
   }
@@ -126,7 +180,16 @@ export async function adminDeletePayment(fd: FormData): Promise<void> {
   const parsed = paymentRefInputSchema.safeParse(formObject(fd));
   if (!parsed.success) return;
   try {
-    await deletePayment(parsed.data.code, parsed.data.id);
+    const payment = (await listPayments(parsed.data.code)).find((p) => p.id === parsed.data.id);
+    if (await deletePayment(parsed.data.code, parsed.data.id)) {
+      await audit({
+        action: "payment.delete",
+        entity: "booking",
+        entityId: parsed.data.code,
+        label: `حجز ${parsed.data.code}`,
+        before: payment ? { amount: payment.amount, method: payment.method, kind: payment.kind } : null,
+      });
+    }
   } catch (error) {
     throwActionFailure("adminDeletePayment", error);
   }

@@ -11,6 +11,7 @@ import {
 import { listDrivers } from "@/db/lib/drivers";
 import { requirePermission } from "@/lib/authz";
 import { getAdminName } from "@/services/admin-auth";
+import { audit } from "@/services/audit";
 import {
   changeDeliveryOrderSize,
   createDeliveryOrder,
@@ -94,6 +95,13 @@ export async function createPhoneOrder(_prev: PhoneOrderState, fd: FormData): Pr
   } catch (error) {
     return actionFailure("createPhoneOrder", error);
   }
+  await audit({
+    action: "order.create",
+    entity: "delivery_order",
+    entityId: code,
+    label: `طلب ${code}`,
+    after: { customer: order.contactName, phone: order.contactPhone, from: order.pickupAddress, to: order.dropoffAddress },
+  });
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
   return ok({ code });
@@ -105,7 +113,19 @@ export async function changeOrderSizeAction(fd: FormData): Promise<void> {
   const parsed = orderSizeInputSchema.safeParse(formObject(fd));
   if (!parsed.success) return;
   try {
+    const prev = await getDeliveryOrder(parsed.data.code);
     await changeDeliveryOrderSize(parsed.data.code, parsed.data.categoryId);
+    const next = await getDeliveryOrder(parsed.data.code);
+    if (prev && next && prev.sizeName !== next.sizeName) {
+      await audit({
+        action: "order.size",
+        entity: "delivery_order",
+        entityId: prev.code,
+        label: `طلب ${prev.code}`,
+        before: { size: prev.sizeName, total: prev.priceSnapshot.total },
+        after: { size: next.sizeName, total: next.priceSnapshot.total },
+      });
+    }
   } catch (error) {
     throwActionFailure("changeOrderSize", error);
   }
@@ -119,10 +139,20 @@ export async function setDeliveryOrderStatus(fd: FormData): Promise<void> {
   if (!parsed.success) return;
   const { code, status } = parsed.data;
   try {
+    const prev = await getDeliveryOrder(code);
     const updated = await updateDeliveryOrderStatus(code, status);
+    if (updated && prev?.status !== status) {
+      await audit({
+        action: status === "cancelled" ? "order.cancel" : "order.status",
+        entity: "delivery_order",
+        entityId: code,
+        label: `طلب ${code}${prev?.contactName ? ` — ${prev.contactName}` : ""}`,
+        before: { orderStatus: prev?.status ?? null },
+        after: { orderStatus: status },
+      });
+    }
     if (updated && (status === "confirmed" || status === "completed")) {
-      const order = await getDeliveryOrder(code);
-      fireNotify(order?.contactPhone, deliveryCustomerMessage(status, code));
+      fireNotify(prev?.contactPhone, deliveryCustomerMessage(status, code));
     }
   } catch (error) {
     throwActionFailure("setDeliveryOrderStatus", error);
@@ -135,7 +165,17 @@ export async function setDriverFeeAction(fd: FormData): Promise<void> {
   const parsed = driverFeeInputSchema.safeParse(formObject(fd));
   if (!parsed.success) return;
   try {
-    await setDriverFee(parsed.data.code, parsed.data.fee);
+    const prev = await getDeliveryOrder(parsed.data.code);
+    if (await setDriverFee(parsed.data.code, parsed.data.fee)) {
+      await audit({
+        action: "order.driver_fee",
+        entity: "delivery_order",
+        entityId: parsed.data.code,
+        label: `طلب ${parsed.data.code}`,
+        before: { driverFee: prev?.driverFee ?? null },
+        after: { driverFee: Math.max(0, Math.round(parsed.data.fee)) },
+      });
+    }
   } catch (error) {
     throwActionFailure("setDriverFee", error);
   }
@@ -149,15 +189,26 @@ export async function setOrderCashAction(fd: FormData): Promise<void> {
   if (!parsed.success) return;
   const { code, undo, amount } = parsed.data;
   try {
+    const order = await getDeliveryOrder(code);
     if (undo) {
-      await setDeliveryCash(code, null, null);
-    } else {
+      if (order?.cashReceived != null && (await setDeliveryCash(code, null, null))) await audit({
+        action: "order.cash_undo",
+        entity: "delivery_order",
+        entityId: code,
+        label: `طلب ${code}`,
+        before: { cash: order?.cashReceived ?? null },
+      });
+    } else if (order) {
       // empty amount = the order total (read from the stored price, never from the client)
-      const order = await getDeliveryOrder(code);
-      if (order) {
-        const received = amount == null ? order.priceSnapshot.total : egpToPiastres(amount);
-        await setDeliveryCash(code, received, await getAdminName());
-      }
+      const received = amount == null ? order.priceSnapshot.total : egpToPiastres(amount);
+      if (await setDeliveryCash(code, received, await getAdminName())) await audit({
+        action: "order.cash",
+        entity: "delivery_order",
+        entityId: code,
+        label: `طلب ${code}`,
+        before: order.cashReceived != null ? { cash: order.cashReceived } : null,
+        after: { cash: received, total: order.priceSnapshot.total },
+      });
     }
   } catch (error) {
     throwActionFailure("setOrderCash", error);
@@ -172,15 +223,26 @@ export async function assignDeliveryDriverAction(fd: FormData): Promise<void> {
   if (!parsed.success) return;
   const { code, driverId } = parsed.data;
   try {
+    const prev = await getDeliveryOrder(code);
+    const logDriver = (name: string | null) =>
+      audit({
+        action: "order.driver",
+        entity: "delivery_order",
+        entityId: code,
+        label: `طلب ${code}`,
+        before: { driver: prev?.driverName ?? null },
+        after: { driver: name },
+      });
     if (driverId) {
       const driver = (await listDrivers()).find((d) => d.id === driverId);
       if (!driver) return;
       if (!(await assignDeliveryDriver(code, driver.id))) return;
+      await logDriver(driver.name);
       const order = await getDeliveryOrder(code);
       fireNotify(order?.contactPhone, deliveryCustomerMessage("assigned", code, order?.driverName));
       fireNotify(driver.phone, `عندك توصيلة جديدة 🚚\nرقم الطلب: ${code}\nافتح التطبيق لتشوف التفاصيل.`);
     } else {
-      await assignDeliveryDriver(code, null);
+      if (await assignDeliveryDriver(code, null)) await logDriver(null);
     }
   } catch (error) {
     throwActionFailure("assignDeliveryDriver", error);

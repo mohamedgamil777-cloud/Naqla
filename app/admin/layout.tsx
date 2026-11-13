@@ -33,6 +33,7 @@ const nav: (AdminNavItem & { permission: Permission })[] = [
   { group: "الأسطول والإعدادات", href: "/admin/content", label: "محتوى الموقع", icon: "image", permission: "content:manage" },
   { group: "الأسطول والإعدادات", href: "/admin/staff", label: "الموظفين", icon: "users", permission: "staff:manage" },
   { group: "الأسطول والإعدادات", href: "/admin/settings", label: "الإعدادات", icon: "settings", permission: "settings:manage" },
+  { group: "الأسطول والإعدادات", href: "/admin/activity", label: "سجل النشاط", icon: "clock", permission: "audit:read" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

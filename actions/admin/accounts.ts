@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { getAccountById, setPhoneVerified } from "@/db/lib/accounts";
 import { requirePermission } from "@/lib/authz";
 import { adminSetPassword } from "@/services/auth";
+import { audit } from "@/services/audit";
 import { actionFailure, fail, invalid, ok, throwActionFailure, type ActionResult } from "@/lib/action-result";
 import { accountPasswordInputSchema, accountRefSchema } from "@/lib/validation/staff";
 
@@ -21,6 +22,7 @@ export async function setStaffPasswordAction(_p: ActionResult, fd: FormData): Pr
     if (!acct || acct.role === "customer") return fail("الموظف مش موجود.");
     const r = await adminSetPassword(acct.id, acct.role, parsed.data.password);
     if (!r.ok) return fail(r.error);
+    await audit({ action: "staff.password", entity: "staff", entityId: acct.id, label: acct.name || acct.phone });
   } catch (error) {
     return actionFailure("setStaffPassword", error);
   }
@@ -38,6 +40,12 @@ export async function setCustomerPasswordAction(_p: ActionResult, fd: FormData):
     if (!acct || acct.role !== "customer") return fail("العميل مش موجود.");
     const r = await adminSetPassword(acct.id, acct.role, parsed.data.password);
     if (!r.ok) return fail(r.error);
+    await audit({
+      action: "customer.password",
+      entity: "customer",
+      entityId: acct.id,
+      label: acct.name ? `${acct.name} (${acct.phone})` : acct.phone,
+    });
   } catch (error) {
     return actionFailure("setCustomerPassword", error);
   }
@@ -53,7 +61,17 @@ export async function verifyCustomerPhoneAction(fd: FormData): Promise<void> {
   try {
     const acct = await getAccountById(parsed.data.id);
     if (!acct || acct.role !== "customer") return;
-    await setPhoneVerified(acct.id, fd.get("verified") !== "0");
+    const verified = fd.get("verified") !== "0";
+    if (await setPhoneVerified(acct.id, verified)) {
+      await audit({
+        action: "customer.verify",
+        entity: "customer",
+        entityId: acct.id,
+        label: acct.name ? `${acct.name} (${acct.phone})` : acct.phone,
+        before: { verified: !!acct.phoneVerifiedAt },
+        after: { verified },
+      });
+    }
   } catch (error) {
     throwActionFailure("verifyCustomerPhone", error);
   }
