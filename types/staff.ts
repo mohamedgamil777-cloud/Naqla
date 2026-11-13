@@ -24,7 +24,7 @@ export type StaffInput = Pick<StaffForm, "name" | "phone" | "role"> &
 /** Everything the password login needs about one account (customers, drivers and staff share `users`). */
 export type LoginAccount = Pick<
   UserRow,
-  "id" | "phone" | "name" | "role" | "passwordHash" | "failedLoginCount" | "lockedUntil" | "phoneVerifiedAt"
+  "id" | "phone" | "username" | "name" | "role" | "passwordHash" | "failedLoginCount" | "lockedUntil" | "phoneVerifiedAt"
 >;
 
 /** A customer as agents see it in admin → العملاء. */

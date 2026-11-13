@@ -25,9 +25,11 @@ type Props = {
   /** label ideas shown as chips */
   labelIdeas: string[];
   emptyText: string;
+  /** company employees see the company admin's list without changing it */
+  readOnly?: boolean;
 };
 
-export function AddressBook({ addresses, apiKey, near, labelIdeas, emptyText }: Props) {
+export function AddressBook({ addresses, apiKey, near, labelIdeas, emptyText, readOnly }: Props) {
   // null = closed, "new" = adding, otherwise the id being edited
   const [editing, setEditing] = useState<string | null>(null);
   const current = addresses.find((a) => a.id === editing) ?? null;
@@ -51,13 +53,13 @@ export function AddressBook({ addresses, apiKey, near, labelIdeas, emptyText }: 
                 />
               </div>
             ) : (
-              <AddressRow key={a.id} address={a} onEdit={() => setEditing(a.id)} />
+              <AddressRow key={a.id} address={a} readOnly={readOnly} onEdit={() => setEditing(a.id)} />
             ),
           )}
         </div>
       )}
 
-      {editing === "new" ? (
+      {readOnly ? null : editing === "new" ? (
         <div className="rounded-card border border-line bg-panel-2 p-3">
           <AddressForm
             key="new"
@@ -83,7 +85,7 @@ export function AddressBook({ addresses, apiKey, near, labelIdeas, emptyText }: 
   );
 }
 
-function AddressRow({ address: a, onEdit }: { address: SavedAddr; onEdit: () => void }) {
+function AddressRow({ address: a, readOnly, onEdit }: { address: SavedAddr; readOnly?: boolean; onEdit: () => void }) {
   return (
     <div className="py-2.5 flex items-start justify-between gap-3">
       <div className="min-w-0">
@@ -101,6 +103,7 @@ function AddressRow({ address: a, onEdit }: { address: SavedAddr; onEdit: () => 
           {a.details ? ` — ${a.details}` : ""}
         </div>
       </div>
+      {!readOnly && (
       <div className="flex items-center gap-3 shrink-0 text-sm font-bold">
         {!a.isDefault && (
           <form action={setDefaultAddressAction}>
@@ -123,6 +126,7 @@ function AddressRow({ address: a, onEdit }: { address: SavedAddr; onEdit: () => 
           </button>
         </form>
       </div>
+      )}
     </div>
   );
 }

@@ -10,14 +10,25 @@
  *    the number then shows as unverified until an agent confirms it by phone
  *  - drivers and staff get their password from an admin (or the bootstrap admin from env)
  */
+import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import {
+  bumpOtpAttempt,
   claimAccount,
   clearLoginFailures,
+  consumeOtp,
+  countOtpsSince,
   createUserWithPassword,
   getLoginAccount,
+  getLoginAccountByUsername,
+  latestOtp,
   recordLoginFailure,
+  saveOtp,
   setPassword,
 } from "@/db/lib/accounts";
+import { authSecret } from "@/lib/env";
+import { normalizeUsername, USERNAME_RE } from "@/lib/username";
+import { getSms } from "@/services/sms";
+import type { LoginAccount } from "@/types";
 import { toE164 } from "@/lib/phone";
 import { dummyHash, hashPassword, verifyPassword } from "@/lib/password";
 import { passwordProblem } from "@/lib/password-policy";
@@ -36,7 +47,9 @@ export class AuthError extends Error {
       | "STAFF_ACCOUNT"
       | "WEAK_PASSWORD"
       | "INVALID_NAME"
-      | "OTP_DISABLED",
+      | "OTP_DISABLED"
+      | "INVALID_CODE"
+      | "TOO_MANY_CODES",
     public detail?: string,
   ) {
     super(code);
@@ -57,9 +70,20 @@ export interface AuthResult {
   role: string;
 }
 
-export async function loginWithPassword(rawPhone: string, password: string): Promise<AuthResult> {
-  const phone = normalizePhone(rawPhone);
-  const acct = await getLoginAccount(phone);
+/** "ahmed.nour" → that username; anything else is read as a phone number. */
+export function isUsername(login: string): boolean {
+  return USERNAME_RE.test(normalizeUsername(login));
+}
+
+/** The account for a phone number or a username (null when none). */
+async function findAccount(login: string): Promise<LoginAccount | null> {
+  if (isUsername(login)) return getLoginAccountByUsername(normalizeUsername(login));
+  return getLoginAccount(normalizePhone(login));
+}
+
+/** Phone number or username + password. */
+export async function loginWithPassword(login: string, password: string): Promise<AuthResult> {
+  const acct = await findAccount(login);
   if (!acct) {
     await verifyPassword(password, await dummyHash()); // same cost as a real check
     throw new AuthError("INVALID_CREDENTIALS");
@@ -78,7 +102,7 @@ export async function loginWithPassword(rawPhone: string, password: string): Pro
     throw new AuthError("INVALID_CREDENTIALS");
   }
   if (acct.failedLoginCount > 0 || acct.lockedUntil) await clearLoginFailures(acct.id);
-  return { phone, name: acct.name, role: acct.role };
+  return { phone: acct.phone, name: acct.name, role: acct.role };
 }
 
 /** Customer self-registration, or first password for a customer account that has none yet. */
@@ -123,6 +147,58 @@ export async function adminSetPassword(
   if (problem) return { ok: false, error: problem };
   const done = await setPassword(userId, await hashPassword(password));
   return done ? { ok: true } : { ok: false, error: "الحساب مش موجود." };
+}
+
+// ---------- forgot password: a code by SMS to the account's phone ----------
+
+export const RESET_CODE_TTL_MS = 10 * 60 * 1000;
+export const RESET_MAX_ATTEMPTS = 5;
+/** at most this many codes per phone per hour */
+export const RESET_CODES_PER_HOUR = 3;
+/** staff passwords are reset by a super admin, never by SMS */
+const SELF_RESET_ROLES = new Set(["customer", "driver"]);
+
+function codeHash(phone: string, code: string): string {
+  return createHmac("sha256", authSecret()).update(`${phone}:${code}`).digest("hex");
+}
+
+/** Last two digits only — enough for the person to recognise their number. */
+export function maskPhone(phone: string): string {
+  return `•••••••${phone.slice(-2)}`;
+}
+
+/**
+ * Sends a 6-digit code to the account's phone. Unknown accounts get the same answer (no
+ * account discovery); the masked number is shown only for a username the person typed.
+ */
+export async function requestPasswordReset(login: string): Promise<{ sentTo: string | null }> {
+  const acct = await findAccount(login);
+  if (!acct || !SELF_RESET_ROLES.has(acct.role)) return { sentTo: null };
+  const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  if ((await countOtpsSince(acct.phone, hourAgo)) >= RESET_CODES_PER_HOUR) throw new AuthError("TOO_MANY_CODES");
+  const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+  await saveOtp(acct.phone, codeHash(acct.phone, code), new Date(Date.now() + RESET_CODE_TTL_MS));
+  await getSms().send(acct.phone, `كود انقلي لتغيير كلمة السر: ${code}\nصالح 10 دقايق. ماتديهوش لحد.`);
+  return { sentTo: isUsername(login) ? maskPhone(acct.phone) : null };
+}
+
+/** Checks the code, sets the new password (unlocking the account) and signs the person in. */
+export async function resetPasswordWithCode(login: string, code: string, password: string): Promise<AuthResult> {
+  const acct = await findAccount(login);
+  const otp = acct && SELF_RESET_ROLES.has(acct.role) ? await latestOtp(acct.phone) : null;
+  if (!acct || !otp || otp.expiresAt.getTime() < Date.now() || otp.attempts >= RESET_MAX_ATTEMPTS)
+    throw new AuthError("INVALID_CODE");
+  const expected = Buffer.from(otp.codeHash, "hex");
+  const given = Buffer.from(codeHash(acct.phone, code.trim()), "hex");
+  if (expected.length !== given.length || !timingSafeEqual(expected, given)) {
+    await bumpOtpAttempt(acct.phone);
+    throw new AuthError("INVALID_CODE");
+  }
+  const problem = passwordProblem(password, acct.role);
+  if (problem) throw new AuthError("WEAK_PASSWORD", problem);
+  await consumeOtp(acct.phone);
+  await setPassword(acct.id, await hashPassword(password));
+  return { phone: acct.phone, name: acct.name, role: acct.role };
 }
 
 function minutesLeft(until: Date): string {

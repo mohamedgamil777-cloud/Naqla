@@ -33,6 +33,11 @@ export function addressOwner(phone: string, ctx: CompanyContext | null): string 
   return ctx ? `c:${ctx.company.id}` : `p:${phone}`;
 }
 
+/** Personal lists are their owner's; a company's list is managed by its admin (owner) only. */
+export function canEditAddresses(ctx: CompanyContext | null): boolean {
+  return !ctx || ctx.member.role === "owner";
+}
+
 export type { CompanyBalance } from "@/db/lib/companies";
 
 const EMPTY_BALANCE: CompanyBalance = { charged: 0, paid: 0, outstanding: 0, open: 0 };
@@ -47,6 +52,9 @@ export interface CompanyStatement {
   month: string; // YYYY-MM (Cairo)
   opening: number;
   trips: DeliveryOrderDTO[]; // completed account orders in the month
+  /** completed trips paid in cash to the driver (not on the bill, listed for the company's records) */
+  cashTrips: DeliveryOrderDTO[];
+  cashTotal: number;
   charges: number;
   payments: CompanyPaymentDTO[]; // received in the month
   paid: number;
@@ -90,6 +98,7 @@ export async function companyStatement(companyId: string, month: string): Promis
   const opening = before.get(companyId)?.outstanding ?? 0;
   const allTrips = monthOrders.rows;
   const trips = allTrips.filter((o) => o.billing === "account" && o.status === "completed");
+  const cashTrips = allTrips.filter((o) => o.billing !== "account" && o.status === "completed");
   const charges = sum(trips);
   const paid = payments.reduce((s, p) => s + p.amount, 0);
   return {
@@ -97,6 +106,8 @@ export async function companyStatement(companyId: string, month: string): Promis
     month,
     opening,
     trips,
+    cashTrips,
+    cashTotal: sum(cashTrips),
     charges,
     payments,
     paid,

@@ -8,10 +8,12 @@ import {
   createCompany,
   deleteCompanyPayment,
   getCompany,
+  listCompanyMembers,
   removeCompanyMember,
   updateCompany,
 } from "@/db/lib/companies";
 import { setCompanyRequestStatus } from "@/db/lib/company-requests";
+import { setCompanyUserLogin } from "@/services/company-users";
 import { requirePermission } from "@/lib/authz";
 import { actionFailure, fail, invalid, ok, throwActionFailure, type ActionResult } from "@/lib/action-result";
 import { formObject, rowRefSchema } from "@/lib/validation/fields";
@@ -20,6 +22,7 @@ import {
   companyInputSchema,
   companyMemberInputSchema,
   companyPaymentInputSchema,
+  companyUserLoginSchema,
 } from "@/lib/validation/company";
 
 function refresh(companyId?: string) {
@@ -53,11 +56,18 @@ export async function addMemberAction(_p: ActionResult, fd: FormData): Promise<A
   await requirePermission("company:manage");
   const parsed = companyMemberInputSchema.safeParse(formObject(fd));
   if (!parsed.success) return invalid(parsed.error);
-  const { companyId, phone, name, role } = parsed.data;
+  const { companyId, phone, name, role, username, password } = parsed.data;
   try {
     if (!(await getCompany(companyId))) return fail("الشركة مش موجودة.");
     const res = await addCompanyMember(companyId, phone, name, role);
     if (!res.ok) return fail("الرقم ده مسجّل في شركة تانية.");
+    if (username) {
+      const problem = await setCompanyUserLogin({ phone, name, username, password, mayReplacePassword: true });
+      if (problem) {
+        await removeCompanyMember(companyId, (await memberIdByPhone(companyId, phone)) ?? "");
+        return fail(problem);
+      }
+    }
   } catch (error) {
     return actionFailure("addCompanyMember", error);
   }
@@ -115,4 +125,27 @@ export async function setCompanyRequestStatusAction(fd: FormData): Promise<void>
     throwActionFailure("setCompanyRequestStatus", error);
   }
   refresh();
+}
+
+async function memberIdByPhone(companyId: string, phone: string): Promise<string | null> {
+  return (await listCompanyMembers(companyId)).find((m) => m.phone === phone)?.id ?? null;
+}
+
+/** Staff set a company user's username (and a new password when typed). */
+export async function setMemberLoginAction(_p: ActionResult, fd: FormData): Promise<ActionResult> {
+  await requirePermission("company:manage");
+  const parsed = companyUserLoginSchema.safeParse(formObject(fd));
+  if (!parsed.success) return invalid(parsed.error);
+  const { companyId, id, username, password } = parsed.data;
+  if (!companyId || !id) return fail("المستخدم مش موجود.");
+  try {
+    const m = (await listCompanyMembers(companyId)).find((x) => x.id === id);
+    if (!m) return fail("المستخدم مش موجود.");
+    const problem = await setCompanyUserLogin({ phone: m.phone, name: m.name, username, password, mayReplacePassword: true });
+    if (problem) return fail(problem);
+  } catch (error) {
+    return actionFailure("setMemberLogin", error);
+  }
+  refresh(companyId);
+  return ok();
 }

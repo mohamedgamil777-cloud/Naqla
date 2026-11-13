@@ -1,4 +1,4 @@
-import { removeCompanyUser } from "@/actions/customer/company";
+import { removeCompanyUser, setCompanyUserLoginAction } from "@/actions/customer/company";
 import Link from "next/link";
 import { z } from "zod";
 import { Pagination } from "@/components/Pagination";
@@ -20,7 +20,8 @@ import { toLocal } from "@/lib/phone";
 import { EmptyState, LinkButton } from "@/components/ui";
 import { Icon } from "@/components/Icons";
 import { PodView } from "@/components/PodView";
-import { CompanyUserForm } from "@/components/CompanyUserForm";
+import { CompanyUserForm, CompanyUserLoginForm } from "@/components/CompanyUserForm";
+import { usernamesFor } from "@/db/lib/accounts";
 import { AddressBook } from "@/components/AddressBook";
 import { defaultBranch } from "@/db/lib/branches";
 import { googleMapsConfig } from "@/lib/env";
@@ -85,6 +86,7 @@ export default async function CompanyPage({
     defaultBranch(),
   ]);
   const monthOrders = monthPage.rows;
+  const logins = await usernamesFor(members.map((m) => m.phone));
   const months = [...new Set([month, ...orderMonths])].sort().reverse().slice(0, 6);
 
   return (
@@ -126,16 +128,37 @@ export default async function CompanyPage({
         اطلب توصيلة باسم الشركة <Icon name="chevronLeft" className="w-5 h-5" strokeWidth={2.6} />
       </Link>
 
-      <Section title="كشف الحساب" hint="اطبعه أو احفظه PDF">
-        <div className="flex flex-wrap gap-2">
+      <Section
+        title="التقرير الشهري"
+        hint={
+          isOwner
+            ? "لكل شهر: كشف الحساب والفاتورة (اطبعه أو احفظه PDF)، وكل تفاصيل الرحلات في ملف Excel."
+            : "لكل شهر: كشف الحساب والفاتورة. ملف Excel بتفاصيل الرحلات مع مدير الحساب."
+        }
+      >
+        <div className="flex flex-col divide-y divide-line">
           {months.map((m) => (
-            <Link
-              key={m}
-              href={`/company/statement?month=${m}`}
-              className="rounded-xl border-2 border-primary text-primary px-3.5 py-2 font-bold text-sm hover:bg-primary-soft"
-            >
-              <Icon name="file" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{monthLabel(m)}
-            </Link>
+            <div key={m} className="py-2.5 flex flex-wrap items-center justify-between gap-2">
+              <span className="font-bold">{monthLabel(m)}</span>
+              <span className="flex flex-wrap gap-2">
+                <Link
+                  href={`/company/statement?month=${m}`}
+                  className="rounded-xl border-2 border-primary text-primary px-3.5 py-1.5 font-bold text-sm hover:bg-primary-soft"
+                >
+                  <Icon name="file" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
+                  كشف الحساب
+                </Link>
+                {isOwner && (
+                  <a
+                    href={`/company/report?month=${m}`}
+                    className="rounded-xl border-2 border-line-2 text-ink-2 px-3.5 py-1.5 font-bold text-sm hover:border-primary hover:text-primary"
+                  >
+                    <Icon name="download" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
+                    تفاصيل الرحلات (Excel)
+                  </a>
+                )}
+              </span>
+            </div>
           ))}
         </div>
       </Section>
@@ -180,7 +203,11 @@ export default async function CompanyPage({
 
       <Section
         title={`العناوين المحفوظة (${saved.length})`}
-        hint="بتظهر لكل موظفي الشركة في صفحة الطلب. العنوان الأساسي (المخزن مثلاً) بيتملي لوحده كمكان الاستلام."
+        hint={
+          isOwner
+            ? "بتظهر لكل موظفي الشركة في صفحة الطلب. العنوان الأساسي (المخزن مثلاً) بيتملي لوحده كمكان الاستلام. انت بس كمدير للحساب اللي تقدر تضيف وتعدّل."
+            : "عناوين الشركة اللي ضافها مدير الحساب. بتختارها بضغطة وانت بتطلب. لو محتاج عنوان جديد، اطلبه من مدير الحساب."
+        }
       >
         <AddressBook
           addresses={saved.map((a) => ({
@@ -195,14 +222,26 @@ export default async function CompanyPage({
           apiKey={googleMapsConfig()?.apiKey ?? null}
           near={{ lat: branch.lat ?? 30.0444, lng: branch.lng ?? 31.2357 }}
           labelIdeas={["المخزن", "المصنع", "الفرع الرئيسي", "المكتب"]}
-          emptyText="مفيش عناوين محفوظة لسه. ضيف عنوان المخزن والفروع عشان الموظفين مايكتبوهاش كل مرة."
+          emptyText={
+            isOwner
+              ? "مفيش عناوين محفوظة لسه. ضيف عنوان المخزن والفروع عشان الموظفين مايكتبوهاش كل مرة."
+              : "مدير الحساب لسه ماضافش عناوين."
+          }
+          readOnly={!isOwner}
         />
       </Section>
 
-      <Section title={`مستخدمين الحساب (${members.length})`}>
+      <Section
+        title={`مستخدمين الحساب (${members.length})`}
+        hint={
+          isOwner
+            ? "انت مدير الحساب: بتضيف الموظفين وبتعمل لكل واحد اسم مستخدم وكلمة سر، وبتدير عناوين الشركة."
+            : "مدير الحساب هو اللي بيضيف المستخدمين والعناوين."
+        }
+      >
         <div className="flex flex-col divide-y divide-line">
           {members.map((m) => (
-            <div key={m.id} className="py-2.5 flex items-center justify-between gap-2">
+            <div key={m.id} className="py-2.5 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <span className="font-bold">{m.name ?? "—"}</span>{" "}
                 <span className="text-muted text-sm" dir="ltr">
@@ -210,16 +249,32 @@ export default async function CompanyPage({
                 </span>{" "}
                 {m.role === "owner" && (
                   <span className="rounded-full bg-primary-soft text-primary-ink px-2 py-0.5 text-xs font-bold">
-                    مدير
+                    مدير الحساب
+                  </span>
+                )}
+                {logins.get(m.phone) && (
+                  <span className="block text-sm text-ink-2">
+                    اسم المستخدم: <span dir="ltr" className="font-bold">{logins.get(m.phone)}</span>
                   </span>
                 )}
               </div>
-              {isOwner && m.id !== member.id && (
-                <form action={removeCompanyUser}>
-                  <button name="id" value={m.id} className="text-booked text-sm font-bold">
-                    حذف
-                  </button>
-                </form>
+              {isOwner && (
+                <div className="flex items-center gap-3">
+                  {m.id !== member.id && (
+                    <form action={removeCompanyUser}>
+                      <button name="id" value={m.id} className="text-booked text-sm font-bold">
+                        حذف
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
+              {isOwner && (
+                <CompanyUserLoginForm
+                  action={setCompanyUserLoginAction}
+                  memberId={m.id}
+                  username={logins.get(m.phone) ?? null}
+                />
               )}
             </div>
           ))}

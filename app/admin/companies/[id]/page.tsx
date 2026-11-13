@@ -1,4 +1,6 @@
-import { removeMemberAction, deleteCompanyPaymentAction } from "@/actions/admin/companies";
+import { removeMemberAction, deleteCompanyPaymentAction, setMemberLoginAction } from "@/actions/admin/companies";
+import { CompanyUserLoginForm } from "@/components/CompanyUserForm";
+import { usernamesFor } from "@/db/lib/accounts";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCompany, listCompanyMembers, listCompanyPayments } from "@/db/lib/companies";
@@ -38,6 +40,7 @@ export default async function AdminCompany({ params }: { params: Promise<{ id: s
     companyBalance(id),
   ]);
   const orders = latest.rows;
+  const logins = await usernamesFor(members.map((m) => m.phone));
   // months that have activity (+ the current one) for the statement picker
   const months = [...new Set([currentMonth(), ...orderMonths])].sort().reverse();
 
@@ -67,11 +70,11 @@ export default async function AdminCompany({ params }: { params: Promise<{ id: s
 
       <Card
         title={`المستخدمين (${members.length})`}
-        hint="أي حد من دول يدخل برقم موبايله هيطلب باسم الشركة وبسعرها."
+        hint="أي حد من دول يدخل باسم المستخدم (أو رقم موبايله) هيطلب باسم الشركة وبسعرها. مدير الحساب بيضيف باقي الموظفين والعناوين من «شركتي»."
       >
         <div className="flex flex-col divide-y divide-line">
           {members.map((m) => (
-            <div key={m.id} className="flex items-center justify-between gap-2 py-2.5">
+            <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
               <div>
                 <span className="font-bold">{m.name ?? "—"}</span>{" "}
                 <span className="text-muted" dir="ltr">
@@ -82,6 +85,11 @@ export default async function AdminCompany({ params }: { params: Promise<{ id: s
                 >
                   {m.role === "owner" ? "مدير الحساب" : "مستخدم"}
                 </span>
+                {logins.get(m.phone) && (
+                  <span className="block text-sm text-ink-2">
+                    اسم المستخدم: <span dir="ltr" className="font-bold">{logins.get(m.phone)}</span>
+                  </span>
+                )}
               </div>
               <form action={removeMemberAction}>
                 <input type="hidden" name="companyId" value={company.id} />
@@ -89,6 +97,12 @@ export default async function AdminCompany({ params }: { params: Promise<{ id: s
                   حذف
                 </button>
               </form>
+              <CompanyUserLoginForm
+                action={setMemberLoginAction}
+                memberId={m.id}
+                companyId={company.id}
+                username={logins.get(m.phone) ?? null}
+              />
             </div>
           ))}
           {members.length === 0 && <p className="text-muted text-sm py-2">لسه مفيش مستخدمين.</p>}
@@ -99,13 +113,23 @@ export default async function AdminCompany({ params }: { params: Promise<{ id: s
       <Card title="كشف الحساب الشهري">
         <div className="flex flex-wrap gap-2">
           {months.map((m) => (
-            <Link
-              key={m}
-              href={`/admin/companies/${company.id}/statement?month=${m}`}
-              className="rounded-xl border-2 border-primary text-primary px-4 py-2 font-bold hover:bg-primary-soft"
-            >
-              <Icon name="file" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{monthLabel(m)}
-            </Link>
+            <span key={m} className="inline-flex rounded-xl border-2 border-primary overflow-hidden">
+              <Link
+                href={`/admin/companies/${company.id}/statement?month=${m}`}
+                className="text-primary px-4 py-2 font-bold hover:bg-primary-soft"
+              >
+                <Icon name="file" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
+                {monthLabel(m)}
+              </Link>
+              <a
+                href={`/api/admin/companies/${company.id}/report?month=${m}`}
+                title="تفاصيل الرحلات Excel"
+                className="border-s-2 border-primary text-primary px-3 py-2 font-bold hover:bg-primary-soft"
+              >
+                <Icon name="download" className="w-4 h-4 inline-block align-[-3px]" />
+                <span className="sr-only">Excel</span>
+              </a>
+            </span>
           ))}
         </div>
       </Card>

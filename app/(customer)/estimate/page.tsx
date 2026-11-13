@@ -4,7 +4,7 @@ import { listCategories } from "@/db/lib/categories";
 import { getAppContent, getBusiness } from "@/db/lib/settings";
 import { DeliveryEstimator, type AccountInfo } from "@/components/delivery-estimator/DeliveryEstimator";
 import { getSession } from "@/services/session";
-import { addressOwner, companyContext } from "@/services/company-service";
+import { addressOwner, canEditAddresses, companyContext } from "@/services/company-service";
 import { googleMapsConfig } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +21,7 @@ export default async function EstimatePage({ searchParams }: { searchParams: Pro
   const ctx = session ? await companyContext(session.phone) : null;
   const account: AccountInfo = {
     loggedIn: !!session,
+    canSave: canEditAddresses(ctx),
     company: ctx
       ? { name: ctx.company.name, discountPct: ctx.company.discountPct, billing: ctx.company.billing }
       : null,

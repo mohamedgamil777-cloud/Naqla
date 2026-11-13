@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { pgTable, uuid, text, integer, boolean, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { timestamps } from "./columns";
@@ -7,6 +8,8 @@ export const users = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     phone: text("phone").notNull(), // E.164
+    /** optional login name (lower-case), used by company users; reset codes still go to the phone */
+    username: text("username"),
     name: text("name"),
     role: text("role", {
       enum: ["customer", "super_admin", "fleet_mgr", "agent", "driver", "finance"],
@@ -27,7 +30,10 @@ export const users = pgTable(
     phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
     ...timestamps,
   },
-  (t) => [uniqueIndex("users_phone_uq").on(t.phone)],
+  (t) => [
+    uniqueIndex("users_phone_uq").on(t.phone),
+    uniqueIndex("users_username_uq").on(t.username).where(sql`${t.username} IS NOT NULL`),
+  ],
 );
 
 export const selectUserSchema = createSelectSchema(users);
