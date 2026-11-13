@@ -24,8 +24,9 @@ export const requiredText = (message: string, max = 500) =>
 /** Empty → null. */
 export const optionalText = (max = 2000) => raw.transform((v) => v.slice(0, max) || null);
 
-/** A uuid (ids of rows the user picked). */
-export const id = (message: string) => raw.pipe(z.string().uuid(message));
+/** A row id the user picked. z.guid(), not z.uuid(): the live database has older hand-made ids
+ *  (11111111-1111-…, 22222222-0000-…) that strict RFC uuid checks reject. */
+export const id = (message: string) => raw.pipe(z.guid(message));
 export const optionalId = () => raw.pipe(z.union([z.literal("").transform(() => null), z.guid()]));
 
 /** Checkbox: present ("on") = true. */

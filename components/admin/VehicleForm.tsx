@@ -365,6 +365,9 @@ export function VehicleForm({
         </p>
       </fieldset>
 
+      {state.error && (
+        <div className="bg-booked-soft text-booked rounded-xl px-4 py-3 font-semibold">{state.error}</div>
+      )}
       <div className="flex gap-3">
         <SubmitBtn isEdit={Boolean(vehicle)} />
         <Link href="/admin/fleet" className="rounded-2xl px-6 py-3 font-bold border-2 border-line-2 bg-panel">
