@@ -5,6 +5,7 @@ import { vehicleCategories, vehicles, vehicleImages, pricingRules, bookings } fr
 import type { PricingRule } from "@/engines/pricing";
 import { type VehicleKind, type VehicleStatus } from "@/lib/constants";
 import type {
+  FleetDriver,
   FleetVehicle,
   VehicleAdminInfo,
   VehicleDetail,
@@ -103,7 +104,6 @@ export async function listFleet(): Promise<FleetVehicle[]> {
             photo: true,
             nationalId: true,
             drivingLicense: true,
-            vehicleLicense: true,
             available: true,
           },
         },
@@ -116,8 +116,48 @@ export async function listFleet(): Promise<FleetVehicle[]> {
     ...toListItem(v, resolveFromRows(rules, v.id, v.categoryId)),
     plate: v.plate,
     admin: adminInfo(v),
-    driver: v.driver ? { ...v.driver, name: v.driver.name ?? "" } : null,
+    driver: v.driver ? toFleetDriver(v.driver) : null,
   }));
+}
+
+type DriverCols = {
+  id: string;
+  name: string | null;
+  phone: string;
+  photo: string | null;
+  nationalId: string | null;
+  drivingLicense: string | null;
+  available: boolean;
+};
+
+function toFleetDriver(d: DriverCols): FleetDriver {
+  return {
+    id: d.id,
+    name: d.name ?? "",
+    phone: d.phone,
+    photo: d.photo,
+    hasNationalId: !!d.nationalId,
+    hasDrivingLicense: !!d.drivingLicense,
+    available: d.available,
+  };
+}
+
+/** Drivers for the vehicle form's picker: small rows (photo only, no document scans). */
+export async function listFleetDrivers(): Promise<FleetDriver[]> {
+  const rows = await db.query.users.findMany({
+    where: (users) => eq(users.role, "driver"),
+    columns: {
+      id: true,
+      name: true,
+      phone: true,
+      photo: true,
+      nationalId: true,
+      drivingLicense: true,
+      available: true,
+    },
+    orderBy: (users) => users.name,
+  });
+  return rows.map(toFleetDriver);
 }
 
 export async function getVehicle(id: string): Promise<VehicleDetail | null> {

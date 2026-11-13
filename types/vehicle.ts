@@ -109,9 +109,9 @@ export type FleetDriver = {
   name: string;
   phone: string;
   photo: string | null;
-  nationalId: string | null;
-  drivingLicense: string | null;
-  vehicleLicense: string | null;
+  /** only whether the papers are on file: the scans stay on the server */
+  hasNationalId: boolean;
+  hasDrivingLicense: boolean;
   available: boolean;
 };
 

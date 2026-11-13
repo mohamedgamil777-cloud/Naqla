@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { listCategories } from "@/db/lib/categories";
-import { defaultPricingInput } from "@/db/lib/vehicles";
-import { listDrivers } from "@/db/lib/drivers";
+import { defaultPricingInput, listFleetDrivers } from "@/db/lib/vehicles";
 import { VehicleForm } from "@/components/admin/VehicleForm";
 import { requirePermission } from "@/lib/authz";
 
@@ -12,7 +11,7 @@ export default async function NewVehiclePage() {
   const [categories, defaultPricing, drivers] = await Promise.all([
     listCategories(),
     defaultPricingInput(),
-    listDrivers(),
+    listFleetDrivers(),
   ]);
   return (
     <div className="flex flex-col gap-5">
