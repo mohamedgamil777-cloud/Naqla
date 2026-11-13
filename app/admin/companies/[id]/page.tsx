@@ -121,6 +121,14 @@ export default async function AdminCompany({ params }: { params: Promise<{ id: s
                 <Icon name="file" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
                 {monthLabel(m)}
               </Link>
+              <Link
+                href={`/admin/companies/${company.id}/trips?month=${m}`}
+                title="تفاصيل الرحلات"
+                className="border-s-2 border-primary text-primary px-3 py-2 font-bold hover:bg-primary-soft"
+              >
+                <Icon name="orders" className="w-4 h-4 inline-block align-[-3px] me-1" />
+                الرحلات
+              </Link>
               <a
                 href={`/api/admin/companies/${company.id}/report?month=${m}`}
                 title="تفاصيل الرحلات Excel"
