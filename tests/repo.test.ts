@@ -36,7 +36,7 @@ import { reportRowCounts } from "@/db/lib/reporting";
 import { getAppContent, getBusiness, updateAppContent, updateBusiness } from "@/db/lib/settings";
 import { createStaff, deleteStaff } from "@/db/lib/staff";
 import { db } from "@/db/client";
-import { createVehicle } from "@/db/lib/vehicles";
+import { createVehicle, getVehicle, getVehicleForEdit, listFleet, updateVehicle } from "@/db/lib/vehicles";
 import { branches } from "@/db/schema";
 import { getDashboard } from "@/services/admin-service";
 import { DEFAULTS } from "@/lib/constants";
@@ -488,5 +488,71 @@ describe("availability only looks ahead", () => {
     expect(both.get(a.id)).toHaveLength(1);
     expect(both.get(b.id)).toHaveLength(0); // starts after `until`
     expect(await listVehicleBlocks(a.id)).toHaveLength(1); // past blocks are history
+  });
+});
+
+describe("fleet: driver, owner and licence stay admin-only", () => {
+  it("saves them, clears the owner when the driver owns it, and keeps them off the customer read", async () => {
+    await db.insert(branches).values({ name: "فرع أسطول", workingHours: { open: 8, close: 22 } });
+    const categoryId = await newCategory();
+    const driverId = await newDriver();
+    const pricing = {
+      hour1: 10000,
+      hour2: 0,
+      hour4: 0,
+      hour8: 0,
+      daily: 0,
+      extraHour: 0,
+      deposit: 0,
+      driverFeePerHour: 0,
+      loaderFeePerPerson: 0,
+      perKmPrice: 0,
+      deliveryFee: 0,
+    };
+    const base = {
+      name: "دبابة 1",
+      plate: `ق ن ل ${++n}`,
+      categoryId,
+      brand: null,
+      model: null,
+      year: null,
+      color: null,
+      transmission: "manual" as const,
+      fuel: "benzine" as const,
+      seats: null,
+      cargoKg: null,
+      hasDriverOption: true,
+      status: "available" as const,
+      imageUrl: null,
+      pricing,
+    };
+    const { id } = await createVehicle({
+      ...base,
+      driverId,
+      ownerIsDriver: false,
+      ownerName: "صاحب العربية",
+      ownerPhone: "01000000000",
+      licenseNumber: "123456",
+      licenseExpiry: "2027-01-31",
+      notes: "ملاحظة",
+    });
+
+    const fleet = (await listFleet()).find((v) => v.id === id)!;
+    expect(fleet.plate).toBe(base.plate);
+    expect(fleet.driver?.id).toBe(driverId);
+    expect(fleet.admin).toMatchObject({
+      ownerIsDriver: false,
+      ownerName: "صاحب العربية",
+      licenseExpiry: "2027-01-31",
+    });
+
+    const customer = (await getVehicle(id))! as unknown as Record<string, unknown>;
+    for (const k of ["driverId", "ownerName", "ownerPhone", "licenseNumber", "notes", "admin", "plate"]) {
+      expect(customer[k]).toBeUndefined();
+    }
+
+    await updateVehicle(id, { ...base, driverId, ownerIsDriver: true, ownerName: "يتمسح" });
+    const edit = (await getVehicleForEdit(id))!;
+    expect(edit.admin).toMatchObject({ ownerIsDriver: true, ownerName: null, driverId, licenseNumber: null });
   });
 });

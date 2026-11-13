@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, boolean, real } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { VEHICLE_KINDS } from "@/lib/constants";
 import { timestamps } from "./columns";
@@ -14,6 +14,12 @@ export const vehicleCategories = pgTable("vehicle_categories", {
   dims: text("dims"),
   description: text("description"),
   image: text("image"),
+  /** box volume in m³ (customer info) */
+  volumeM3: real("volume_m3"),
+  /** closed box / open bed / covered with a tarp */
+  bodyType: text("body_type", { enum: ["closed", "open", "covered"] }),
+  /** what fits, one item per line (shown to customers as a list) */
+  features: text("features"),
   baseFare: integer("base_fare").notNull().default(0),
   perKm: integer("per_km").notNull().default(0),
   ...timestamps,

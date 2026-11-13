@@ -77,7 +77,9 @@ export function HomeView({
           {/* picture — left side on desktop, above the order card on phones */}
           <div className="order-2 md:order-none md:col-start-2 md:row-start-1 overflow-hidden rounded-3xl border border-line bg-panel-2 shadow-[0_18px_40px_rgba(16,32,28,0.10)]">
             {home.heroImages.length ? (
-              <HeroCarousel slides={home.heroImages.map((src, i) => `/api/hero/${i}?v=${photoVersion(src)}`)} />
+              <HeroCarousel
+                slides={home.heroImages.map((src, i) => `/api/hero/${i}?v=${photoVersion(src)}`)}
+              />
             ) : (
               <HeroScene className="block w-full h-auto" />
             )}
@@ -110,7 +112,12 @@ export function HomeView({
             <h2 id="fleet-title" className="text-2xl md:text-[2rem] font-extrabold">
               أحجام عربياتنا
             </h2>
-            <p className="text-base text-muted mt-1">اختار على قد الحاجة اللي هتنقلها</p>
+            <p className="text-base text-muted mt-1">
+              اختار على قد الحاجة اللي هتنقلها ·{" "}
+              <Link href="/cars" className="text-primary font-bold">
+                كل التفاصيل ›
+              </Link>
+            </p>
           </div>
           <ul className="mt-5 md:mt-7 px-4 flex gap-3 overflow-x-auto snap-x pb-2 [scrollbar-width:none] md:flex-wrap md:overflow-visible">
             {sizes.map((c) => (
@@ -141,7 +148,9 @@ export function HomeView({
                         <div className="flex items-center gap-2">
                           <Icon name="weight" className="w-3.5 h-3.5 text-primary" strokeWidth={2.5} />
                           <dt className="text-muted w-10 shrink-0">الحمولة</dt>
-                          <dd className="text-ink font-bold whitespace-nowrap">حتى {c.capacityKg.toLocaleString("en-US")} كجم</dd>
+                          <dd className="text-ink font-bold whitespace-nowrap">
+                            حتى {c.capacityKg.toLocaleString("en-US")} كجم
+                          </dd>
                         </div>
                       ) : null}
                       {c.dims ? (
@@ -216,7 +225,11 @@ export function HomeView({
                   href={`/estimate?size=${g.size}`}
                   className="h-full bg-panel rounded-2xl border border-line/80 py-4 md:py-5 px-2 md:px-3 flex flex-col items-center gap-2 md:gap-2.5 hover:border-primary/60 hover:shadow-[0_8px_22px_rgba(16,32,28,0.08)]"
                 >
-                  <Icon name={g.icon as IconName} className="w-8 h-8 md:w-9 md:h-9 text-primary" strokeWidth={2.5} />
+                  <Icon
+                    name={g.icon as IconName}
+                    className="w-8 h-8 md:w-9 md:h-9 text-primary"
+                    strokeWidth={2.5}
+                  />
                   <span className="font-bold text-sm md:text-[15px] leading-snug">{g.label}</span>
                 </Link>
               </li>
@@ -230,7 +243,10 @@ export function HomeView({
         aria-labelledby="why-title"
         className="mx-4 rounded-3xl bg-primary text-white px-4 py-6 md:px-10 md:py-8 grid gap-5 md:grid-cols-[auto_1fr] md:items-center md:gap-10"
       >
-        <h2 id="why-title" className="text-xl md:text-[1.9rem] font-extrabold leading-tight text-center md:text-start">
+        <h2
+          id="why-title"
+          className="text-xl md:text-[1.9rem] font-extrabold leading-tight text-center md:text-start"
+        >
           ليه
           <br className="hidden md:block" /> تختار انقلي؟
         </h2>

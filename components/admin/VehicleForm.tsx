@@ -5,7 +5,8 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { VEHICLE_STATUS_LABEL, VEHICLE_STATUSES } from "@/lib/constants";
-import type { CategoryDTO, VehicleEditData, VehiclePricingInput } from "@/types";
+import type { CategoryDTO, FleetDriver, VehicleEditData, VehiclePricingInput } from "@/types";
+import { VehicleOwnerFields } from "@/components/admin/VehicleOwnerFields";
 import { Icon } from "@/components/Icons";
 
 const PRESET_IMAGES = [
@@ -52,10 +53,12 @@ function fileToDataUrl(file: File, maxW = 1000, quality = 0.82): Promise<string>
 
 export function VehicleForm({
   categories,
+  drivers,
   vehicle,
   defaultPricing,
 }: {
   categories: CategoryDTO[];
+  drivers: FleetDriver[];
   vehicle?: VehicleEditData;
   defaultPricing?: VehiclePricingInput;
 }) {
@@ -103,7 +106,8 @@ export function VehicleForm({
           </div>
           <div className="flex flex-col gap-3">
             <label className="rounded-xl px-4 py-2.5 font-bold bg-primary text-white cursor-pointer inline-flex items-center gap-2 w-fit">
-              <Icon name="camera" className="w-4 h-4 inline-block align-[-3px] me-1.5" />{imgBusy ? "بيرفع…" : "ارفع صورة من جهازك"}
+              <Icon name="camera" className="w-4 h-4 inline-block align-[-3px] me-1.5" />
+              {imgBusy ? "بيرفع…" : "ارفع صورة من جهازك"}
               <input type="file" accept="image/*" onChange={onFile} className="hidden" />
             </label>
             {imgErr && <span className="text-booked text-sm font-semibold">{imgErr}</span>}
@@ -225,6 +229,8 @@ export function VehicleForm({
           </label>
         </div>
       </fieldset>
+
+      <VehicleOwnerFields drivers={drivers} admin={vehicle?.admin} />
 
       {/* Pricing */}
       <fieldset className="bg-panel border border-line rounded-card p-5">

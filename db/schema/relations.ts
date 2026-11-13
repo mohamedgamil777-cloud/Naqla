@@ -55,5 +55,6 @@ export const vehicleImagesRelations = relations(vehicleImages, ({ one }) => ({
 export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
   category: one(vehicleCategories, { fields: [vehicles.categoryId], references: [vehicleCategories.id] }),
   branch: one(branches, { fields: [vehicles.branchId], references: [branches.id] }),
+  driver: one(users, { fields: [vehicles.driverId], references: [users.id] }),
   images: many(vehicleImages),
 }));

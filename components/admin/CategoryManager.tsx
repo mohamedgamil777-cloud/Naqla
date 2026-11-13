@@ -77,6 +77,27 @@ function Fields({ c }: { c?: CategoryDTO }) {
         <span className={lbl}>المقاس (سم)</span>
         <input className={inp} name="dims" defaultValue={c?.dims ?? ""} placeholder="170×160×100" />
       </label>
+      <label className="flex flex-col gap-1">
+        <span className={lbl}>حجم الصندوق (م³)</span>
+        <input
+          className={inp}
+          name="volumeM3"
+          type="number"
+          min="0"
+          step="0.1"
+          defaultValue={c?.volumeM3 ?? ""}
+          placeholder="4.5"
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className={lbl}>شكل الصندوق</span>
+        <select className={inp} name="bodyType" defaultValue={c?.bodyType ?? ""}>
+          <option value="">—</option>
+          <option value="closed">صندوق مقفول</option>
+          <option value="open">صندوق مفتوح</option>
+          <option value="covered">مفتوح بتندة</option>
+        </select>
+      </label>
       <label className="flex flex-col gap-1 col-span-2 sm:col-span-3">
         <span className={lbl}>وصف مختصر (مناسب لـ…)</span>
         <input
@@ -84,6 +105,16 @@ function Fields({ c }: { c?: CategoryDTO }) {
           name="description"
           defaultValue={c?.description ?? ""}
           placeholder="صناديق صغيرة، كراسي، ثلاجات"
+        />
+      </label>
+      <label className="flex flex-col gap-1 col-span-2 sm:col-span-3">
+        <span className={lbl}>بتشيل إيه؟ (كل حاجة في سطر، بتظهر للعميل كنقط)</span>
+        <textarea
+          className={inp}
+          name="features"
+          rows={3}
+          defaultValue={c?.features ?? ""}
+          placeholder={"عفش أوضة نوم كاملة\nثلاجة + غسالة + بوتاجاز\nلحد 40 كرتونة"}
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -140,7 +171,7 @@ export function CategoryManager({
     <div className="flex flex-col gap-5">
       {/* Add */}
       <form action={action} className="bg-panel border border-line rounded-card p-4 flex flex-col gap-3">
-        <h2 className="font-extrabold">إضافة نوع / حجم جديد</h2>
+        <h2 className="font-extrabold">إضافة نوع جديد (دبابة، جامبو، فان…)</h2>
         {state.error && (
           <div className="bg-booked-soft text-booked rounded-xl px-3 py-2 text-sm font-semibold">
             {state.error}
@@ -160,6 +191,7 @@ export function CategoryManager({
         ))}
       </div>
       <p className="text-muted text-sm">
+        كل البيانات دي (الصورة، الحمولة، المقاس، الحجم، الوصف، بتشيل إيه) بتظهر للعملاء في صفحة «عربياتنا».
         «الحجم» (XS/S/M/L/XL) هو اللي العميل بيختار منه في التوصيل. النوع من غير حجم أو المخفي مش بيظهر
         للعميل. النوع اللي اتعمل عليه طلبات مينفعش يتحذف (عشان الطلبات القديمة) — اخفيه بدل الحذف.
       </p>
@@ -199,9 +231,7 @@ function CategoryRow({ c, use }: { c: CategoryDTO; use: CategoryUsage }) {
           {state.error}
         </div>
       )}
-      {state.ok && (
-        <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">اتحفظ</div>
-      )}
+      {state.ok && <div className="bg-ok-soft text-ok rounded-xl px-3 py-2 text-sm font-semibold">اتحفظ</div>}
       <Fields c={c} />
       <div className="flex gap-2">
         <SaveBtn />

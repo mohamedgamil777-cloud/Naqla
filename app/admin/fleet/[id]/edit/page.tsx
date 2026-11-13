@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { listVehicleBlocks } from "@/db/lib/availability";
 import { listCategories } from "@/db/lib/categories";
 import { getVehicleForEdit } from "@/db/lib/vehicles";
+import { listDrivers } from "@/db/lib/drivers";
 import { VehicleForm } from "@/components/admin/VehicleForm";
 import { VehicleBlocks, type BlockRow } from "@/components/admin/VehicleBlocks";
 import { labelDateArabic, labelTime } from "@/lib/time";
@@ -14,10 +15,11 @@ export const dynamic = "force-dynamic";
 export default async function EditVehiclePage({ params }: { params: Promise<{ id: string }> }) {
   await requirePermission("fleet:manage");
   const { id } = await params;
-  const [vehicle, categories, blocks] = await Promise.all([
+  const [vehicle, categories, blocks, drivers] = await Promise.all([
     getVehicleForEdit(id),
     listCategories(),
     listVehicleBlocks(id),
+    listDrivers(),
   ]);
   if (!vehicle) notFound();
 
@@ -47,7 +49,7 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
           </button>
         </form>
       </div>
-      <VehicleForm categories={categories} vehicle={vehicle} />
+      <VehicleForm categories={categories} drivers={drivers} vehicle={vehicle} />
       <VehicleBlocks vehicleId={vehicle.id} blocks={blockRows} />
     </div>
   );

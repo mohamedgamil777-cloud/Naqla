@@ -7,6 +7,8 @@ import {
   egpAmount,
   id,
   isoDate,
+  optionalId,
+  optionalIsoDate,
   optionalNumber,
   optionalText,
   requiredNumber,
@@ -56,6 +58,17 @@ export const vehicleInputSchema = z.object({
     .transform((v) => v ?? "available"),
   imageUrl: optionalText(3_000_000),
   pricing: pricingSchema,
+  // admin only: driver / owner / licence
+  driverId: optionalId(),
+  ownerIsDriver: checkbox(),
+  ownerName: optionalText(120),
+  ownerPhone: optionalText(40),
+  ownerNationalId: optionalText(40),
+  ownerPhoto: optionalText(3_000_000),
+  licenseNumber: optionalText(60),
+  licenseExpiry: optionalIsoDate("تاريخ انتهاء الرخصة مش صحيح."),
+  licensePhoto: optionalText(3_000_000),
+  notes: optionalText(2000),
 });
 
 /** The pricing fields sit flat in the form; group them for the schema. */
@@ -85,6 +98,7 @@ export const vehicleStatusInputSchema = z.object({
 
 const kind = selectVehicleCategorySchema.shape.kind;
 const sizeCode = selectVehicleCategorySchema.shape.sizeCode.unwrap();
+const bodyType = selectVehicleCategorySchema.shape.bodyType.unwrap();
 
 export const categoryInputSchema = z.object({
   name: requiredText("اكتب اسم النوع.", 80),
@@ -96,6 +110,11 @@ export const categoryInputSchema = z.object({
   dims: optionalText(80),
   description: optionalText(500),
   image: optionalText(3_000_000),
+  volumeM3: optionalNumber("حجم الصندوق مش صحيح.", { min: 0, max: 200 }),
+  bodyType: optionalText(20).transform((v) =>
+    v && bodyType.safeParse(v).success ? bodyType.parse(v) : null,
+  ),
+  features: optionalText(1000),
   baseFare: egpAmount("فتحة العداد مش صحيحة."),
   perKm: egpAmount("سعر الكيلو مش صحيح."),
 });

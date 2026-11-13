@@ -32,6 +32,9 @@ export type CategoryDTO = Pick<
   | "dims"
   | "description"
   | "image"
+  | "volumeM3"
+  | "bodyType"
+  | "features"
   | "baseFare"
   | "perKm"
 >;
@@ -62,7 +65,21 @@ export type BranchDTO = Pick<BranchRow, "id" | "name" | "address" | "lat" | "lng
 export type BlockDTO = Pick<BlockRow, "id" | "vehicleId" | "startsAt" | "endsAt" | "reason" | "note">;
 
 /** Admin vehicle form, validated (prices in PIASTRES). */
-export type VehicleInput = z.infer<typeof vehicleInputSchema> & { branchId?: string };
+type VehicleForm = z.infer<typeof vehicleInputSchema>;
+type VehicleAdminField =
+  | "driverId"
+  | "ownerIsDriver"
+  | "ownerName"
+  | "ownerPhone"
+  | "ownerNationalId"
+  | "ownerPhoto"
+  | "licenseNumber"
+  | "licenseExpiry"
+  | "licensePhoto"
+  | "notes";
+/** The admin-only fields are optional (left out = no driver, driver owns it, no licence). */
+export type VehicleInput = Omit<VehicleForm, VehicleAdminField> &
+  Partial<Pick<VehicleForm, VehicleAdminField>> & { branchId?: string };
 export type VehiclePricingInput = VehicleInput["pricing"];
 export type CategoryInput = Partial<z.infer<typeof categoryInputSchema>> & Pick<CategoryRow, "name" | "kind">;
 export type BlockInput = Pick<z.infer<typeof vehicleBlockInputSchema>, "vehicleId" | "reason"> & {
@@ -71,9 +88,44 @@ export type BlockInput = Pick<z.infer<typeof vehicleBlockInputSchema>, "vehicleI
   note?: string | null;
 };
 
+/** Admin-only vehicle details: driver, owner, licence, notes. Never sent to customers. */
+export type VehicleAdminInfo = Pick<
+  VehicleRow,
+  | "driverId"
+  | "ownerIsDriver"
+  | "ownerName"
+  | "ownerPhone"
+  | "ownerNationalId"
+  | "ownerPhoto"
+  | "licenseNumber"
+  | "licenseExpiry"
+  | "licensePhoto"
+  | "notes"
+>;
+
+/** The linked driver as the fleet page shows them (from their staff record). */
+export type FleetDriver = {
+  id: string;
+  name: string;
+  phone: string;
+  photo: string | null;
+  nationalId: string | null;
+  drivingLicense: string | null;
+  vehicleLicense: string | null;
+  available: boolean;
+};
+
+/** One card on the admin fleet page. */
+export type FleetVehicle = VehicleListItem & {
+  plate: string;
+  admin: VehicleAdminInfo;
+  driver: FleetDriver | null;
+};
+
 /** Full editable vehicle (for prefilling the admin edit form). */
 export type VehicleEditData = VehicleDetail & {
   plate: string;
   categoryId: string;
   pricing: VehiclePricingInput;
+  admin: VehicleAdminInfo;
 };
