@@ -143,7 +143,7 @@ function DriverSummary({ d }: { d: FleetDriver }) {
           {d.phone}
         </div>
         <div className="text-xs text-muted">
-          {[d.nationalId ? "بطاقة ✓" : "بطاقة ✗", d.drivingLicense ? "رخصة قيادة ✓" : "رخصة قيادة ✗"].join(
+          {[d.hasNationalId ? "بطاقة ✓" : "بطاقة ✗", d.hasDrivingLicense ? "رخصة قيادة ✓" : "رخصة قيادة ✗"].join(
             " · ",
           )}
         </div>

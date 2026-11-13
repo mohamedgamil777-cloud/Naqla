@@ -3,8 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listVehicleBlocks } from "@/db/lib/availability";
 import { listCategories } from "@/db/lib/categories";
-import { getVehicleForEdit } from "@/db/lib/vehicles";
-import { listDrivers } from "@/db/lib/drivers";
+import { getVehicleForEdit, listFleetDrivers } from "@/db/lib/vehicles";
 import { VehicleForm } from "@/components/admin/VehicleForm";
 import { VehicleBlocks, type BlockRow } from "@/components/admin/VehicleBlocks";
 import { labelDateArabic, labelTime } from "@/lib/time";
@@ -19,7 +18,7 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
     getVehicleForEdit(id),
     listCategories(),
     listVehicleBlocks(id),
-    listDrivers(),
+    listFleetDrivers(),
   ]);
   if (!vehicle) notFound();
 
