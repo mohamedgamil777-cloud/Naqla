@@ -1,9 +1,10 @@
-import { pgTable, uuid, text, integer, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, boolean, date, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { VEHICLE_STATUSES } from "@/lib/constants";
 import { timestamps } from "./columns";
 import { branches } from "./branches";
 import { vehicleCategories } from "./vehicle-categories";
+import { users } from "./users";
 
 export const vehicles = pgTable(
   "vehicles",
@@ -27,12 +28,27 @@ export const vehicles = pgTable(
     cargoKg: integer("cargo_kg"),
     hasDriverOption: boolean("has_driver_option").notNull().default(true),
     status: text("status", { enum: VEHICLE_STATUSES }).notNull().default("available"),
+    // ---- admin only (0020): never sent to customers ----
+    /** the driver who works this vehicle (a staff account with role driver) */
+    driverId: uuid("driver_id").references(() => users.id, { onDelete: "set null" }),
+    /** true = the driver owns the vehicle; false = the owner_* fields describe the owner */
+    ownerIsDriver: boolean("owner_is_driver").notNull().default(true),
+    ownerName: text("owner_name"),
+    ownerPhone: text("owner_phone"),
+    ownerNationalId: text("owner_national_id"),
+    ownerPhoto: text("owner_photo"),
+    /** رخصة العربية */
+    licenseNumber: text("license_number"),
+    licenseExpiry: date("license_expiry"),
+    licensePhoto: text("license_photo"),
+    notes: text("notes"),
     ...timestamps,
   },
   (t) => [
     uniqueIndex("vehicles_plate_uq").on(t.plate),
     index("vehicles_category_idx").on(t.categoryId),
     index("vehicles_branch_idx").on(t.branchId),
+    index("vehicles_driver_idx").on(t.driverId),
   ],
 );
 

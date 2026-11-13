@@ -20,7 +20,7 @@ function isActive(path: string, href: string) {
 const headerItems: { href: string; label: string }[] = [
   { href: "/", label: "الرئيسية" },
   { href: "/#how", label: "كيف تعمل؟" },
-  { href: "/#fleet", label: "العربيات" },
+  { href: "/cars", label: "عربياتنا" },
   { href: "/business", label: "للشركات" },
   { href: "/help", label: "الأسئلة الشائعة" },
 ];
@@ -41,7 +41,9 @@ export function HeaderNav() {
             }`}
           >
             {it.label}
-            {active && <span className="absolute inset-x-0 bottom-3 h-0.5 rounded-full bg-booked" aria-hidden />}
+            {active && (
+              <span className="absolute inset-x-0 bottom-3 h-0.5 rounded-full bg-booked" aria-hidden />
+            )}
           </Link>
         );
       })}

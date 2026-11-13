@@ -24,6 +24,9 @@ async function readCategories(): Promise<CategoryDTO[]> {
     dims: r.dims ?? null,
     description: r.description ?? null,
     image: r.image ?? null,
+    volumeM3: r.volumeM3 ?? null,
+    bodyType: r.bodyType ?? null,
+    features: r.features ?? null,
     baseFare: r.baseFare,
     perKm: r.perKm,
   }));
@@ -42,6 +45,9 @@ export async function createCategory(input: CategoryInput): Promise<{ id: string
       dims: input.dims ?? null,
       description: input.description ?? null,
       image: input.image ?? null,
+      volumeM3: input.volumeM3 ?? null,
+      bodyType: input.bodyType ?? null,
+      features: input.features ?? null,
       baseFare: input.baseFare ?? 0,
       perKm: input.perKm ?? 0,
     })
@@ -63,6 +69,9 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
       ...(input.dims !== undefined ? { dims: input.dims } : {}),
       ...(input.description !== undefined ? { description: input.description } : {}),
       ...(input.image !== undefined ? { image: input.image } : {}),
+      ...(input.volumeM3 !== undefined ? { volumeM3: input.volumeM3 } : {}),
+      ...(input.bodyType !== undefined ? { bodyType: input.bodyType } : {}),
+      ...(input.features !== undefined ? { features: input.features } : {}),
       ...(input.baseFare !== undefined ? { baseFare: input.baseFare } : {}),
       ...(input.perKm !== undefined ? { perKm: input.perKm } : {}),
     })

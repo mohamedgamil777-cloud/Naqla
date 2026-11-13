@@ -5,6 +5,8 @@ import { vehicleCategories, vehicles, vehicleImages, pricingRules, bookings } fr
 import type { PricingRule } from "@/engines/pricing";
 import { type VehicleKind, type VehicleStatus } from "@/lib/constants";
 import type {
+  FleetVehicle,
+  VehicleAdminInfo,
   VehicleDetail,
   VehicleEditData,
   VehicleInput,
@@ -71,6 +73,53 @@ export async function listVehicles(kind?: VehicleKind): Promise<VehicleListItem[
   return rows.map((v) => toListItem(v, resolveFromRows(rules, v.id, v.categoryId)));
 }
 
+/** The admin-only columns of a vehicle row. */
+function adminInfo(v: VehicleAdminInfo): VehicleAdminInfo {
+  return {
+    driverId: v.driverId,
+    ownerIsDriver: v.ownerIsDriver,
+    ownerName: v.ownerName,
+    ownerPhone: v.ownerPhone,
+    ownerNationalId: v.ownerNationalId,
+    ownerPhoto: v.ownerPhoto,
+    licenseNumber: v.licenseNumber,
+    licenseExpiry: v.licenseExpiry,
+    licensePhoto: v.licensePhoto,
+    notes: v.notes,
+  };
+}
+
+/** Admin fleet page: every vehicle with its plate, driver and owner. Admin only. */
+export async function listFleet(): Promise<FleetVehicle[]> {
+  const [rows, rules] = await Promise.all([
+    db.query.vehicles.findMany({
+      with: {
+        ...vehicleWith,
+        driver: {
+          columns: {
+            id: true,
+            name: true,
+            phone: true,
+            photo: true,
+            nationalId: true,
+            drivingLicense: true,
+            vehicleLicense: true,
+            available: true,
+          },
+        },
+      },
+      orderBy: (vehicles) => vehicles.name,
+    }),
+    db.query.pricingRules.findMany(),
+  ]);
+  return rows.map((v) => ({
+    ...toListItem(v, resolveFromRows(rules, v.id, v.categoryId)),
+    plate: v.plate,
+    admin: adminInfo(v),
+    driver: v.driver ? { ...v.driver, name: v.driver.name ?? "" } : null,
+  }));
+}
+
 export async function getVehicle(id: string): Promise<VehicleDetail | null> {
   const [v, rules] = await Promise.all([findVehicle(id), db.query.pricingRules.findMany()]);
   if (!v) return null;
@@ -92,10 +141,10 @@ export async function getVehicle(id: string): Promise<VehicleDetail | null> {
 export async function getVehicleForEdit(id: string): Promise<VehicleEditData | null> {
   const [detail, v] = await Promise.all([
     getVehicle(id),
-    db.query.vehicles.findFirst({ where: (vehicles) => eq(vehicles.id, id), columns: { plate: true } }),
+    db.query.vehicles.findFirst({ where: (vehicles) => eq(vehicles.id, id) }),
   ]);
   if (!detail || !v) return null;
-  return { ...detail, plate: v.plate, pricing: pricingRuleToInput(detail.rule) };
+  return { ...detail, plate: v.plate, pricing: pricingRuleToInput(detail.rule), admin: adminInfo(v) };
 }
 
 export async function resolveRule(vehicleId: string): Promise<PricingRule> {
@@ -130,6 +179,15 @@ export async function defaultPricingInput(): Promise<VehiclePricingInput> {
   };
 }
 
+/** A vehicle can only be linked to a staff account with role driver. */
+export async function isDriver(userId: string): Promise<boolean> {
+  const u = await db.query.users.findFirst({
+    where: (users) => eq(users.id, userId),
+    columns: { role: true },
+  });
+  return u?.role === "driver";
+}
+
 export async function isVehicleBookable(vehicleId: string): Promise<boolean> {
   const v = await db.query.vehicles.findFirst({ where: (vehicles) => eq(vehicles.id, vehicleId) });
   return !!v && v.status !== "inactive" && v.status !== "maintenance";
@@ -162,6 +220,7 @@ export async function createVehicle(input: VehicleInput): Promise<{ id: string }
         cargoKg: input.cargoKg ?? null,
         hasDriverOption: input.hasDriverOption,
         status: input.status,
+        ...adminColumns(input),
       })
       .returning({ id: vehicles.id });
     if (input.imageUrl) {
@@ -192,6 +251,7 @@ export async function updateVehicle(id: string, input: VehicleInput): Promise<bo
         cargoKg: input.cargoKg ?? null,
         hasDriverOption: input.hasDriverOption,
         status: input.status,
+        ...adminColumns(input),
       })
       .where(eq(vehicles.id, id))
       .returning({ id: vehicles.id });
@@ -245,6 +305,23 @@ export async function deleteVehicle(id: string): Promise<{ deleted: boolean; dea
     await tx.delete(vehicles).where(eq(vehicles.id, id));
     return { deleted: true, deactivated: false };
   });
+}
+
+/** Driver / owner / licence columns from the form. When the driver owns it, the owner_* fields are cleared. */
+function adminColumns(input: VehicleInput) {
+  const own = input.ownerIsDriver ?? true;
+  return {
+    driverId: input.driverId ?? null,
+    ownerIsDriver: own,
+    ownerName: own ? null : (input.ownerName ?? null),
+    ownerPhone: own ? null : (input.ownerPhone ?? null),
+    ownerNationalId: own ? null : (input.ownerNationalId ?? null),
+    ownerPhoto: own ? null : (input.ownerPhoto ?? null),
+    licenseNumber: input.licenseNumber ?? null,
+    licenseExpiry: input.licenseExpiry ?? null,
+    licensePhoto: input.licensePhoto ?? null,
+    notes: input.notes ?? null,
+  };
 }
 
 /** The vehicle's own pricing rule (created on first save), inside the vehicle transaction. */

@@ -79,6 +79,13 @@ export const KIND_LABEL: Record<VehicleKind, string> = {
   van: "فان",
 };
 
+/** Vehicle type body (customer info). */
+export const BODY_TYPE_LABEL: Record<"closed" | "open" | "covered", string> = {
+  closed: "صندوق مقفول",
+  open: "صندوق مفتوح",
+  covered: "مفتوح بتندة",
+};
+
 /** A generated, human-friendly booking code, e.g. "10254". */
 export function newBookingCode(): string {
   // 5-digit code space starting at 10000 for a friendly reference number.

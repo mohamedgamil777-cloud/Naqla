@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createVehicleBlock, deleteVehicleBlock } from "@/db/lib/availability";
-import { createVehicle, deleteVehicle, setVehicleStatus, updateVehicle } from "@/db/lib/vehicles";
+import { createVehicle, deleteVehicle, isDriver, setVehicleStatus, updateVehicle } from "@/db/lib/vehicles";
 import { requirePermission } from "@/lib/authz";
 import { cairoDateTime } from "@/lib/time";
 import { PG_UNIQUE_VIOLATION, errorMsgs, pgErrorCode } from "@/lib/errors";
@@ -25,6 +25,7 @@ export async function saveVehicle(_prev: ActionResult, fd: FormData): Promise<Ac
   if (!id.success) return fail(errorMsgs.NotFound);
 
   try {
+    if (parsed.data.driverId && !(await isDriver(parsed.data.driverId))) return fail("السواق ده مش موجود.");
     if (id.data) {
       const updated = await updateVehicle(id.data, parsed.data);
       if (!updated) return fail("العربية مش موجودة.");
