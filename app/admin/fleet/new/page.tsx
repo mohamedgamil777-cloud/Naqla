@@ -17,7 +17,7 @@ export default async function NewVehiclePage() {
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 text-sm">
         <Link href="/admin/fleet" className="text-primary font-semibold">
-          العربيات
+          الأسطول المتاح
         </Link>
         <span className="text-muted">/ إضافة عربية</span>
       </div>

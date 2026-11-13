@@ -29,7 +29,7 @@ const nav: (AdminNavItem & { permission: Permission })[] = [
   { group: "الحسابات", href: "/admin/settlements", label: "تسديدات السواقين", icon: "banknote", permission: "payout:manage" },
   { group: "الحسابات", href: "/admin/expenses", label: "النثريات", icon: "receipt", permission: "expense:manage" },
   { group: "الحسابات", href: "/admin/reports", label: "تقارير الشركة", icon: "trendingUp", permission: "report:read" },
-  { group: "الأسطول والإعدادات", href: "/admin/fleet", label: "العربيات", icon: "truck", permission: "fleet:manage" },
+  { group: "الأسطول والإعدادات", href: "/admin/fleet", label: "الأسطول المتاح", icon: "truck", permission: "fleet:manage" },
   { group: "الأسطول والإعدادات", href: "/admin/categories", label: "الأنواع", icon: "tag", permission: "category:manage" },
   { group: "الأسطول والإعدادات", href: "/admin/content", label: "محتوى الموقع", icon: "image", permission: "content:manage" },
   { group: "الأسطول والإعدادات", href: "/admin/staff", label: "الموظفين", icon: "users", permission: "staff:manage" },
