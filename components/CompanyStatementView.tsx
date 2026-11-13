@@ -11,7 +11,7 @@ export function CompanyStatementView({ st }: { st: CompanyStatement }) {
     <article className="bg-panel border border-line rounded-card p-5 md:p-7 flex flex-col gap-5 print:border-0 print:p-0 print:shadow-none">
       <header className="flex items-start justify-between gap-4 border-b border-line pb-4">
         <div>
-          <h1 className="text-2xl font-extrabold">كشف حساب شهري</h1>
+          <h1 className="text-2xl font-extrabold">كشف حساب وفاتورة شهرية</h1>
           <div className="text-ink-2 mt-1">
             عن شهر <span className="font-bold">{monthLabel(st.month)}</span>
           </div>
@@ -72,6 +72,35 @@ export function CompanyStatementView({ st }: { st: CompanyStatement }) {
           </div>
         )}
       </section>
+
+      {st.cashTrips.length > 0 && (
+        <section>
+          <h2 className="font-extrabold mb-1">رحلات اتدفعت كاش للسواق ({st.cashTrips.length})</h2>
+          <p className="text-xs text-muted mb-2">للعلم بس: اتدفعت وقت التوصيل ومش داخلة في المستحق.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <tbody>
+                {st.cashTrips.map((o) => (
+                  <tr key={o.code} className="border-b border-line/70 align-top">
+                    <td className="py-2 px-2 whitespace-nowrap">{labelDateArabic(o.scheduledAt)}</td>
+                    <td className="py-2 px-2" dir="ltr">#{o.code}</td>
+                    <td className="py-2 px-2">{o.pickupAddress || "—"} ← {o.dropoffAddress || "—"}</td>
+                    <td className="py-2 px-2 whitespace-nowrap">{o.sizeName}</td>
+                    <td className="py-2 px-2">{o.contactName ?? "—"}</td>
+                    <td className="py-2 px-2 text-left font-bold whitespace-nowrap">{formatEgp(o.priceSnapshot.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="font-extrabold">
+                  <td className="py-2 px-2" colSpan={5}>إجمالي الكاش</td>
+                  <td className="py-2 px-2 text-left whitespace-nowrap">{formatEgp(st.cashTotal)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="font-extrabold mb-2">المدفوعات ({st.payments.length})</h2>

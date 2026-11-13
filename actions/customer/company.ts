@@ -11,14 +11,16 @@ import {
   setDefaultSavedAddress,
   updateSavedAddress,
 } from "@/db/lib/addresses";
-import { addCompanyMember, removeCompanyMember } from "@/db/lib/companies";
+import { addCompanyMember, listCompanyMembers, removeCompanyMember } from "@/db/lib/companies";
+import { setCompanyUserLogin } from "@/services/company-users";
 import { getSession } from "@/services/session";
-import { addressOwner, companyContext } from "@/services/company-service";
+import { addressOwner, canEditAddresses, companyContext } from "@/services/company-service";
 import { errorMsgs } from "@/lib/errors";
 import { actionFailure, fail, invalid, ok, throwActionFailure, type ActionResult } from "@/lib/action-result";
 import { formObject, rowRefSchema } from "@/lib/validation/fields";
 import {
   companyUserInputSchema,
+  companyUserLoginSchema,
   savedAddressInputSchema,
   savedAddressRefSchema,
 } from "@/lib/validation/company";
@@ -40,10 +42,42 @@ export async function addCompanyUser(_p: ActionResult, fd: FormData): Promise<Ac
     const c = await currentMember();
     if (!c) return fail(errorMsgs.NotAuthenticated);
     if (c.member.role !== "owner") return fail("مدير الحساب بس يقدر يضيف مستخدمين.");
-    const res = await addCompanyMember(c.company.id, parsed.data.phone, parsed.data.name, "member");
+    const { phone, name, username, password } = parsed.data;
+    const res = await addCompanyMember(c.company.id, phone, name, "member");
     if (!res.ok) return fail("الرقم ده مسجّل في حساب شركة تاني.");
+    const problem = await setCompanyUserLogin({ phone, name, username, password: password ?? null });
+    if (problem) {
+      // no half-made users: take the membership back
+      const added = (await listCompanyMembers(c.company.id)).find((m) => m.phone === phone);
+      if (added) await removeCompanyMember(c.company.id, added.id);
+      return fail(problem);
+    }
   } catch (error) {
     return actionFailure("addCompanyUser", error);
+  }
+  revalidatePath("/company");
+  return ok();
+}
+
+/** The company admin sets a user's username (and a new password when typed). */
+export async function setCompanyUserLoginAction(_p: ActionResult, fd: FormData): Promise<ActionResult> {
+  const parsed = companyUserLoginSchema.safeParse(formObject(fd));
+  if (!parsed.success) return invalid(parsed.error);
+  try {
+    const c = await currentMember();
+    if (!c) return fail(errorMsgs.NotAuthenticated);
+    if (c.member.role !== "owner") return fail("مدير الحساب بس يقدر يغيّر بيانات الدخول.");
+    const m = (await listCompanyMembers(c.company.id)).find((x) => x.id === parsed.data.id);
+    if (!m) return fail("المستخدم مش موجود.");
+    const problem = await setCompanyUserLogin({
+      phone: m.phone,
+      name: m.name,
+      username: parsed.data.username,
+      password: parsed.data.password,
+    });
+    if (problem) return fail(problem);
+  } catch (error) {
+    return actionFailure("setCompanyUserLogin", error);
   }
   revalidatePath("/company");
   return ok();
@@ -76,11 +110,13 @@ export async function deleteSavedAddressAction(fd: FormData): Promise<void> {
   refreshAddresses();
 }
 
-/** The caller's address list: their company's for members, their own otherwise (never from the form). */
+/** The caller's address list when they may change it: their own, or their company's for its admin
+ *  (never from the form). Company employees only use the list. */
 async function currentAddressOwner(): Promise<string | null> {
   const session = await getSession();
   if (!session) return null;
-  return addressOwner(session.phone, await companyContext(session.phone));
+  const ctx = await companyContext(session.phone);
+  return canEditAddresses(ctx) ? addressOwner(session.phone, ctx) : null;
 }
 
 function refreshAddresses() {
@@ -98,7 +134,7 @@ export async function saveSavedAddressAction(_p: ActionResult, fd: FormData): Pr
   const point = lat != null && lng != null ? { lat, lng } : { lat: null, lng: null };
   try {
     const owner = await currentAddressOwner();
-    if (!owner) return fail(errorMsgs.NotAuthenticated);
+    if (!owner) return fail("مدير حساب الشركة بس يقدر يضيف أو يعدّل العناوين.");
     if (id) {
       if (!(await updateSavedAddress(id, owner, { label, address, details, ...point })))
         return fail("العنوان مش موجود.");

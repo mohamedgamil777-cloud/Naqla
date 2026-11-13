@@ -114,16 +114,21 @@ export function MemberForm({ companyId }: { companyId: string }) {
   return (
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="companyId" value={companyId} />
-      <Status s={s} okText="اتضاف — يقدر يدخل برقمه ويطلب باسم الشركة" />
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_auto] gap-2">
+      <Status s={s} okText="اتضاف — يدخل باسم المستخدم وكلمة السر ويطلب باسم الشركة" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <input className={inp} name="phone" dir="ltr" required placeholder="موبايل المستخدم 01xxxxxxxxx" />
         <input className={inp} name="name" placeholder="الاسم" />
-        <select className={inp} name="role" defaultValue="member">
+        <select className={inp} name="role" defaultValue="owner">
+          <option value="owner">مدير الحساب (موظف من الشركة)</option>
           <option value="member">مستخدم</option>
-          <option value="owner">مدير الحساب</option>
         </select>
+        <input className={inp} name="username" dir="ltr" autoCapitalize="none" spellCheck={false} placeholder="اسم المستخدم مثلاً nour.admin" />
+        <input className={inp} name="password" dir="ltr" autoComplete="off" placeholder="كلمة السر (6 على الأقل)" />
         <Btn>إضافة</Btn>
       </div>
+      <p className="text-xs text-muted">
+        ضيف مدير الحساب هنا باسم مستخدم وكلمة سر. هو اللي بيضيف باقي الموظفين والعناوين من «شركتي».
+      </p>
     </form>
   );
 }

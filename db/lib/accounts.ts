@@ -1,5 +1,5 @@
 /** Login accounts: OTP, passwords, lockout, customer search and phone verification. */
-import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { otpCodes, users } from "@/db/schema";
 import type { CustomerAccountDTO, LoginAccount, Page } from "@/types";
@@ -57,6 +57,7 @@ export async function getLoginAccount(phone: string): Promise<LoginAccount | nul
     ? {
         id: u.id,
         phone: u.phone,
+        username: u.username,
         name: u.name,
         role: u.role,
         passwordHash: u.passwordHash,
@@ -67,12 +68,59 @@ export async function getLoginAccount(phone: string): Promise<LoginAccount | nul
     : null;
 }
 
+/** The account behind a login name (stored lower-case). */
+export async function getLoginAccountByUsername(username: string): Promise<LoginAccount | null> {
+  const u = await db.query.users.findFirst({ where: (users) => eq(users.username, username) });
+  return u ? (await getLoginAccount(u.phone)) : null;
+}
+
+/** Sets (or clears) an account's login name. false when another account already uses it. */
+export async function setUsername(userId: string, username: string | null): Promise<boolean> {
+  if (username) {
+    const taken = await db.query.users.findFirst({
+      where: (users) => and(eq(users.username, username), sql`${users.id} <> ${userId}`),
+      columns: { id: true },
+    });
+    if (taken) return false;
+  }
+  try {
+    await db.update(users).set({ username, updatedAt: new Date() }).where(eq(users.id, userId));
+    return true;
+  } catch (e) {
+    // lost a race for the same name (unique index)
+    const err = e as { code?: string; cause?: { code?: string } };
+    if (err.code === "23505" || err.cause?.code === "23505") return false;
+    throw e;
+  }
+}
+
+/** Login names for these phones (company users list). */
+export async function usernamesFor(phones: string[]): Promise<Map<string, string>> {
+  const list = [...new Set(phones.filter(Boolean))];
+  if (!list.length) return new Map();
+  const rows = await db.query.users.findMany({
+    where: (users) => and(inArray(users.phone, list), isNotNull(users.username)),
+    columns: { phone: true, username: true },
+  });
+  return new Map(rows.map((r) => [r.phone, r.username as string]));
+}
+
+/** Reset codes sent to this phone since `since` (rate limit). */
+export async function countOtpsSince(phone: string, since: Date): Promise<number> {
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(otpCodes)
+    .where(and(eq(otpCodes.phone, phone), gte(otpCodes.createdAt, since)));
+  return count;
+}
+
 export async function getAccountById(id: string): Promise<LoginAccount | null> {
   const u = await db.query.users.findFirst({ where: (users) => eq(users.id, id) });
   return u
     ? {
         id: u.id,
         phone: u.phone,
+        username: u.username,
         name: u.name,
         role: u.role,
         passwordHash: u.passwordHash,

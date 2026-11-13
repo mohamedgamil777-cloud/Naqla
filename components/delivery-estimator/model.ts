@@ -91,6 +91,8 @@ export interface AccountInfo {
   loggedIn: boolean;
   company: { name: string; discountPct: number; billing: "cash" | "monthly" } | null;
   saved: SavedAddr[];
+  /** false for company employees: the company admin manages the shared list */
+  canSave?: boolean;
 }
 
 export interface OrderOptions {

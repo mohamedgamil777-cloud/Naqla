@@ -4,6 +4,7 @@ import { Icon } from "@/components/Icons";
 import { inputClass } from "@/components/ui";
 import { authErrorText } from "@/lib/auth-messages";
 import { MIN_PASSWORD } from "@/lib/password-policy";
+import { ResetPasswordForm } from "@/components/ResetPasswordForm";
 
 export type AuthMode = "login" | "register";
 
@@ -15,7 +16,8 @@ type AuthFormProps = {
   onModeChange?: (mode: AuthMode) => void;
 };
 
-/** Phone + password sign-in, or a new customer account. Used by /login and by the order sign-in step. */
+/** Phone (or company username) + password sign-in, a new customer account, or a forgotten password.
+ *  Used by /login and by the order sign-in step. */
 export function AuthForm({ onSuccess, initialMode = "login", onModeChange }: AuthFormProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [phone, setPhone] = useState("");
@@ -24,6 +26,7 @@ export function AuthForm({ onSuccess, initialMode = "login", onModeChange }: Aut
   const [confirm, setConfirm] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const hintId = useId();
 
   const switchMode = (m: AuthMode) => {
@@ -61,6 +64,9 @@ export function AuthForm({ onSuccess, initialMode = "login", onModeChange }: Aut
   }
 
   const label = "flex items-center gap-1.5 mb-1.5 text-sm font-semibold";
+
+  if (resetting)
+    return <ResetPasswordForm initialLogin={phone} onSuccess={onSuccess} onBack={() => setResetting(false)} />;
 
   return (
     <div className="flex flex-col gap-4">
@@ -106,13 +112,16 @@ export function AuthForm({ onSuccess, initialMode = "login", onModeChange }: Aut
         )}
         <label>
           <span className={label}>
-            <Icon name="phone" className="w-4 h-4 text-primary" /> رقم الموبايل
+            <Icon name="phone" className="w-4 h-4 text-primary" />{" "}
+            {mode === "login" ? "رقم الموبايل أو اسم المستخدم" : "رقم الموبايل"}
           </span>
           <input
             className={`${inputClass} text-left tracking-wider`}
-            inputMode="tel"
+            inputMode={mode === "login" ? "text" : "tel"}
             autoComplete="username"
-            placeholder="01xxxxxxxxx"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder={mode === "login" ? "01xxxxxxxxx أو ahmed.nour" : "01xxxxxxxxx"}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             dir="ltr"
@@ -160,16 +169,23 @@ export function AuthForm({ onSuccess, initialMode = "login", onModeChange }: Aut
         )}
         <button
           type="submit"
-          disabled={busy || phone.length < 6 || !password}
+          disabled={busy || phone.trim().length < 3 || !password}
           className="tap mt-1 rounded-xl bg-accent text-on-accent font-semibold flex items-center justify-center gap-2 cursor-pointer hover:brightness-95 disabled:opacity-50"
         >
           {busy ? "لحظة…" : mode === "login" ? "دخول" : "اعمل الحساب"}
           <Icon name="arrowLeft" className="w-5 h-5" strokeWidth={2.2} />
         </button>
         {mode === "login" && (
-          <p className="text-center text-sm text-muted">
-            نسيت كلمة السر؟ كلّم خدمة العملاء وهيعملولك كلمة سر جديدة.
-          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setErr(null);
+              setResetting(true);
+            }}
+            className="text-center text-sm font-bold text-primary"
+          >
+            نسيت كلمة السر؟
+          </button>
         )}
       </form>
     </div>

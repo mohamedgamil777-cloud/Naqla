@@ -176,7 +176,8 @@ type SavedAddressChipsProps = {
   /** first guess for the name box (e.g. "البيت" for a pickup) */
   suggestedLabel: string;
   onPick: (address: SavedAddr) => void;
-  onSave: (label: string) => void;
+  /** null: this person can't add to the list (company employee) */
+  onSave: ((label: string) => void) | null;
 };
 
 /** Saved-address chips + "احفظ العنوان" (asks for a name in place) under an address (signed-in customers only). */
@@ -187,7 +188,7 @@ export function SavedAddressChips({ saved, value, message, suggestedLabel, onPic
   const [label, setLabel] = useState("");
 
   function save() {
-    if (!label.trim()) return;
+    if (!label.trim() || !onSave) return;
     onSave(label);
     setNaming(false);
   }
@@ -245,7 +246,7 @@ export function SavedAddressChips({ saved, value, message, suggestedLabel, onPic
           </button>
         );
       })}
-      {typed && !alreadySaved && (
+      {onSave && typed && !alreadySaved && (
         <button
           type="button"
           onClick={() => {

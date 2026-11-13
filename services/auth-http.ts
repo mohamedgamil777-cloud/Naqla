@@ -12,6 +12,8 @@ const STATUS: Record<AuthError["code"], number> = {
   STAFF_ACCOUNT: 403,
   PHONE_TAKEN: 409,
   OTP_DISABLED: 410,
+  INVALID_CODE: 400,
+  TOO_MANY_CODES: 429,
   ACCOUNT_LOCKED: 429,
 };
 

@@ -35,6 +35,9 @@ export const companyMemberInputSchema = z.object({
   companyId: id("الشركة مش موجودة."),
   phone: egyptianMobile("رقم موبايل مش صحيح (01xxxxxxxxx)."),
   name: optionalText(120),
+  /** optional for staff: the company admin can set them later */
+  username: optionalText(40),
+  password: optionalText(128),
   role: optionalText(10)
     .pipe(selectCompanyMemberSchema.shape.role.nullable().catch("member"))
     .transform((v) => v ?? "member"),
@@ -51,10 +54,21 @@ export const companyPaymentInputSchema = z.object({
   note: optionalText(500),
 });
 
-/** شركتي: the owner adds a colleague (always as a member). */
+/** شركتي: the company admin adds a colleague (always as a member) with a username + password. */
 export const companyUserInputSchema = z.object({
   phone: egyptianMobile("رقم موبايل مش صحيح (01xxxxxxxxx)."),
   name: optionalText(120),
+  username: requiredText("اكتب اسم المستخدم.", 40),
+  // empty for someone who already has an انقلي password (they keep it)
+  password: optionalText(128),
+});
+
+/** Set or change a company user's username (and optionally a new password). */
+export const companyUserLoginSchema = z.object({
+  companyId: optionalId(),
+  id: optionalId(),
+  username: requiredText("اكتب اسم المستخدم.", 40),
+  password: optionalText(128),
 });
 
 export const savedAddressRefSchema = z.object({ id: id("العنوان مش موجود.") });

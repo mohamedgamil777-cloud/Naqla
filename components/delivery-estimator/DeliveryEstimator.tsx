@@ -496,7 +496,7 @@ export function DeliveryEstimator({
         message={savedMsg?.stop === stop ? savedMsg.text : null}
         onPick={(address) => applySaved(stop, address)}
         suggestedLabel={account?.company ? (stop === "a" ? "المخزن" : "") : stop === "a" ? "البيت" : ""}
-        onSave={(label) => saveAddress(stop, label)}
+        onSave={account.canSave === false ? null : (label) => saveAddress(stop, label)}
       />
     ) : null;
 
