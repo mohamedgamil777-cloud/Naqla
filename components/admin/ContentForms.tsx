@@ -3,6 +3,7 @@ import {
   saveContactAction,
   saveHomeAction,
   saveOrderContentAction,
+  savePricingRulesAction,
   saveFaqAction,
   deleteFaqAction,
   moveFaqAction,
@@ -13,6 +14,7 @@ import { useFormStatus } from "react-dom";
 import { HeroImagesField } from "@/components/admin/HeroImagesField";
 import { FAQ_TOPICS, type AppContent, type FaqItem } from "@/lib/content";
 import { piastresToEgp } from "@/lib/money";
+import { LOAD_SIZE_LABEL, SURGE_LABEL, type LoadSize, type SurgeKey } from "@/engines/trip-rules";
 
 const inp =
   "w-full rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary";
@@ -225,6 +227,83 @@ function OrderForm({ c, sizeCodes }: { c: AppContent; sizeCodes: { code: string;
   );
 }
 
+/* ---------- قواعد التسعير ---------- */
+const FLOOR_FIELDS: [LoadSize, string][] = [
+  ["few", "floorFew"],
+  ["room", "floorRoom"],
+  ["flat2", "floorFlat2"],
+  ["flat3", "floorFlat3"],
+];
+const SURGE_FIELDS: [SurgeKey, string][] = [
+  ["weekend", "surgeWeekend"],
+  ["monthEdge", "surgeMonthEdge"],
+  ["sameDay", "surgeSameDay"],
+  ["night", "surgeNight"],
+  ["holiday", "surgeHoliday"],
+];
+
+function PricingRulesForm({ c }: { c: AppContent }) {
+  const [state, action] = useActionState<ActionResult, FormData>(savePricingRulesAction, { ok: false });
+  return (
+    <Section
+      title="قواعد التسعير"
+      hint="أسعار العربيات (فتحة العداد والكيلو ونص الساعة) من صفحة كل نوع في «الأنواع». هنا: الأدوار من غير أسانسير، والزيادة حسب اليوم والوقت. لو أكتر من زيادة تنطبق، بيتحسب الأعلى بس، على سعر العربية (مش على الأدوار والعمالة)."
+    >
+      <form action={action} className="flex flex-col gap-4">
+        <Status state={state} />
+        <div>
+          <span className={lbl}>سعر الدور الواحد من غير أسانسير (جنيه، في كل ناحية)</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-1">
+            {FLOOR_FIELDS.map(([k, name]) => (
+              <label key={k} className="flex flex-col gap-1">
+                <span className="text-xs text-muted">{LOAD_SIZE_LABEL[k]}</span>
+                <input
+                  className={inp}
+                  name={name}
+                  type="number"
+                  min="0"
+                  defaultValue={piastresToEgp(c.pricing.floorFees[k])}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+        <div>
+          <span className={lbl}>المضاعف (1 = عادي، 1.1 = زيادة 10%)</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-1">
+            {SURGE_FIELDS.map(([k, name]) => (
+              <label key={k} className="flex flex-col gap-1">
+                <span className="text-xs text-muted">{SURGE_LABEL[k]}</span>
+                <input
+                  className={inp}
+                  name={name}
+                  type="number"
+                  min="1"
+                  max="3"
+                  step="0.01"
+                  defaultValue={c.pricing.surges[k]}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+        <label className="flex flex-col gap-1">
+          <span className={lbl}>أيام العيد والأجازات (يوم في كل سطر، بالشكل 2027-03-19)</span>
+          <textarea
+            className={inp}
+            name="holidayDates"
+            rows={4}
+            dir="ltr"
+            defaultValue={c.pricing.holidayDates.join("\n")}
+            placeholder={"2027-03-18\n2027-03-19"}
+          />
+        </label>
+        <SaveBtn />
+      </form>
+    </Section>
+  );
+}
+
 /* ---------- 4) FAQs ---------- */
 function FaqEditor({ f, onDone }: { f?: FaqItem; onDone?: () => void }) {
   const [state, action] = useActionState<ActionResult, FormData>(
@@ -348,6 +427,7 @@ export function ContentForms({
     <div className="flex flex-col gap-5">
       <ContactForm c={content} />
       <OrderForm c={content} sizeCodes={sizeCodes} />
+      <PricingRulesForm c={content} />
       <HomeForm c={content} />
       <FaqList c={content} />
     </div>

@@ -19,12 +19,15 @@ import {
   homeInputSchema,
   orderContentFormValues,
   orderContentInputSchema,
+  pricingRulesFormValues,
+  pricingRulesInputSchema,
 } from "@/lib/validation/content";
 
 const CONTENT_SECTION: Record<string, string> = {
   saveContact: "أرقام التواصل",
   saveHome: "الصفحة الرئيسية",
   saveOrderContent: "صفحة الطلب",
+  savePricingRules: "قواعد التسعير (الأدوار والمضاعفات والأجازات)",
   saveFaq: "الأسئلة الشائعة",
   deleteFaq: "مسح سؤال من الأسئلة الشائعة",
   moveFaq: "ترتيب الأسئلة الشائعة",
@@ -77,6 +80,15 @@ export async function saveOrderContentAction(_p: ActionResult, fd: FormData): Pr
     c.order.maxLoaders = parsed.data.maxLoaders;
     c.order.disclaimer = parsed.data.disclaimer;
     c.order.cargo = parsed.data.cargo;
+  });
+}
+
+export async function savePricingRulesAction(_p: ActionResult, fd: FormData): Promise<ActionResult> {
+  await requirePermission("content:manage");
+  const parsed = pricingRulesInputSchema.safeParse(pricingRulesFormValues(fd));
+  if (!parsed.success) return invalid(parsed.error);
+  return update("savePricingRules", (c) => {
+    c.pricing = parsed.data;
   });
 }
 

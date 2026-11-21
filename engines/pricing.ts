@@ -81,6 +81,10 @@ export interface Quote {
   total: Piastres; // amount due now (excludes refundable deposit)
   deposit: Piastres;
   currency: "EGP";
+  /** extra time is billed per started 30 min beyond this many minutes (delivery quotes) */
+  extraTime?: { includedMinutes: number; perHalfHour: Piastres };
+  /** the day/time multiplier used (kept so a later re-price, e.g. size change, uses the same one) */
+  surge?: { mult: number; labelAr: string };
 }
 
 export interface DeliveryQuoteInput {
@@ -88,6 +92,12 @@ export interface DeliveryQuoteInput {
   km: number;
   /** Number of loaders/helpers (عمالة) requested. 0 = none. */
   loaders?: number;
+  /** Expected trip time in minutes. Missing = within the base fare's included time. */
+  minutes?: number | null;
+  /** day/time multiplier on the truck part (base + km + time); null = normal day */
+  surge?: { mult: number; labelAr: string } | null;
+  /** floors carried by stairs at each end, and the fee per floor for this load size */
+  floors?: { pickup: number; dropoff: number; perFloor: Piastres } | null;
   promo?: PromoInput | null;
 }
 
@@ -96,6 +106,18 @@ export interface DeliveryRates {
   baseFare: Piastres;
   perKm: Piastres;
   loaderFeePerPerson: Piastres;
+  /** km covered by the base fare (per-km applies only after these). */
+  includedKm?: number;
+  /** minutes covered by the base fare. */
+  includedMinutes?: number;
+  /** charge per started 30 minutes beyond the included time. */
+  perExtraHalfHour?: Piastres;
+}
+
+/** Started 30-minute blocks beyond the included time (e.g. 2h10m with 2h included → 1). */
+export function extraHalfHours(minutes: number | null | undefined, includedMinutes: number): number {
+  if (minutes == null || !Number.isFinite(minutes)) return 0;
+  return Math.max(0, Math.ceil((Math.round(minutes) - Math.max(0, includedMinutes)) / 30));
 }
 
 /**
@@ -111,17 +133,71 @@ export function computeDeliveryQuote(
 ): Quote {
   const lines: QuoteLine[] = [];
 
-  // 1. Flat base fare for the size class.
+  // 1. Flat base fare for the size class (covers the included km + time).
   const base = rates.baseFare;
-  lines.push({ key: "base", labelAr: "رسوم التوصيل الأساسية", amount: base });
+  const inclKm = Math.max(0, rates.includedKm ?? 0);
+  const inclMin = Math.max(0, rates.includedMinutes ?? 0);
+  const covers = [inclKm > 0 ? `أول ${inclKm} كم` : "", inclMin > 0 ? durationAr(inclMin) : ""]
+    .filter(Boolean)
+    .join(" + ");
+  lines.push({
+    key: "base",
+    labelAr: covers ? `فتحة العداد (تشمل ${covers})` : "رسوم التوصيل الأساسية",
+    amount: base,
+  });
 
-  // 2. Distance.
+  // 2. Distance after the included km.
   let addons = 0;
   const km = Math.max(0, input.km ?? 0);
-  if (km > 0 && rates.perKm > 0) {
-    const kmCost = Math.round(km * rates.perKm);
+  const paidKm = Math.round(Math.max(0, km - inclKm) * 10) / 10;
+  if (paidKm > 0 && rates.perKm > 0) {
+    const kmCost = Math.round(paidKm * rates.perKm);
     addons += kmCost;
-    lines.push({ key: "km", labelAr: `المسافة (${km} كم)`, amount: kmCost });
+    lines.push({
+      key: "km",
+      labelAr: inclKm > 0 ? `المسافة بعد أول ${inclKm} كم (${paidKm} كم)` : `المسافة (${paidKm} كم)`,
+      amount: kmCost,
+    });
+  }
+
+  // 2b. Extra time: every started 30 minutes beyond the included time.
+  const halves = extraHalfHours(input.minutes, inclMin);
+  if (halves > 0 && (rates.perExtraHalfHour ?? 0) > 0) {
+    const timeCost = halves * rates.perExtraHalfHour!;
+    addons += timeCost;
+    lines.push({ key: "time", labelAr: `وقت إضافي (${halves} × نص ساعة)`, amount: timeCost });
+  }
+
+  // 2c. Day/time multiplier on the truck part only.
+  const surge = input.surge && input.surge.mult > 1 ? input.surge : null;
+  if (surge) {
+    // rounded to whole pounds
+    const surgeAmt = Math.round(((base + addons) * (surge.mult - 1)) / 100) * 100;
+    addons += surgeAmt;
+    lines.push({
+      key: "surge",
+      labelAr: `${surge.labelAr} (+${Math.round((surge.mult - 1) * 100)}%)`,
+      amount: surgeAmt,
+    });
+  }
+
+  // 2d. Floors carried by stairs (no elevator), per end.
+  const f = input.floors;
+  if (f && f.perFloor > 0) {
+    for (const [key, n, where] of [
+      ["floors-a", f.pickup, "التحميل"],
+      ["floors-b", f.dropoff, "التنزيل"],
+    ] as const) {
+      const floors = Math.max(0, Math.floor(n));
+      if (floors > 0) {
+        addons += floors * f.perFloor;
+        lines.push({
+          key,
+          labelAr: `أدوار من غير أسانسير — ${where} (${floors} × ${f.perFloor / 100})`,
+          amount: floors * f.perFloor,
+        });
+      }
+    }
   }
 
   // 3. Loaders.
@@ -161,7 +237,22 @@ export function computeDeliveryQuote(
     total: taxable + vat,
     deposit: 0,
     currency: "EGP",
+    ...(inclMin > 0 && (rates.perExtraHalfHour ?? 0) > 0
+      ? { extraTime: { includedMinutes: inclMin, perHalfHour: rates.perExtraHalfHour! } }
+      : {}),
+    ...(surge ? { surge: { mult: surge.mult, labelAr: surge.labelAr } } : {}),
   };
+}
+
+/** 120 → "ساعتين", 90 → "ساعة ونص", 45 → "45 دقيقة". */
+function durationAr(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const hours = h === 0 ? "" : h === 1 ? "ساعة" : h === 2 ? "ساعتين" : `${h} ساعات`;
+  if (!hours) return `${m} دقيقة`;
+  if (m === 0) return hours;
+  if (m === 30) return `${hours} ونص`;
+  return `${hours} و${m} دقيقة`;
 }
 
 /** Cheapest composition of `hours` using the available tiers + extra-hour rate. */

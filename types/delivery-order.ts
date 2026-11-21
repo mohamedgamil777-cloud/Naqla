@@ -39,6 +39,12 @@ export type DeliveryOrderInput = Pick<OrderRow, "categoryId" | "km" | "loaders" 
       | "billing"
       | "source"
       | "agentName"
+      | "tripMinutes"
+      | "loadSize"
+      | "pickupFloor"
+      | "pickupElevator"
+      | "dropoffFloor"
+      | "dropoffElevator"
     >
   > & {
     categoryId: string;

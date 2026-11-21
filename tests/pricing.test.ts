@@ -202,6 +202,42 @@ describe("delivery (A→B) estimate", () => {
   });
 });
 
+describe("trip price table (base covers first 5 km + 2 hours)", () => {
+  // فان صغير: 350 base, 8/km after 5 km, 60 per started extra 30 min.
+  const van = {
+    baseFare: 35000,
+    perKm: 800,
+    loaderFeePerPerson: 0,
+    includedKm: 5,
+    includedMinutes: 120,
+    perExtraHalfHour: 6000,
+  };
+
+  it("charges only the base inside 5 km and 2 hours", () => {
+    const q = computeDeliveryQuote({ km: 4, minutes: 120 }, van, NO_VAT);
+    expect(q.total).toBe(35000);
+    expect(q.lines.map((l) => l.key)).toEqual(["base"]);
+    expect(q.extraTime).toEqual({ includedMinutes: 120, perHalfHour: 6000 });
+  });
+
+  it("charges km after the first 5 and each started 30 minutes after 2 hours", () => {
+    // 20 km, 3h10m → 350 + 15×8=120 + 3×60=180 = 650 EGP
+    const q = computeDeliveryQuote({ km: 20, minutes: 190 }, van, NO_VAT);
+    expect(q.lines.find((l) => l.key === "km")?.amount).toBe(12000);
+    expect(q.lines.find((l) => l.key === "time")?.amount).toBe(18000);
+    expect(q.total).toBe(65000);
+  });
+
+  it("no trip time given = no extra time", () => {
+    expect(computeDeliveryQuote({ km: 5 }, van, NO_VAT).total).toBe(35000);
+  });
+
+  it("jumbo: 30 km, 3 hours → 800 + 25×15 + 2×120 = 1415 EGP", () => {
+    const jumbo = { ...van, baseFare: 80000, perKm: 1500, perExtraHalfHour: 12000 };
+    expect(computeDeliveryQuote({ km: 30, minutes: 180 }, jumbo, NO_VAT).total).toBe(141500);
+  });
+});
+
 describe("guards", () => {
   it("throws below minimum hours", () => {
     expect(() =>

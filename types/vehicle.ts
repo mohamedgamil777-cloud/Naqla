@@ -37,6 +37,9 @@ export type CategoryDTO = Pick<
   | "features"
   | "baseFare"
   | "perKm"
+  | "includedKm"
+  | "includedMinutes"
+  | "perExtraHalfHour"
 >;
 
 export type VehicleListItem = Pick<

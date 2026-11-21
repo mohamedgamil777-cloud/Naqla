@@ -14,6 +14,16 @@ import { companyBalance } from "@/services/company-service";
 import { computeDeliveryQuote, type Quote } from "@/engines/pricing";
 import { fireNotify, deliveryCustomerMessage } from "@/services/notify";
 import { cairoDateISO, cairoDateTime } from "@/lib/time";
+import { stairFloors, surgeFor, type LoadSize } from "@/engines/trip-rules";
+
+/** What is moved and the floors at each end (the floor fee depends on the load size). */
+export interface TripLoad {
+  loadSize?: LoadSize | null;
+  pickupFloor?: number | null;
+  pickupElevator?: boolean | null;
+  dropoffFloor?: number | null;
+  dropoffElevator?: boolean | null;
+}
 
 /**
  * Turn the picked day + time into the order's start, enforcing what the order screen offers:
@@ -42,10 +52,16 @@ export interface DeliveryEstimate {
   promoError: boolean;
 }
 
-export async function estimateDelivery(params: {
+export async function estimateDelivery(params: TripLoad & {
   categoryId: string;
+  /** trip start: sets the day/time multiplier (weekend, night, same-day…); missing = normal day */
+  scheduledAt?: Date | null;
+  /** use this multiplier instead of working it out (admin re-pricing keeps the original one) */
+  surgeOverride?: { mult: number; labelAr: string } | null;
   km: number;
   loaders?: number;
+  /** expected trip time in minutes (staff phone orders); missing = within the included time */
+  minutes?: number | null;
   promoCode?: string | null;
   /** use these exact promo terms instead of validating a code (admin re-pricing) */
   promoOverride?: PromoInput | null;
@@ -60,12 +76,29 @@ export async function estimateDelivery(params: {
     baseFare: cat.baseFare,
     perKm: cat.perKm,
     loaderFeePerPerson: content.order.loaderFee, // admin → محتوى التطبيق
+    includedKm: cat.includedKm,
+    includedMinutes: cat.includedMinutes,
+    perExtraHalfHour: cat.perExtraHalfHour,
   };
+  const minutes = params.minutes ?? null;
+  const rules = content.pricing;
+  const surge =
+    params.surgeOverride !== undefined
+      ? params.surgeOverride
+      : params.scheduledAt
+        ? surgeFor(params.scheduledAt, new Date(), rules)
+        : null;
+  const pickupStairs = stairFloors(params.pickupFloor, params.pickupElevator);
+  const dropoffStairs = stairFloors(params.dropoffFloor, params.dropoffElevator);
+  const floors =
+    pickupStairs + dropoffStairs > 0
+      ? { pickup: pickupStairs, dropoff: dropoffStairs, perFloor: rules.floorFees[params.loadSize ?? "few"] }
+      : null;
   const km = Math.max(0, params.km);
   const loaders = Math.min(content.order.maxLoaders, Math.max(0, Math.floor(params.loaders ?? 0)));
 
   // First pass (no promo) to learn the subtotal for the coupon's min-value check.
-  const preview = computeDeliveryQuote({ km, loaders, promo: null }, rates, { vatRate: business.vatRate });
+  const preview = computeDeliveryQuote({ km, loaders, minutes, surge, floors, promo: null }, rates, { vatRate: business.vatRate });
 
   let promo: PromoInput | null = params.promoOverride ?? null;
   let promoError = false;
@@ -80,15 +113,17 @@ export async function estimateDelivery(params: {
     if (!promo) promoError = true;
   }
 
-  const quote = computeDeliveryQuote({ km, loaders, promo }, rates, { vatRate: business.vatRate });
+  const quote = computeDeliveryQuote({ km, loaders, minutes, surge, floors, promo }, rates, { vatRate: business.vatRate });
   return { quote, promoApplied: !!promo, promoError };
 }
 
 /** Persist an A→B delivery order. Re-prices server-side (never trusts the client). */
-export async function createDeliveryOrder(input: {
+export async function createDeliveryOrder(input: TripLoad & {
   categoryId: string;
   km: number;
   loaders?: number;
+  /** expected trip time in minutes (staff phone orders) */
+  tripMinutes?: number | null;
   promoCode?: string | null;
   pickupAddress?: string | null;
   dropoffAddress?: string | null;
@@ -117,6 +152,13 @@ export async function createDeliveryOrder(input: {
     categoryId: input.categoryId,
     km: input.km,
     loaders: input.loaders,
+    minutes: input.tripMinutes ?? null,
+    scheduledAt: input.scheduledAt,
+    loadSize: input.loadSize,
+    pickupFloor: input.pickupFloor,
+    pickupElevator: input.pickupElevator,
+    dropoffFloor: input.dropoffFloor,
+    dropoffElevator: input.dropoffElevator,
     promoCode: company ? null : input.promoCode,
     companyId: company?.id ?? null,
   });
@@ -145,6 +187,12 @@ export async function createDeliveryOrder(input: {
       dropoffLng: input.dropoffLng ?? null,
       km: Math.max(0, input.km),
       loaders: Math.max(0, Math.floor(input.loaders ?? 0)),
+      tripMinutes: input.tripMinutes != null ? Math.max(0, Math.round(input.tripMinutes)) : null,
+      loadSize: input.loadSize ?? null,
+      pickupFloor: input.pickupFloor ?? null,
+      pickupElevator: !!input.pickupElevator,
+      dropoffFloor: input.dropoffFloor ?? null,
+      dropoffElevator: !!input.dropoffElevator,
       scheduledAt: input.scheduledAt,
       contactName: input.contactName,
       contactPhone: input.contactPhone,
@@ -187,12 +235,23 @@ export async function changeDeliveryOrderSize(
   const oldDiscount = order.priceSnapshot.discount;
   const code0 =
     order.priceSnapshot.lines.find((l) => l.key === "discount")?.labelAr.match(/\((.+)\)/)?.[1] ?? null;
-  let est = await estimateDelivery({ categoryId, km: order.km, loaders: order.loaders, promoCode: code0 });
+  // same trip details and the same day/time multiplier the order was priced with
+  const trip = {
+    km: order.km,
+    loaders: order.loaders,
+    minutes: order.tripMinutes,
+    loadSize: order.loadSize as LoadSize | null, // drizzle-zod enum typing (see repo tsc notes)
+    pickupFloor: order.pickupFloor,
+    pickupElevator: order.pickupElevator,
+    dropoffFloor: order.dropoffFloor,
+    dropoffElevator: order.dropoffElevator,
+    surgeOverride: order.priceSnapshot.surge ?? null,
+  };
+  let est = await estimateDelivery({ categoryId, ...trip, promoCode: code0 });
   if (est && oldDiscount > 0 && !est.promoApplied) {
     est = await estimateDelivery({
       categoryId,
-      km: order.km,
-      loaders: order.loaders,
+      ...trip,
       promoOverride: { code: code0 ?? "خصم", type: "fixed", value: oldDiscount },
     });
   }

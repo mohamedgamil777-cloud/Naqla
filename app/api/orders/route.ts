@@ -5,6 +5,7 @@ import { pointFrom, tripDistance } from "@/services/route-service";
 import { getSession } from "@/services/session";
 import { companyContext } from "@/services/company-service";
 import { withErrorHandling } from "@/lib/route";
+import { tripLoadJson } from "@/lib/validation/delivery-order";
 
 const Body = z.object({
   categoryId: z.guid(),
@@ -25,6 +26,7 @@ const Body = z.object({
   dropoffLng: z.number().optional().nullable(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.string().regex(/^\d{2}:\d{2}$/),
+  ...tripLoadJson,
 });
 
 export const POST = withErrorHandling("POST /api/orders", async function POST(req: NextRequest) {
@@ -59,6 +61,11 @@ export const POST = withErrorHandling("POST /api/orders", async function POST(re
     categoryId: d.categoryId,
     km: trip.km,
     loaders: d.loaders,
+    loadSize: d.loadSize,
+    pickupFloor: d.pickupFloor,
+    pickupElevator: d.pickupElevator,
+    dropoffFloor: d.dropoffFloor,
+    dropoffElevator: d.dropoffElevator,
     promoCode: d.promoCode,
     pickupAddress: d.pickupAddress,
     dropoffAddress: d.dropoffAddress,

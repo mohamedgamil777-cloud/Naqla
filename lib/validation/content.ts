@@ -90,3 +90,42 @@ export const faqRefSchema = z.object({ id: requiredText("السؤال مش مو�
 export const faqMoveSchema = faqRefSchema.extend({
   dir: optionalText(4).transform((v) => (v === "up" ? "up" : "down")),
 });
+
+const multiplier = (label: string) =>
+  requiredNumber(`${label}: المضاعف لازم يكون رقم من 1 لـ 3 (1 = مفيش زيادة).`, { min: 1, max: 3 });
+
+/** Admin → قواعد التسعير: floors without elevator, day/time multipliers, holiday dates. */
+export const pricingRulesInputSchema = z.object({
+  floorFees: z.object({
+    few: egpAmount("سعر الدور (حاجات قليلة) لازم يكون رقم."),
+    room: egpAmount("سعر الدور (أوضة) لازم يكون رقم."),
+    flat2: egpAmount("سعر الدور (شقة أوضتين) لازم يكون رقم."),
+    flat3: egpAmount("سعر الدور (شقة 3 أوض) لازم يكون رقم."),
+  }),
+  surges: z.object({
+    weekend: multiplier("جمعة أو سبت"),
+    monthEdge: multiplier("أول وآخر 3 أيام في الشهر"),
+    sameDay: multiplier("حجز قبل الميعاد بأقل من 3 ساعات"),
+    night: multiplier("بالليل"),
+    holiday: multiplier("قبل العيد والأجازات"),
+  }),
+  /** one date per line, YYYY-MM-DD */
+  holidayDates: optionalText(4000).transform((v) =>
+    [...new Set((v ?? "").split(/[\s,]+/).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)))].sort(),
+  ),
+});
+
+export function pricingRulesFormValues(fd: FormData) {
+  const g = (k: string) => fd.get(k);
+  return {
+    floorFees: { few: g("floorFew"), room: g("floorRoom"), flat2: g("floorFlat2"), flat3: g("floorFlat3") },
+    surges: {
+      weekend: g("surgeWeekend"),
+      monthEdge: g("surgeMonthEdge"),
+      sameDay: g("surgeSameDay"),
+      night: g("surgeNight"),
+      holiday: g("surgeHoliday"),
+    },
+    holidayDates: g("holidayDates"),
+  };
+}

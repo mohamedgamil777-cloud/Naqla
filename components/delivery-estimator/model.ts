@@ -28,6 +28,14 @@ export interface StopState {
   floor: string;
   apartment: string;
   landmark: string;
+  /** an elevator the things fit in (no stairs fee for this end) */
+  elevator: boolean;
+}
+
+/** The typed floor as a number for pricing ("3", "٣", "الدور 3" → 3; "أرضي" / empty → 0). */
+export function floorNumber(floor: string): number {
+  const digits = floor.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).match(/\d+/);
+  return digits ? Math.min(60, Number(digits[0])) : 0;
 }
 
 export const emptyStop = (): StopState => ({
@@ -37,6 +45,7 @@ export const emptyStop = (): StopState => ({
   floor: "",
   apartment: "",
   landmark: "",
+  elevator: false,
 });
 
 const DETAIL_PARTS = [

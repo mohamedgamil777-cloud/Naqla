@@ -22,6 +22,12 @@ export const vehicleCategories = pgTable("vehicle_categories", {
   features: text("features"),
   baseFare: integer("base_fare").notNull().default(0),
   perKm: integer("per_km").notNull().default(0),
+  /** km covered by the base fare; per-km is charged only after these */
+  includedKm: integer("included_km").notNull().default(0),
+  /** trip minutes covered by the base fare (e.g. 120 = 2 hours) */
+  includedMinutes: integer("included_minutes").notNull().default(0),
+  /** charge per started 30 minutes beyond the included time (piastres) */
+  perExtraHalfHour: integer("per_extra_half_hour").notNull().default(0),
   ...timestamps,
 });
 
