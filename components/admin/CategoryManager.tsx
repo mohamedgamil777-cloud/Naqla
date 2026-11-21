@@ -106,7 +106,10 @@ function Fields({ c }: { c?: CategoryDTO }) {
         </div>
       </Section>
 
-      <Section title="السعر">
+      <Section
+        title="السعر"
+        note="فتحة العداد بتشمل أول كام كيلو وأول كام ساعة. بعدها: الكيلو بسعره، وكل نص ساعة زيادة (ولو بدأت) بسعرها."
+      >
         <label className="flex flex-col gap-1">
           <span className={lbl}>سعر البداية (جنيه)</span>
           <input
@@ -127,7 +130,41 @@ function Fields({ c }: { c?: CategoryDTO }) {
             min="0"
             step="0.5"
             defaultValue={c ? piastresToEgp(c.perKm) : ""}
-            placeholder="6"
+            placeholder="8"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={lbl}>كيلومترات داخل فتحة العداد</span>
+          <input
+            className={inp}
+            name="includedKm"
+            type="number"
+            min="0"
+            defaultValue={c ? c.includedKm : 5}
+            placeholder="5"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={lbl}>ساعات داخل فتحة العداد</span>
+          <input
+            className={inp}
+            name="includedMinutes"
+            type="number"
+            min="0"
+            step="0.5"
+            defaultValue={c ? c.includedMinutes / 60 : 2}
+            placeholder="2"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={lbl}>كل نص ساعة زيادة (جنيه)</span>
+          <input
+            className={inp}
+            name="perExtraHalfHour"
+            type="number"
+            min="0"
+            defaultValue={c ? piastresToEgp(c.perExtraHalfHour) : ""}
+            placeholder="60"
           />
         </label>
       </Section>

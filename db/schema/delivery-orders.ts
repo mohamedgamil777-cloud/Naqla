@@ -8,6 +8,7 @@ import {
   index,
   uniqueIndex,
   real,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -38,6 +39,14 @@ export const deliveryOrders = pgTable(
     dropoffLng: real("dropoff_lng"),
     km: real("km").notNull().default(0),
     loaders: integer("loaders").notNull().default(0),
+    /** expected trip time in minutes (staff phone orders); null = within the base fare's time */
+    tripMinutes: integer("trip_minutes"),
+    /** few / room / flat2 / flat3 — sets the price per floor without elevator */
+    loadSize: text("load_size", { enum: ["few", "room", "flat2", "flat3"] }),
+    pickupFloor: integer("pickup_floor"),
+    pickupElevator: boolean("pickup_elevator").notNull().default(false),
+    dropoffFloor: integer("dropoff_floor"),
+    dropoffElevator: boolean("dropoff_elevator").notNull().default(false),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
     /** A driver with orders cannot be deleted (RESTRICT, 0016): driver fees are settled from these rows. */
     driverId: uuid("driver_id").references(() => users.id, { onDelete: "restrict" }),

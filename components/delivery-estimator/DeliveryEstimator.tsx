@@ -13,6 +13,7 @@ import type { Quote } from "@/engines/pricing";
 import { AuthGate } from "./AuthGate";
 import { LocationHelp } from "./LocationHelp";
 import { ExtrasSection } from "./ExtrasSection";
+import type { LoadSize } from "@/engines/trip-rules";
 import { CompanyBanner, OrderPlaced, Stepper } from "./OrderHeader";
 import { OrderBar } from "./OrderBar";
 import {
@@ -35,6 +36,7 @@ import {
   cairoNowMinutes,
   composeDetails,
   emptyStop,
+  floorNumber,
   parseDetails,
   slotMinutes,
   timeSlots,
@@ -180,6 +182,7 @@ export function DeliveryEstimator({
 
   // ---- details + price ----
   const [loaders, setLoaders] = useState(0);
+  const [loadSize, setLoadSize] = useState<LoadSize>("few");
   const [notes, setNotes] = useState("");
   const [appliedPromo, setAppliedPromo] = useState("");
   const [promoMsg, setPromoMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -252,6 +255,7 @@ export function DeliveryEstimator({
     // typed addresses / km only matter without pins (plain fields)
     plain && !(stops.a.point && stops.b.point) ? [stops.a.address.trim(), stops.b.address.trim(), km] : null,
   ]);
+  const floorKey = [floorNumber(stops.a.floor), stops.a.elevator, floorNumber(stops.b.floor), stops.b.elevator].join();
   useEffect(() => {
     if (!canPrice) {
       setQuote(null);
@@ -270,6 +274,13 @@ export function DeliveryEstimator({
             body: JSON.stringify({
               categoryId: sizeId,
               loaders,
+              date,
+              time: time || null,
+              loadSize,
+              pickupFloor: floorNumber(a.floor),
+              pickupElevator: a.elevator,
+              dropoffFloor: floorNumber(b.floor),
+              dropoffElevator: b.elevator,
               promoCode: appliedPromo || null,
               pickupLat: a.point?.lat ?? null,
               pickupLng: a.point?.lng ?? null,
@@ -313,7 +324,7 @@ export function DeliveryEstimator({
       clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- tripKey stands for the stops
-  }, [canPrice, sizeId, tripKey, loaders, appliedPromo, routeRetry]);
+  }, [canPrice, sizeId, tripKey, loaders, appliedPromo, routeRetry, date, time, loadSize, floorKey]);
 
   function pickHint(label: string) {
     setHint(label);
@@ -429,6 +440,11 @@ export function DeliveryEstimator({
           categoryId: sizeId,
           km, // ignored by the server once it can measure the trip itself
           loaders,
+          loadSize,
+          pickupFloor: floorNumber(a.floor),
+          pickupElevator: a.elevator,
+          dropoffFloor: floorNumber(b.floor),
+          dropoffElevator: b.elevator,
           promoCode: appliedPromo || null,
           pickupAddress: a.address.trim(),
           dropoffAddress: b.address.trim(),
@@ -601,6 +617,8 @@ export function DeliveryEstimator({
         />
 
         <ExtrasSection
+          loadSize={loadSize}
+          onLoadSize={setLoadSize}
           loaders={loaders}
           maxLoaders={options.maxLoaders}
           loaderFee={loaderFee}

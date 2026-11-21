@@ -110,6 +110,15 @@ export function BookingStatusBadge({ status }: { status: BookingStatus }) {
 }
 
 /** Transparent, itemized price breakdown (§9, §11 — never hide fees). */
+/** 120 → "ساعتين", 90 → "ساعة ونص", 180 → "3 ساعات". */
+function hoursAr(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const hours = h === 0 ? "" : h === 1 ? "ساعة" : h === 2 ? "ساعتين" : `${h} ساعات`;
+  if (!hours) return `${m} دقيقة`;
+  return m === 0 ? hours : m === 30 ? `${hours} ونص` : `${hours} و${m} دقيقة`;
+}
+
 export function PriceBreakdown({ quote }: { quote: Quote }) {
   return (
     <div className="bg-panel-2 rounded-2xl p-4">
@@ -131,6 +140,12 @@ export function PriceBreakdown({ quote }: { quote: Quote }) {
       {quote.deposit > 0 && (
         <p className="mt-2 text-sm text-muted">
           + تأمين مسترد {formatEgp(quote.deposit)} (يُرد بعد فحص العربية)
+        </p>
+      )}
+      {quote.extraTime && (
+        <p className="mt-2 text-sm text-muted">
+          السعر بيشمل أول {hoursAr(quote.extraTime.includedMinutes)} من وقت الرحلة. كل نص ساعة زيادة (ولو
+          بدأت): {formatEgp(quote.extraTime.perHalfHour)}.
         </p>
       )}
     </div>

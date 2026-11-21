@@ -1,4 +1,5 @@
 "use server";
+import { cairoDateTime } from "@/lib/time";
 /** Admin → طلبات التوصيل: phone orders and order management. Every action re-checks the permission. */
 import { revalidatePath } from "next/cache";
 import {
@@ -40,6 +41,14 @@ export async function quotePhoneOrder(input: {
   categoryId: string;
   km: number;
   loaders: number;
+  tripMinutes?: number | null;
+  date?: string | null;
+  time?: string | null;
+  loadSize?: string | null;
+  pickupFloor?: number | null;
+  pickupElevator?: boolean;
+  dropoffFloor?: number | null;
+  dropoffElevator?: boolean;
   promoCode: string;
   companyId: string;
 }): Promise<DeliveryEstimate | null> {
@@ -52,6 +61,13 @@ export async function quotePhoneOrder(input: {
       categoryId: q.categoryId,
       km: q.km,
       loaders: q.loaders,
+      minutes: q.tripMinutes,
+      scheduledAt: q.date && q.time ? cairoDateTime(q.date, ...(q.time.split(":").map(Number) as [number, number])) : null,
+      loadSize: q.loadSize,
+      pickupFloor: q.pickupFloor,
+      pickupElevator: q.pickupElevator,
+      dropoffFloor: q.dropoffFloor,
+      dropoffElevator: q.dropoffElevator,
       promoCode: q.companyId ? null : q.promoCode || null,
       companyId: q.companyId || null,
     });

@@ -29,6 +29,9 @@ async function readCategories(): Promise<CategoryDTO[]> {
     features: r.features ?? null,
     baseFare: r.baseFare,
     perKm: r.perKm,
+    includedKm: r.includedKm,
+    includedMinutes: r.includedMinutes,
+    perExtraHalfHour: r.perExtraHalfHour,
   }));
 }
 
@@ -50,6 +53,9 @@ export async function createCategory(input: CategoryInput): Promise<{ id: string
       features: input.features ?? null,
       baseFare: input.baseFare ?? 0,
       perKm: input.perKm ?? 0,
+      includedKm: input.includedKm ?? 0,
+      includedMinutes: input.includedMinutes ?? 0,
+      perExtraHalfHour: input.perExtraHalfHour ?? 0,
     })
     .returning({ id: vehicleCategories.id });
   invalidate(CACHE_TAGS.categories);
@@ -74,6 +80,9 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
       ...(input.features !== undefined ? { features: input.features } : {}),
       ...(input.baseFare !== undefined ? { baseFare: input.baseFare } : {}),
       ...(input.perKm !== undefined ? { perKm: input.perKm } : {}),
+      ...(input.includedKm !== undefined ? { includedKm: input.includedKm } : {}),
+      ...(input.includedMinutes !== undefined ? { includedMinutes: input.includedMinutes } : {}),
+      ...(input.perExtraHalfHour !== undefined ? { perExtraHalfHour: input.perExtraHalfHour } : {}),
     })
     .where(eq(vehicleCategories.id, id));
   invalidate(CACHE_TAGS.categories);

@@ -5,6 +5,8 @@ import { pointFrom, tripDistance } from "@/services/route-service";
 import { getSession } from "@/services/session";
 import { companyContext } from "@/services/company-service";
 import { withErrorHandling } from "@/lib/route";
+import { tripLoadJson } from "@/lib/validation/delivery-order";
+import { cairoDateTime } from "@/lib/time";
 
 const Body = z.object({
   categoryId: z.guid(),
@@ -18,6 +20,10 @@ const Body = z.object({
   dropoffAddress: z.string().max(300).optional().nullable(),
   loaders: z.number().int().min(0).max(10).optional(),
   promoCode: z.string().max(40).optional().nullable(),
+  /** the picked day + time: prices weekend / night / same-day / holiday multipliers */
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  time: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+  ...tripLoadJson,
 });
 
 export const POST = withErrorHandling("POST /api/estimate", async function POST(req: NextRequest) {
@@ -46,6 +52,12 @@ export const POST = withErrorHandling("POST /api/estimate", async function POST(
     categoryId: d.categoryId,
     km: trip.km,
     loaders: d.loaders,
+    scheduledAt: d.date && d.time ? cairoDateTime(d.date, ...(d.time.split(":").map(Number) as [number, number])) : null,
+    loadSize: d.loadSize,
+    pickupFloor: d.pickupFloor,
+    pickupElevator: d.pickupElevator,
+    dropoffFloor: d.dropoffFloor,
+    dropoffElevator: d.dropoffElevator,
     promoCode: d.promoCode,
     companyId: ctx?.company.id ?? null,
   });

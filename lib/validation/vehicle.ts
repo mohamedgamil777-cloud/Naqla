@@ -117,6 +117,14 @@ export const categoryInputSchema = z.object({
   features: optionalText(1000),
   baseFare: egpAmount("فتحة العداد مش صحيحة."),
   perKm: egpAmount("سعر الكيلو مش صحيح."),
+  includedKm: optionalNumber("الكيلومترات اللي في فتحة العداد مش صحيحة.", { min: 0, max: 1000 }).transform(
+    (v) => Math.round(v ?? 0),
+  ),
+  /** entered in hours on the form, stored in minutes */
+  includedMinutes: optionalNumber("الوقت اللي في فتحة العداد مش صحيح.", { min: 0, max: 48 }).transform((v) =>
+    Math.round((v ?? 0) * 60),
+  ),
+  perExtraHalfHour: egpAmount("سعر نص الساعة الزيادة مش صحيح."),
 });
 
 export const renameCategoryInputSchema = categoryInputSchema.pick({ name: true, kind: true }).extend({

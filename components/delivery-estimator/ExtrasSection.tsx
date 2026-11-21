@@ -2,8 +2,11 @@
 import { useState } from "react";
 import { Icon } from "@/components/Icons";
 import { formatEgp } from "@/lib/money";
+import { LOAD_SIZES, LOAD_SIZE_LABEL, type LoadSize } from "@/engines/trip-rules";
 
 type ExtrasSectionProps = {
+  loadSize: LoadSize;
+  onLoadSize: (v: LoadSize) => void;
   loaders: number;
   maxLoaders: number;
   /** per-person loader fee (piastres) */
@@ -23,6 +26,23 @@ type ExtrasSectionProps = {
 export function ExtrasSection(props: ExtrasSectionProps) {
   return (
     <section id="sec-details" className="scroll-mt-20 flex flex-col gap-3">
+      <label className="bg-panel border border-line rounded-card p-4 flex flex-col gap-2">
+        <span className="flex items-center gap-3 font-extrabold">
+          <Icon name="sofa" className="w-7 h-7 text-ink-2 shrink-0" /> حجم الحاجة اللي هتتنقل
+        </span>
+        <select
+          value={props.loadSize}
+          onChange={(e) => props.onLoadSize(e.target.value as LoadSize)}
+          className="rounded-xl bg-panel border border-line-2 px-3.5 py-2.5 text-base outline-none focus:border-primary"
+        >
+          {LOAD_SIZES.map((k) => (
+            <option key={k} value={k}>
+              {LOAD_SIZE_LABEL[k]}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-muted">بيحدد سعر الدور لو مفيش أسانسير.</span>
+      </label>
       <LoadersCounter
         value={props.loaders}
         max={props.maxLoaders}

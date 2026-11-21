@@ -3,6 +3,7 @@
  * options). Stored as ONE JSON document; anything missing falls back to DEFAULT_CONTENT,
  * so adding a field later never breaks an older saved document.
  */
+import { DEFAULT_PRICING_RULES, withPricingDefaults, type PricingRules } from "@/engines/trip-rules";
 
 export type FaqTopic = "order" | "price" | "driver" | "payment" | "cancel";
 export type CargoIcon = "file" | "box" | "sofa" | "home" | "truck" | "washer" | "store" | "bricks" | "tools";
@@ -39,6 +40,8 @@ export interface AppContent {
     disclaimer: string;
     cargo: CargoOption[];
   };
+  /** floors without elevator, day/time multipliers, holiday dates (used by the price engine) */
+  pricing: PricingRules;
 }
 
 export const FAQ_TOPICS: { id: FaqTopic; label: string }[] = [
@@ -157,6 +160,7 @@ export const DEFAULT_CONTENT: AppContent = {
       { label: "نقل معدات", size: "L", icon: "tools" },
     ],
   },
+  pricing: DEFAULT_PRICING_RULES,
 };
 
 /** Fill any missing keys of a stored (possibly older) document with defaults. */
@@ -175,6 +179,7 @@ export function withDefaults(saved: Partial<AppContent> | null | undefined): App
     })(),
     faqs: Array.isArray(s.faqs) ? s.faqs : d.faqs,
     order: { ...d.order, ...(s.order ?? {}) },
+    pricing: withPricingDefaults(s.pricing),
   };
 }
 

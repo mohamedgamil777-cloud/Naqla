@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { selectDeliveryOrderSchema } from "@/db/schema";
 import {
+  checkbox,
   choice,
   egpAmount,
   egyptianMobile,
@@ -34,6 +35,17 @@ export const phoneOrderInputSchema = z.object({
     z.string().regex(/^\d{2}:\d{2}$/, "اختار اليوم والساعة."),
   ),
   loaders: optionalNumber("عدد العمال مش صحيح.", { min: 0, max: 10 }).transform((v) => Math.floor(v ?? 0)),
+  /** expected trip time in minutes; empty = within the base fare's time */
+  tripMinutes: optionalNumber("مدة الرحلة مش صحيحة.", { min: 0, max: 24 * 60 }).transform((v) =>
+    v == null ? null : Math.round(v),
+  ),
+  loadSize: optionalText(10).transform((v) =>
+    v === "few" || v === "room" || v === "flat2" || v === "flat3" ? v : null,
+  ),
+  pickupFloor: optionalNumber("دور التحميل مش صحيح.", { min: 0, max: 60, int: true }),
+  pickupElevator: checkbox(),
+  dropoffFloor: optionalNumber("دور التنزيل مش صحيح.", { min: 0, max: 60, int: true }),
+  dropoffElevator: checkbox(),
   promoCode: optionalText(40),
   pickupDetails: optionalText(300),
   dropoffDetails: optionalText(300),
@@ -47,6 +59,14 @@ export const phoneOrderQuoteSchema = z.object({
   categoryId: z.string(),
   km: z.number(),
   loaders: z.number().int().min(0).max(10).catch(0),
+  tripMinutes: z.number().int().min(0).max(24 * 60).nullable().catch(null),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().catch(null),
+  time: z.string().regex(/^\d{2}:\d{2}$/).nullable().catch(null),
+  loadSize: z.enum(["few", "room", "flat2", "flat3"]).nullable().catch(null),
+  pickupFloor: z.number().int().min(0).max(60).nullable().catch(null),
+  pickupElevator: z.boolean().catch(false),
+  dropoffFloor: z.number().int().min(0).max(60).nullable().catch(null),
+  dropoffElevator: z.boolean().catch(false),
   promoCode: z.string().max(40).catch(""),
   companyId: z.string().catch(""),
 });
@@ -89,3 +109,12 @@ export const rateOrderInputSchema = z.object({
 });
 
 export type DeliveryStatus = z.infer<typeof selectDeliveryOrderSchema>["status"];
+
+/** JSON API fields (customer site / phone apps): load size and floors at each end. All optional. */
+export const tripLoadJson = {
+  loadSize: z.enum(["few", "room", "flat2", "flat3"]).optional().nullable(),
+  pickupFloor: z.number().int().min(0).max(60).optional().nullable(),
+  pickupElevator: z.boolean().optional().nullable(),
+  dropoffFloor: z.number().int().min(0).max(60).optional().nullable(),
+  dropoffElevator: z.boolean().optional().nullable(),
+};

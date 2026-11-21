@@ -151,6 +151,15 @@ export function StopFields({
               />
             </label>
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={value.elevator}
+              onChange={(e) => onChange({ elevator: e.target.checked })}
+              className="w-4 h-4 accent-primary"
+            />
+            فيه أسانسير الحاجة تدخله (من غير أسانسير: كل دور بسعر)
+          </label>
           <label>
             <span className={smallLabel}>علامة مميزة (اختياري)</span>
             <input

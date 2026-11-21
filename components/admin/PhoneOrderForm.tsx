@@ -3,6 +3,7 @@ import { createPhoneOrder, quotePhoneOrder, type PhoneOrderState } from "@/actio
 import { startTransition, useActionState, useEffect, useState } from "react";
 import { PriceBreakdown } from "@/components/ui";
 import type { DeliveryEstimate } from "@/services/delivery-service";
+import { LOAD_SIZES, LOAD_SIZE_LABEL, type LoadSize } from "@/engines/trip-rules";
 
 const inp =
   "w-full rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-base outline-none focus:border-primary";
@@ -10,6 +11,16 @@ const lbl = "block text-sm font-bold text-ink-2 mb-1.5";
 
 type Size = { id: string; name: string; sizeCode: string; capacityKg: number | null };
 type Company = { id: string; name: string; billing: "cash" | "monthly" };
+
+/** 1 hour … 10 hours, in 30-minute steps (minutes). */
+const TRIP_DURATIONS = Array.from({ length: 19 }, (_, i) => 60 + i * 30);
+
+function durationLabel(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const half = minutes % 60 === 30;
+  const hours = h === 1 ? "ساعة" : h === 2 ? "ساعتين" : `${h} ساعات`;
+  return half ? `${hours} ونص` : hours;
+}
 
 export function PhoneOrderForm({
   sizes,
@@ -33,6 +44,14 @@ export function PhoneOrderForm({
   const [categoryId, setCategoryId] = useState("");
   const [km, setKm] = useState("");
   const [loaders, setLoaders] = useState(0);
+  const [tripMinutes, setTripMinutes] = useState(120);
+  const [loadSize, setLoadSize] = useState<LoadSize>("few");
+  const [pickupFloor, setPickupFloor] = useState("");
+  const [pickupElevator, setPickupElevator] = useState(false);
+  const [dropoffFloor, setDropoffFloor] = useState("");
+  const [dropoffElevator, setDropoffElevator] = useState(false);
+  const [date, setDate] = useState(minDate);
+  const [time, setTime] = useState("");
   const [promo, setPromo] = useState("");
   const [companyId, setCompanyId] = useState("");
   const [est, setEst] = useState<DeliveryEstimate | null>(null);
@@ -45,10 +64,38 @@ export function PhoneOrderForm({
       return;
     }
     const t = setTimeout(async () => {
-      setEst(await quotePhoneOrder({ categoryId, km: n, loaders, promoCode: promo.trim(), companyId }));
+      setEst(await quotePhoneOrder({
+          categoryId,
+          km: n,
+          loaders,
+          tripMinutes,
+          date,
+          time: time || null,
+          loadSize,
+          pickupFloor: pickupFloor === "" ? null : Number(pickupFloor),
+          pickupElevator,
+          dropoffFloor: dropoffFloor === "" ? null : Number(dropoffFloor),
+          dropoffElevator,
+          promoCode: promo.trim(),
+          companyId,
+        }),);
     }, 350);
     return () => clearTimeout(t);
-  }, [categoryId, km, loaders, promo, companyId]);
+  }, [
+    categoryId,
+    km,
+    loaders,
+    tripMinutes,
+    date,
+    time,
+    loadSize,
+    pickupFloor,
+    pickupElevator,
+    dropoffFloor,
+    dropoffElevator,
+    promo,
+    companyId,
+  ]);
 
   if (state.ok && state.code) {
     return (
@@ -147,6 +194,52 @@ export function PhoneOrderForm({
             <input className={inp} name="dropoffDetails" />
           </label>
         </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <label>
+            <span className={lbl}>دور التحميل</span>
+            <input
+              className={inp}
+              name="pickupFloor"
+              type="number"
+              min="0"
+              max="60"
+              placeholder="0 = أرضي"
+              value={pickupFloor}
+              onChange={(e) => setPickupFloor(e.target.value)}
+            />
+          </label>
+          <label className="flex items-center gap-2 pt-6">
+            <input
+              type="checkbox"
+              name="pickupElevator"
+              checked={pickupElevator}
+              onChange={(e) => setPickupElevator(e.target.checked)}
+            />
+            <span className="text-sm font-bold">فيه أسانسير الحاجة تدخله</span>
+          </label>
+          <label>
+            <span className={lbl}>دور التنزيل</span>
+            <input
+              className={inp}
+              name="dropoffFloor"
+              type="number"
+              min="0"
+              max="60"
+              placeholder="0 = أرضي"
+              value={dropoffFloor}
+              onChange={(e) => setDropoffFloor(e.target.value)}
+            />
+          </label>
+          <label className="flex items-center gap-2 pt-6">
+            <input
+              type="checkbox"
+              name="dropoffElevator"
+              checked={dropoffElevator}
+              onChange={(e) => setDropoffElevator(e.target.checked)}
+            />
+            <span className="text-sm font-bold">فيه أسانسير الحاجة تدخله</span>
+          </label>
+        </div>
         <label>
           <span className={lbl}>المسافة (كم)</span>
           <input
@@ -220,6 +313,40 @@ export function PhoneOrderForm({
               ))}
             </select>
           </label>
+          <label>
+            <span className={lbl}>حجم العفش</span>
+            <select
+              className={inp}
+              name="loadSize"
+              value={loadSize}
+              onChange={(e) => setLoadSize(e.target.value as LoadSize)}
+            >
+              {LOAD_SIZES.map((k) => (
+                <option key={k} value={k}>
+                  {LOAD_SIZE_LABEL[k]}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-muted block mt-1">بيحدد سعر الدور لو مفيش أسانسير.</span>
+          </label>
+          <label>
+            <span className={lbl}>مدة الرحلة المتوقعة</span>
+            <select
+              className={inp}
+              name="tripMinutes"
+              value={tripMinutes}
+              onChange={(e) => setTripMinutes(Number(e.target.value))}
+            >
+              {TRIP_DURATIONS.map((m) => (
+                <option key={m} value={m}>
+                  {durationLabel(m)}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-muted block mt-1">
+              السعر الأساسي بيشمل أول ساعتين. كل نص ساعة زيادة بتتحسب لوحدها.
+            </span>
+          </label>
           {!company && (
             <label>
               <span className={lbl}>كود خصم (اختياري)</span>
@@ -248,13 +375,14 @@ export function PhoneOrderForm({
               type="date"
               min={minDate}
               max={maxDate}
-              defaultValue={minDate}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
               required
             />
           </label>
           <label>
             <span className={lbl}>الساعة</span>
-            <select className={inp} name="time" defaultValue="" required>
+            <select className={inp} name="time" value={time} onChange={(e) => setTime(e.target.value)} required>
               <option value="">— اختار —</option>
               {times.map((t) => (
                 <option key={t} value={t}>
